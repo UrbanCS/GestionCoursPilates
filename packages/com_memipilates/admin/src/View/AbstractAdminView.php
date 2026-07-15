@@ -88,7 +88,10 @@ abstract class AbstractAdminView extends BaseHtmlView
     /** Adds the native Joomla component-settings button for authorised staff. */
     private function addComponentToolbar(): void
     {
-        if (!$this->hasAnyPermission(['core.options', 'settings.manage'])) {
+        if (
+            !$this->identity?->authorise('core.admin', 'com_memipilates')
+            && !$this->identity?->authorise('core.options', 'com_memipilates')
+        ) {
             return;
         }
 

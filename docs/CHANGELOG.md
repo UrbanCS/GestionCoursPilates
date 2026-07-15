@@ -2,6 +2,17 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.0.4] - 2026-07-15
+
+### Corrigé
+
+- Correction de la racine du formulaire de configuration afin que Joomla 6 affiche les paramètres du composant.
+
+### Validation connue
+
+- Archive : `dist/pkg_memipilates-1.0.4.zip`
+- SHA-256 : `C4A5A5F1B0683D246C053692A51AFE7DC6355014FA7ACD9FDD636175FC1C9E4E`
+
 ## [1.0.3] - 2026-07-15
 
 ### Corrigé
