@@ -1,0 +1,167 @@
+/*
+ * Public schedule styles. Every selector is scoped to com_memipilates so the
+ * active Joomla template remains the source of the site's global styling.
+ */
+[data-memi-schedule] {
+  --memi-schedule-surface: var(--body-bg, #fff);
+  --memi-schedule-ink: var(--body-color, #202124);
+  --memi-schedule-muted: color-mix(in srgb, var(--memi-schedule-ink) 62%, transparent);
+  --memi-schedule-border: color-mix(in srgb, var(--memi-schedule-ink) 18%, transparent);
+  --memi-schedule-accent: var(--link-color, #7a4562);
+  --memi-schedule-radius: 0.75rem;
+  color: var(--memi-schedule-ink);
+}
+
+[data-memi-schedule] [data-memi-schedule-toolbar] {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block-end: 1.25rem;
+}
+
+[data-memi-schedule] [data-memi-schedule-date-controls],
+[data-memi-schedule] [data-memi-schedule-view-controls],
+[data-memi-schedule] [data-memi-schedule-filters] {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+[data-memi-schedule] [data-memi-schedule-filters] {
+  flex: 1 1 18rem;
+}
+
+[data-memi-schedule] [data-memi-schedule-filter],
+[data-memi-schedule] [data-memi-schedule-date] {
+  background: var(--memi-schedule-surface);
+  border: 1px solid var(--memi-schedule-border);
+  border-radius: 0.4rem;
+  color: inherit;
+  min-block-size: 2.75rem;
+  padding: 0.45rem 0.65rem;
+}
+
+[data-memi-schedule] [data-memi-schedule-filter] {
+  flex: 1 1 10rem;
+}
+
+[data-memi-schedule] [data-memi-schedule-date-label] {
+  font-weight: 600;
+  min-inline-size: 11rem;
+  text-align: center;
+}
+
+[data-memi-schedule] [data-memi-schedule-view].is-active,
+[data-memi-schedule] [data-memi-schedule-view][aria-pressed='true'] {
+  background-color: var(--memi-schedule-accent);
+  border-color: var(--memi-schedule-accent);
+  color: #fff;
+}
+
+[data-memi-schedule] [data-memi-schedule-list] {
+  display: grid;
+  gap: 0.875rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+}
+
+[data-memi-schedule] [data-memi-schedule-card] {
+  background: var(--memi-schedule-surface);
+  border: 1px solid var(--memi-schedule-border);
+  border-inline-start: 0.35rem solid var(--memi-schedule-accent);
+  border-radius: var(--memi-schedule-radius);
+  box-shadow: 0 0.25rem 0.9rem rgb(0 0 0 / 5%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-inline-size: 0;
+  padding: 1rem;
+}
+
+[data-memi-schedule] [data-memi-schedule-card][hidden] {
+  display: none;
+}
+
+[data-memi-schedule] [data-memi-schedule-card] :is(h2, h3, h4, p) {
+  margin-block: 0;
+}
+
+[data-memi-schedule] [data-memi-schedule-card-meta] {
+  color: var(--memi-schedule-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.9375rem;
+  gap: 0.35rem 0.75rem;
+}
+
+[data-memi-schedule] [data-memi-schedule-card-actions] {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block-start: auto;
+}
+
+[data-memi-schedule] [data-memi-schedule-status] {
+  border-radius: 99rem;
+  display: inline-flex;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  width: fit-content;
+}
+
+[data-memi-schedule] [data-memi-schedule-status='available'] {
+  background: #e3f5ea;
+  color: #145c35;
+}
+
+[data-memi-schedule] [data-memi-schedule-status='limited'] {
+  background: #fff1d8;
+  color: #754400;
+}
+
+[data-memi-schedule] [data-memi-schedule-status='full'],
+[data-memi-schedule] [data-memi-schedule-status='cancelled'] {
+  background: #fbe5e7;
+  color: #8b2230;
+}
+
+[data-memi-schedule] [data-memi-schedule-empty] {
+  border: 1px dashed var(--memi-schedule-border);
+  border-radius: var(--memi-schedule-radius);
+  color: var(--memi-schedule-muted);
+  margin-block: 1rem 0;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+[data-memi-schedule] :is(button, a, input, select):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--memi-schedule-accent) 58%, white);
+  outline-offset: 2px;
+}
+
+@media (max-width: 37.5rem) {
+  [data-memi-schedule] [data-memi-schedule-toolbar] {
+    align-items: stretch;
+  }
+
+  [data-memi-schedule] [data-memi-schedule-date-controls],
+  [data-memi-schedule] [data-memi-schedule-view-controls],
+  [data-memi-schedule] [data-memi-schedule-filters] {
+    width: 100%;
+  }
+
+  [data-memi-schedule] [data-memi-schedule-date-label] {
+    flex: 1 1 100%;
+    order: -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-memi-schedule] * {
+    scroll-behavior: auto;
+    transition-duration: 0.01ms;
+  }
+}

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<fields name="params">
+		<fieldset name="basic" label="PLG_TASK_MEMIPILATES_FIELDSET_OPTIONS">
+			<field name="horizon_days" type="number" default="90" min="1" max="365" step="1"
+				label="PLG_TASK_MEMIPILATES_HORIZON_LABEL"
+				description="PLG_TASK_MEMIPILATES_HORIZON_DESC" filter="uint"/>
+			<field name="email_limit" type="number" default="100" min="1" max="500" step="1"
+				label="PLG_TASK_MEMIPILATES_EMAIL_LIMIT_LABEL"
+				description="PLG_TASK_MEMIPILATES_EMAIL_LIMIT_DESC" filter="uint"/>
+			<field name="skip_reminders" type="radio" default="0"
+				label="PLG_TASK_MEMIPILATES_SKIP_REMINDERS_LABEL"
+				description="PLG_TASK_MEMIPILATES_SKIP_REMINDERS_DESC"
+				class="btn-group btn-group-yesno" filter="boolean">
+				<option value="0">JNO</option>
+				<option value="1">JYES</option>
+			</field>
+			<field name="dry_run" type="radio" default="0"
+				label="PLG_TASK_MEMIPILATES_DRY_RUN_LABEL"
+				description="PLG_TASK_MEMIPILATES_DRY_RUN_DESC"
+				class="btn-group btn-group-yesno" filter="boolean">
+				<option value="0">JNO</option>
+				<option value="1">JYES</option>
+			</field>
+		</fieldset>
+	</fields>
+</form>

@@ -1,0 +1,6 @@
+-- Data-retention policy: uninstalling the extension never drops Memi business,
+-- payment, attendance, audit, or customer-history tables automatically.
+--
+-- This deliberate no-op prevents accidental destruction of operational or
+-- regulated records. An administrator-approved purge must back up the
+-- database and drop #__memi_* tables explicitly.

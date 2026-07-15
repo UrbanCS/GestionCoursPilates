@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<fieldset name="general" label="COM_MEMIPILATES_CONFIG_FIELDSET_GENERAL">
+		<field
+			name="timezone"
+			type="timezone"
+			default="America/Toronto"
+			label="COM_MEMIPILATES_CONFIG_STUDIO_TIMEZONE_LABEL"
+			description="COM_MEMIPILATES_CONFIG_STUDIO_TIMEZONE_DESC"
+			show_none="false"
+		/>
+		<field
+			name="cancellation_hours"
+			type="number"
+			default="12"
+			min="0"
+			max="336"
+			step="1"
+			label="COM_MEMIPILATES_CONFIG_CANCELLATION_WINDOW_LABEL"
+			description="COM_MEMIPILATES_CONFIG_CANCELLATION_WINDOW_DESC"
+			filter="uint"
+		/>
+		<field
+			name="session_generation_lookahead_days"
+			type="number"
+			default="90"
+			min="7"
+			max="730"
+			step="1"
+			label="COM_MEMIPILATES_CONFIG_SESSION_LOOKAHEAD_LABEL"
+			description="COM_MEMIPILATES_CONFIG_SESSION_LOOKAHEAD_DESC"
+			filter="uint"
+		/>
+		<field
+			name="currency"
+			type="list"
+			default="CAD"
+			label="COM_MEMIPILATES_CONFIG_CURRENCY_LABEL"
+			description="COM_MEMIPILATES_CONFIG_CURRENCY_DESC"
+			filter="cmd"
+		>
+			<option value="CAD">CAD</option>
+			<option value="USD">USD</option>
+		</field>
+	</fieldset>
+
+	<fieldset name="waitlist" label="COM_MEMIPILATES_CONFIG_FIELDSET_WAITLIST">
+		<field
+			name="waitlist_promotion_mode"
+			type="list"
+			default="automatic"
+			label="COM_MEMIPILATES_CONFIG_WAITLIST_MODE_LABEL"
+			description="COM_MEMIPILATES_CONFIG_WAITLIST_MODE_DESC"
+			filter="cmd"
+		>
+			<option value="automatic">COM_MEMIPILATES_OPTION_AUTOMATIC</option>
+			<option value="manual">COM_MEMIPILATES_OPTION_MANUAL</option>
+		</field>
+		<field
+			name="waitlist_offer_minutes"
+			type="number"
+			default="120"
+			min="5"
+			max="10080"
+			step="5"
+			label="COM_MEMIPILATES_CONFIG_WAITLIST_OFFER_LABEL"
+			description="COM_MEMIPILATES_CONFIG_WAITLIST_OFFER_DESC"
+			filter="uint"
+		/>
+		<field
+			name="waitlist_auto_promote"
+			type="radio"
+			default="1"
+			label="COM_MEMIPILATES_CONFIG_WAITLIST_AUTO_PROMOTE_LABEL"
+			description="COM_MEMIPILATES_CONFIG_WAITLIST_AUTO_PROMOTE_DESC"
+			class="btn-group btn-group-yesno"
+			filter="boolean"
+		>
+			<option value="1">JYES</option>
+			<option value="0">JNO</option>
+		</field>
+	</fieldset>
+
+	<fieldset name="notifications" label="COM_MEMIPILATES_CONFIG_FIELDSET_NOTIFICATIONS">
+		<field
+			name="reminder_hours"
+			type="text"
+			default="24,2"
+			label="COM_MEMIPILATES_CONFIG_REMINDER_HOURS_LABEL"
+			description="COM_MEMIPILATES_CONFIG_REMINDER_HOURS_DESC"
+			filter="string"
+		/>
+		<field
+			name="credit_expiry_notice_days"
+			type="number"
+			default="14"
+			min="0"
+			max="365"
+			step="1"
+			label="COM_MEMIPILATES_CONFIG_CREDIT_EXPIRY_NOTICE_LABEL"
+			description="COM_MEMIPILATES_CONFIG_CREDIT_EXPIRY_NOTICE_DESC"
+			filter="uint"
+		/>
+		<field
+			name="email_from_name"
+			type="text"
+			default="Memi Studio"
+			label="COM_MEMIPILATES_CONFIG_EMAIL_FROM_NAME_LABEL"
+			description="COM_MEMIPILATES_CONFIG_EMAIL_FROM_NAME_DESC"
+			filter="string"
+		/>
+	</fieldset>
+
+	<fieldset name="loyalty" label="COM_MEMIPILATES_CONFIG_FIELDSET_LOYALTY">
+		<field
+			name="loyalty_enabled"
+			type="radio"
+			default="1"
+			label="COM_MEMIPILATES_CONFIG_LOYALTY_ENABLED_LABEL"
+			description="COM_MEMIPILATES_CONFIG_LOYALTY_ENABLED_DESC"
+			class="btn-group btn-group-yesno"
+			filter="boolean"
+		>
+			<option value="1">JYES</option>
+			<option value="0">JNO</option>
+		</field>
+		<field
+			name="points_per_attendance"
+			type="number"
+			default="10"
+			min="0"
+			max="100000"
+			step="1"
+			label="COM_MEMIPILATES_CONFIG_POINTS_ATTENDANCE_LABEL"
+			description="COM_MEMIPILATES_CONFIG_POINTS_ATTENDANCE_DESC"
+			filter="int"
+		/>
+		<field
+			name="points_per_dollar"
+			type="number"
+			default="0"
+			min="0"
+			max="1000"
+			step="1"
+			label="COM_MEMIPILATES_CONFIG_POINTS_DOLLAR_LABEL"
+			description="COM_MEMIPILATES_CONFIG_POINTS_DOLLAR_DESC"
+			filter="int"
+		/>
+	</fieldset>
+
+	<fieldset name="kiosk" label="COM_MEMIPILATES_CONFIG_FIELDSET_KIOSK">
+		<field
+			name="attendance_before_minutes"
+			type="number"
+			default="30"
+			min="0"
+			max="1440"
+			step="1"
+			label="COM_MEMIPILATES_CONFIG_KIOSK_BEFORE_LABEL"
+			description="COM_MEMIPILATES_CONFIG_KIOSK_BEFORE_DESC"
+			filter="uint"
+		/>
+		<field
+			name="attendance_after_minutes"
+			type="number"
+			default="30"
+			min="0"
+			max="1440"
+			step="1"
+			label="COM_MEMIPILATES_CONFIG_KIOSK_AFTER_LABEL"
+			description="COM_MEMIPILATES_CONFIG_KIOSK_AFTER_DESC"
+			filter="uint"
+		/>
+		<field
+			name="kiosk_confirmation_seconds"
+			type="number"
+			default="4"
+			min="1"
+			max="60"
+			step="1"
+			label="COM_MEMIPILATES_CONFIG_KIOSK_CONFIRMATION_LABEL"
+			description="COM_MEMIPILATES_CONFIG_KIOSK_CONFIRMATION_DESC"
+			filter="uint"
+		/>
+		<field
+			name="kiosk_sound_enabled"
+			type="radio"
+			default="1"
+			label="COM_MEMIPILATES_CONFIG_KIOSK_SOUND_LABEL"
+			description="COM_MEMIPILATES_CONFIG_KIOSK_SOUND_DESC"
+			class="btn-group btn-group-yesno"
+			filter="boolean"
+		>
+			<option value="1">JYES</option>
+			<option value="0">JNO</option>
+		</field>
+	</fieldset>
+
+	<fieldset name="square" label="COM_MEMIPILATES_CONFIG_FIELDSET_SQUARE">
+		<field
+			name="square_environment"
+			type="list"
+			default="sandbox"
+			label="COM_MEMIPILATES_CONFIG_SQUARE_ENVIRONMENT_LABEL"
+			description="COM_MEMIPILATES_CONFIG_SQUARE_ENVIRONMENT_DESC"
+			filter="cmd"
+		>
+			<option value="sandbox">COM_MEMIPILATES_OPTION_SANDBOX</option>
+			<option value="production">COM_MEMIPILATES_OPTION_PRODUCTION</option>
+		</field>
+		<field
+			name="square_application_id"
+			type="text"
+			default=""
+			label="COM_MEMIPILATES_CONFIG_SQUARE_APPLICATION_ID_LABEL"
+			description="COM_MEMIPILATES_CONFIG_SQUARE_APPLICATION_ID_DESC"
+			filter="string"
+			autocomplete="off"
+		/>
+		<field
+			name="square_location_id"
+			type="text"
+			default=""
+			label="COM_MEMIPILATES_CONFIG_SQUARE_LOCATION_ID_LABEL"
+			description="COM_MEMIPILATES_CONFIG_SQUARE_LOCATION_ID_DESC"
+			filter="string"
+			autocomplete="off"
+		/>
+		<field
+			name="square_access_token"
+			type="password"
+			default=""
+			label="COM_MEMIPILATES_CONFIG_SQUARE_ACCESS_TOKEN_LABEL"
+			description="COM_MEMIPILATES_CONFIG_SQUARE_ACCESS_TOKEN_DESC"
+			filter="raw"
+			autocomplete="new-password"
+		/>
+		<field
+			name="square_webhook_signature_key"
+			type="password"
+			default=""
+			label="COM_MEMIPILATES_CONFIG_SQUARE_WEBHOOK_KEY_LABEL"
+			description="COM_MEMIPILATES_CONFIG_SQUARE_WEBHOOK_KEY_DESC"
+			filter="raw"
+			autocomplete="new-password"
+		/>
+	</fieldset>
+</form>

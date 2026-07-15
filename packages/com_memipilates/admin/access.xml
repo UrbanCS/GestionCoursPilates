@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<access component="com_memipilates">
+	<section name="component">
+		<action name="core.admin" title="JACTION_ADMIN" description="JACTION_ADMIN_COMPONENT_DESC"/>
+		<action name="core.options" title="JACTION_OPTIONS" description="JACTION_OPTIONS_COMPONENT_DESC"/>
+		<action name="core.manage" title="JACTION_MANAGE" description="JACTION_MANAGE_COMPONENT_DESC"/>
+		<action name="core.create" title="JACTION_CREATE" description="JACTION_CREATE_COMPONENT_DESC"/>
+		<action name="core.delete" title="JACTION_DELETE" description="JACTION_DELETE_COMPONENT_DESC"/>
+		<action name="core.edit" title="JACTION_EDIT" description="JACTION_EDIT_COMPONENT_DESC"/>
+		<action name="core.edit.state" title="JACTION_EDITSTATE" description="JACTION_EDITSTATE_COMPONENT_DESC"/>
+		<action name="core.edit.own" title="JACTION_EDITOWN" description="JACTION_EDITOWN_COMPONENT_DESC"/>
+
+		<action name="courses.manage" title="COM_MEMIPILATES_ACTION_COURSES_MANAGE" description="COM_MEMIPILATES_ACTION_COURSES_MANAGE_DESC"/>
+		<action name="schedules.manage" title="COM_MEMIPILATES_ACTION_SCHEDULES_MANAGE" description="COM_MEMIPILATES_ACTION_SCHEDULES_MANAGE_DESC"/>
+		<action name="instructors.manage" title="COM_MEMIPILATES_ACTION_INSTRUCTORS_MANAGE" description="COM_MEMIPILATES_ACTION_INSTRUCTORS_MANAGE_DESC"/>
+		<action name="rooms.manage" title="COM_MEMIPILATES_ACTION_ROOMS_MANAGE" description="COM_MEMIPILATES_ACTION_ROOMS_MANAGE_DESC"/>
+		<action name="clients.manage" title="COM_MEMIPILATES_ACTION_CLIENTS_MANAGE" description="COM_MEMIPILATES_ACTION_CLIENTS_MANAGE_DESC"/>
+		<action name="bookings.manage" title="COM_MEMIPILATES_ACTION_BOOKINGS_MANAGE" description="COM_MEMIPILATES_ACTION_BOOKINGS_MANAGE_DESC"/>
+		<action name="bookings.manual" title="COM_MEMIPILATES_ACTION_BOOKINGS_MANUAL" description="COM_MEMIPILATES_ACTION_BOOKINGS_MANUAL_DESC"/>
+		<action name="waitlist.manage" title="COM_MEMIPILATES_ACTION_WAITLIST_MANAGE" description="COM_MEMIPILATES_ACTION_WAITLIST_MANAGE_DESC"/>
+		<action name="packages.manage" title="COM_MEMIPILATES_ACTION_PACKAGES_MANAGE" description="COM_MEMIPILATES_ACTION_PACKAGES_MANAGE_DESC"/>
+		<action name="credits.adjust" title="COM_MEMIPILATES_ACTION_CREDITS_ADJUST" description="COM_MEMIPILATES_ACTION_CREDITS_ADJUST_DESC"/>
+		<action name="promotions.manage" title="COM_MEMIPILATES_ACTION_PROMOTIONS_MANAGE" description="COM_MEMIPILATES_ACTION_PROMOTIONS_MANAGE_DESC"/>
+		<action name="payments.view" title="COM_MEMIPILATES_ACTION_PAYMENTS_VIEW" description="COM_MEMIPILATES_ACTION_PAYMENTS_VIEW_DESC"/>
+		<action name="payments.refund" title="COM_MEMIPILATES_ACTION_PAYMENTS_REFUND" description="COM_MEMIPILATES_ACTION_PAYMENTS_REFUND_DESC"/>
+		<action name="reports.view" title="COM_MEMIPILATES_ACTION_REPORTS_VIEW" description="COM_MEMIPILATES_ACTION_REPORTS_VIEW_DESC"/>
+		<action name="export.data" title="COM_MEMIPILATES_ACTION_EXPORT_DATA" description="COM_MEMIPILATES_ACTION_EXPORT_DATA_DESC"/>
+		<action name="settings.manage" title="COM_MEMIPILATES_ACTION_SETTINGS_MANAGE" description="COM_MEMIPILATES_ACTION_SETTINGS_MANAGE_DESC"/>
+		<action name="square.configure" title="COM_MEMIPILATES_ACTION_SQUARE_CONFIGURE" description="COM_MEMIPILATES_ACTION_SQUARE_CONFIGURE_DESC"/>
+		<action name="audit.view" title="COM_MEMIPILATES_ACTION_AUDIT_VIEW" description="COM_MEMIPILATES_ACTION_AUDIT_VIEW_DESC"/>
+		<action name="qr.manage" title="COM_MEMIPILATES_ACTION_QR_MANAGE" description="COM_MEMIPILATES_ACTION_QR_MANAGE_DESC"/>
+		<action name="loyalty.adjust" title="COM_MEMIPILATES_ACTION_LOYALTY_ADJUST" description="COM_MEMIPILATES_ACTION_LOYALTY_ADJUST_DESC"/>
+
+		<action name="attendance.kiosk" title="COM_MEMIPILATES_ACTION_ATTENDANCE_KIOSK" description="COM_MEMIPILATES_ACTION_ATTENDANCE_KIOSK_DESC"/>
+		<action name="attendance.scan" title="COM_MEMIPILATES_ACTION_ATTENDANCE_SCAN" description="COM_MEMIPILATES_ACTION_ATTENDANCE_SCAN_DESC"/>
+		<action name="attendance.manual" title="COM_MEMIPILATES_ACTION_ATTENDANCE_MANUAL" description="COM_MEMIPILATES_ACTION_ATTENDANCE_MANUAL_DESC"/>
+		<action name="attendance.override" title="COM_MEMIPILATES_ACTION_ATTENDANCE_OVERRIDE" description="COM_MEMIPILATES_ACTION_ATTENDANCE_OVERRIDE_DESC"/>
+		<action name="attendance.undo" title="COM_MEMIPILATES_ACTION_ATTENDANCE_UNDO" description="COM_MEMIPILATES_ACTION_ATTENDANCE_UNDO_DESC"/>
+		<action name="kiosk.test" title="COM_MEMIPILATES_ACTION_KIOSK_TEST" description="COM_MEMIPILATES_ACTION_KIOSK_TEST_DESC"/>
+	</section>
+</access>

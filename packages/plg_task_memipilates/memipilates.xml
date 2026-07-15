@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="task" method="upgrade">
+	<name>PLG_TASK_MEMIPILATES</name>
+	<author>Memi Studio</author>
+	<creationDate>2026-07-15</creationDate>
+	<copyright>(C) Memi Studio</copyright>
+	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+	<authorEmail>info@memistudio.ca</authorEmail>
+	<authorUrl>https://memistudio.ca</authorUrl>
+	<version>1.0.0</version>
+	<description>PLG_TASK_MEMIPILATES_XML_DESCRIPTION</description>
+	<namespace path="src">Memi\Plugin\Task\Memipilates</namespace>
+	<files>
+		<folder plugin="memipilates">services</folder>
+		<folder>forms</folder>
+		<folder>src</folder>
+	</files>
+	<languages folder="language">
+		<language tag="en-GB">en-GB/plg_task_memipilates.ini</language>
+		<language tag="en-GB">en-GB/plg_task_memipilates.sys.ini</language>
+		<language tag="fr-FR">fr-FR/plg_task_memipilates.ini</language>
+		<language tag="fr-FR">fr-FR/plg_task_memipilates.sys.ini</language>
+	</languages>
+</extension>

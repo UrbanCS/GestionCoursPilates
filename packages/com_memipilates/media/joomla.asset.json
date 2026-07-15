@@ -1,0 +1,102 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "name": "com_memipilates",
+  "version": "1.0.0",
+  "description": "Assets publics et borne de présence pour com_memipilates",
+  "license": "GPL-2.0-or-later",
+  "assets": [
+    {
+      "name": "com_memipilates.site",
+      "type": "style",
+      "uri": "com_memipilates/css/site.css",
+      "version": "1.0.0"
+    },
+    {
+      "name": "com_memipilates.schedule",
+      "type": "script",
+      "uri": "com_memipilates/js/schedule.js",
+      "version": "1.0.0",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_memipilates.dashboard",
+      "type": "script",
+      "uri": "com_memipilates/js/dashboard.js",
+      "version": "1.0.0",
+      "dependencies": [
+        "com_memipilates.qr-generator"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_memipilates.booking",
+      "type": "script",
+      "uri": "com_memipilates/js/booking.js",
+      "version": "1.0.0",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_memipilates.checkout",
+      "type": "script",
+      "uri": "com_memipilates/js/checkout.js",
+      "version": "1.0.0",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_memipilates.kiosk",
+      "type": "style",
+      "uri": "com_memipilates/css/kiosk.css",
+      "version": "1.0.0"
+    },
+    {
+      "name": "com_memipilates.qr-scanner",
+      "type": "script",
+      "uri": "com_memipilates/vendor/qr-scanner.umd.min.js",
+      "version": "1.4.2",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_memipilates.qr-generator",
+      "type": "script",
+      "uri": "com_memipilates/vendor/qrcode.min.js",
+      "version": "1.0.0",
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_memipilates.qr-decoder-adapter",
+      "type": "script",
+      "uri": "com_memipilates/js/qr-decoder-adapter.js",
+      "version": "1.0.0",
+      "dependencies": [
+        "com_memipilates.qr-scanner"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    },
+    {
+      "name": "com_memipilates.kiosk-scanner",
+      "type": "script",
+      "uri": "com_memipilates/js/kiosk.js",
+      "version": "1.0.0",
+      "dependencies": [
+        "com_memipilates.qr-decoder-adapter"
+      ],
+      "attributes": {
+        "defer": true
+      }
+    }
+  ]
+}

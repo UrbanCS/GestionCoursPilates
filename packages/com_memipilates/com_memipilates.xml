@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="component" method="upgrade">
+	<name>COM_MEMIPILATES</name>
+	<author>Memi Studio</author>
+	<creationDate>2026-07-15</creationDate>
+	<copyright>(C) Memi Studio</copyright>
+	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+	<authorEmail>info@memistudio.ca</authorEmail>
+	<authorUrl>https://memistudio.ca</authorUrl>
+	<version>1.0.0</version>
+	<description>COM_MEMIPILATES_XML_DESCRIPTION</description>
+	<element>com_memipilates</element>
+	<namespace path="src">Memi\Component\Memipilates</namespace>
+	<scriptfile>script.php</scriptfile>
+
+	<install>
+		<sql>
+			<file driver="mysql" charset="utf8">sql/install.mysql.utf8mb4.sql</file>
+		</sql>
+	</install>
+
+	<update>
+		<schemas>
+			<schemapath type="mysql">sql/updates/mysql</schemapath>
+		</schemas>
+	</update>
+
+	<uninstall>
+		<sql>
+			<file driver="mysql" charset="utf8">sql/uninstall.mysql.utf8mb4.sql</file>
+		</sql>
+	</uninstall>
+
+	<files folder="site">
+		<folder>src</folder>
+		<folder>tmpl</folder>
+	</files>
+
+	<languages folder="site/language">
+		<language tag="en-GB">en-GB/com_memipilates.ini</language>
+		<language tag="en-GB">en-GB/com_memipilates.sys.ini</language>
+		<language tag="fr-FR">fr-FR/com_memipilates.ini</language>
+		<language tag="fr-FR">fr-FR/com_memipilates.sys.ini</language>
+	</languages>
+
+	<media destination="com_memipilates" folder="media">
+		<folder>css</folder>
+		<folder>images</folder>
+		<folder>js</folder>
+		<folder>vendor</folder>
+		<filename>joomla.asset.json</filename>
+	</media>
+
+	<administration>
+		<menu img="class:calendar" link="index.php?option=com_memipilates">COM_MEMIPILATES</menu>
+		<submenu>
+			<menu view="dashboard">COM_MEMIPILATES_SUBMENU_DASHBOARD</menu>
+			<menu view="sessions">COM_MEMIPILATES_SUBMENU_SESSIONS</menu>
+			<menu view="bookings">COM_MEMIPILATES_SUBMENU_BOOKINGS</menu>
+			<menu view="customers">COM_MEMIPILATES_SUBMENU_CUSTOMERS</menu>
+			<menu view="packages">COM_MEMIPILATES_SUBMENU_PACKAGES</menu>
+			<menu view="attendance">COM_MEMIPILATES_SUBMENU_ATTENDANCE</menu>
+		</submenu>
+		<files folder="admin">
+			<filename>access.xml</filename>
+			<filename>config.xml</filename>
+			<folder>services</folder>
+			<folder>sql</folder>
+			<folder>src</folder>
+			<folder>tmpl</folder>
+		</files>
+		<languages folder="admin/language">
+			<language tag="en-GB">en-GB/com_memipilates.ini</language>
+			<language tag="en-GB">en-GB/com_memipilates.sys.ini</language>
+			<language tag="fr-FR">fr-FR/com_memipilates.ini</language>
+			<language tag="fr-FR">fr-FR/com_memipilates.sys.ini</language>
+		</languages>
+	</administration>
+</extension>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="file" method="upgrade">
+	<name>Memi Pilates CLI runner</name>
+	<author>Memi Studio</author>
+	<creationDate>2026-07-15</creationDate>
+	<copyright>(C) Memi Studio</copyright>
+	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+	<authorEmail>info@memistudio.ca</authorEmail>
+	<authorUrl>https://memistudio.ca</authorUrl>
+	<version>1.0.0</version>
+	<description>Installs the Memi Pilates cPanel-safe scheduled-work runner in Joomla's cli directory.</description>
+	<fileset>
+		<files target="cli">
+			<filename>memipilates.php</filename>
+		</files>
+	</fileset>
+</extension>

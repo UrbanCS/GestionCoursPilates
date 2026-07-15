@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="package" method="upgrade">
+	<name>PKG_MEMIPILATES</name>
+	<packagename>memipilates</packagename>
+	<author>Memi Studio</author>
+	<creationDate>2026-07-15</creationDate>
+	<copyright>(C) Memi Studio</copyright>
+	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
+	<authorEmail>info@memistudio.ca</authorEmail>
+	<authorUrl>https://memistudio.ca</authorUrl>
+	<version>1.0.0</version>
+	<description>PKG_MEMIPILATES_XML_DESCRIPTION</description>
+	<files folder="packages">
+		<file type="component" id="com_memipilates">com_memipilates.zip</file>
+		<file type="plugin" group="task" id="memipilates">plg_task_memipilates.zip</file>
+		<file type="file" id="memipilates-cli">file_memipilates_cli.zip</file>
+	</files>
+	<languages folder="language">
+		<language tag="en-GB">en-GB/pkg_memipilates.ini</language>
+		<language tag="en-GB">en-GB/pkg_memipilates.sys.ini</language>
+		<language tag="fr-FR">fr-FR/pkg_memipilates.ini</language>
+		<language tag="fr-FR">fr-FR/pkg_memipilates.sys.ini</language>
+	</languages>
+</extension>
