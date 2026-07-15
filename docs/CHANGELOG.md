@@ -2,6 +2,40 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.0.3] - 2026-07-15
+
+### Corrigé
+
+- Ajout du bouton natif « Options » dans la barre d’outils de toutes les vues d’administration pour les personnes autorisées.
+
+### Validation connue
+
+- Archive : `dist/pkg_memipilates-1.0.3.zip`
+- SHA-256 : `DE10644AC48CAD7659C7DE76E95067F756A41D7505DC139A5F58526C5E417455`
+
+## [1.0.2] - 2026-07-15
+
+### Corrigé
+
+- Alignement du fournisseur de services du composant sur les interfaces Joomla 6 : le répartiteur MVC est désormais enregistré sous le bon namespace et les services non implémentés ont été retirés.
+
+### Validation connue
+
+- Archive : `dist/pkg_memipilates-1.0.2.zip`
+- SHA-256 : `C6889E2E24D120ABE27A98B8BAB6154D6BF58805E3583A0DAB898178098E2E35`
+
+## [1.0.1] - 2026-07-15
+
+### Corrigé
+
+- Ajout des libellés de sous-menu dans les fichiers de langue système Joomla afin qu’ils s’affichent correctement dans l’administration avant l’ouverture du composant.
+- Reconstruction des archives ZIP avec des séparateurs de chemins compatibles avec les hébergements Linux.
+
+### Validation connue
+
+- Archive : `dist/pkg_memipilates-1.0.1.zip`
+- SHA-256 : `08662BB753BD58A07A715555A985DCB9D0529F92467E91AAF4DC7D283FEA26F6`
+
 ## [1.0.0] - 2026-07-15
 
 ### Ajouté
@@ -19,7 +53,7 @@ Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent ê
 ### Validation connue
 
 - Archive : `dist/pkg_memipilates-1.0.0.zip`
-- SHA-256 : `BDA237DA21778E25E84AA6122D735A6DA5FCF38924F72361FE0847A4228EA330`
+- SHA-256 : `DB48A61ACC7D4EAC171DC0502D1E28F5CDBD496DDEA7EB1FF50A7D7EF0B7686E`
 - Contrôles statiques exécutés avec PHP 8.3.20; les essais Joomla/Square/cPanel restent à réaliser en préproduction isolée.
 
 ### Ajouté

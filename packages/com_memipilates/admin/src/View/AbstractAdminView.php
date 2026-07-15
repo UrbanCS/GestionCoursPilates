@@ -61,6 +61,7 @@ abstract class AbstractAdminView extends BaseHtmlView
         $this->currency = preg_match('/^[A-Z]{3}$/D', $configuredCurrency) ? $configuredCurrency : 'CAD';
         $this->timezone = $settings->timezone();
         $this->canEdit = $editActions !== [] && $this->hasAnyPermission($editActions);
+        $this->addComponentToolbar();
     }
 
     /** @param list<string> $actions */
@@ -82,6 +83,16 @@ abstract class AbstractAdminView extends BaseHtmlView
     public function can(string $action): bool
     {
         return $this->hasAnyPermission([$action]);
+    }
+
+    /** Adds the native Joomla component-settings button for authorised staff. */
+    private function addComponentToolbar(): void
+    {
+        if (!$this->hasAnyPermission(['core.options', 'settings.manage'])) {
+            return;
+        }
+
+        Factory::getApplication()->getDocument()->getToolbar()->preferences('com_memipilates');
     }
 
     public function label(string $key, string $fallback): string

@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string] $Version = '1.0.0',
+    [string] $Version = '1.0.3',
     [string] $OutputDirectory = ''
 )
 
@@ -15,7 +15,10 @@ $packagesRoot = Join-Path $root 'packages'
 $packageSource = Join-Path $root 'package'
 $staging = Join-Path ([System.IO.Path]::GetTempPath()) ('memipilates-build-' + [guid]::NewGuid().ToString('N'))
 
-function New-ChildArchive {
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+function New-JoomlaArchive {
     param(
         [Parameter(Mandatory)] [string] $Source,
         [Parameter(Mandatory)] [string] $Destination
@@ -25,12 +28,41 @@ function New-ChildArchive {
         throw "Missing extension source: $Source"
     }
 
-    $items = Get-ChildItem -LiteralPath $Source -Force
+    $items = @(Get-ChildItem -LiteralPath $Source -File -Recurse -Force)
     if ($items.Count -eq 0) {
         throw "Extension source is empty: $Source"
     }
 
-    Compress-Archive -Path $items.FullName -DestinationPath $Destination -CompressionLevel Optimal -Force
+    if (Test-Path -LiteralPath $Destination) {
+        Remove-Item -LiteralPath $Destination -Force
+    }
+
+    # Compress-Archive writes backslashes on Windows. Use POSIX separators so
+    # Joomla can extract the archive consistently on Linux hosting.
+    $sourceRoot = (Resolve-Path -LiteralPath $Source).Path.TrimEnd([char]'\', [char]'/')
+    $archive = [System.IO.Compression.ZipFile]::Open(
+        $Destination,
+        [System.IO.Compression.ZipArchiveMode]::Create
+    )
+
+    try {
+        foreach ($item in $items | Sort-Object FullName) {
+            $relativePath = $item.FullName.Substring($sourceRoot.Length).TrimStart([char]'\', [char]'/')
+            $entryName = $relativePath -replace '\\', '/'
+            $entry = $archive.CreateEntry($entryName, [System.IO.Compression.CompressionLevel]::Optimal)
+            $input = [System.IO.File]::OpenRead($item.FullName)
+            $output = $entry.Open()
+
+            try {
+                $input.CopyTo($output)
+            } finally {
+                $output.Dispose()
+                $input.Dispose()
+            }
+        }
+    } finally {
+        $archive.Dispose()
+    }
 }
 
 try {
@@ -43,15 +75,15 @@ try {
     Copy-Item -LiteralPath (Join-Path $packageSource 'language') -Destination $packageStage -Recurse
     Copy-Item -LiteralPath (Join-Path $packageSource 'README.md') -Destination $packageStage
 
-    New-ChildArchive (Join-Path $packagesRoot 'com_memipilates') (Join-Path $childrenStage 'com_memipilates.zip')
-    New-ChildArchive (Join-Path $packagesRoot 'plg_task_memipilates') (Join-Path $childrenStage 'plg_task_memipilates.zip')
-    New-ChildArchive (Join-Path $packagesRoot 'file_memipilates_cli') (Join-Path $childrenStage 'file_memipilates_cli.zip')
+    New-JoomlaArchive (Join-Path $packagesRoot 'com_memipilates') (Join-Path $childrenStage 'com_memipilates.zip')
+    New-JoomlaArchive (Join-Path $packagesRoot 'plg_task_memipilates') (Join-Path $childrenStage 'plg_task_memipilates.zip')
+    New-JoomlaArchive (Join-Path $packagesRoot 'file_memipilates_cli') (Join-Path $childrenStage 'file_memipilates_cli.zip')
 
     $artifact = Join-Path $OutputDirectory ("pkg_memipilates-$Version.zip")
     if (Test-Path -LiteralPath $artifact) {
         Remove-Item -LiteralPath $artifact -Force
     }
-    Compress-Archive -Path (Get-ChildItem -LiteralPath $packageStage -Force).FullName -DestinationPath $artifact -CompressionLevel Optimal -Force
+    New-JoomlaArchive $packageStage $artifact
 
     $hash = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash
     Write-Output "Package: $artifact"
