@@ -155,8 +155,11 @@ final class WaitlistService
      */
     public function offerNext(int $sessionId, ?int $actorId = null, bool $manual = false): ?array
     {
-        if (!$manual && !$this->settings->getBool('waitlist_auto_promote', true)) {
-            return null;
+        if (!$manual) {
+            $mode = strtolower(trim((string) $this->settings->get('waitlist_promotion_mode', 'automatic')));
+            if ($mode !== 'automatic' || !$this->settings->getBool('waitlist_auto_promote', true)) {
+                return null;
+            }
         }
 
         $offer = $this->tools->transaction(function () use ($sessionId, $actorId): ?array {

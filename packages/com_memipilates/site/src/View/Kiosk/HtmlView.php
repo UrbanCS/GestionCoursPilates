@@ -28,11 +28,12 @@ final class HtmlView extends BaseHtmlView
         $this->scanUrl = Route::_('index.php?option=com_memipilates&task=kiosk.scan&format=json', false);
         $this->manualUrl = Route::_('index.php?option=com_memipilates&task=kiosk.manual&format=json', false);
         $settings = ComponentServices::settings();
+        $confirmationSeconds = max(1, min(60, $settings->getInt('kiosk_confirmation_seconds', 4)));
         $this->settings = [
-            'auto_reset_ms' => $settings->getInt('kiosk_confirmation_duration_ms', 5000),
+            'auto_reset_ms' => $confirmationSeconds * 1000,
             'default_mode' => (string) $settings->get('kiosk_default_mode', 'reader'),
             'max_token_length' => $settings->getInt('qr_max_token_length', 128),
-            'sounds' => $settings->getBool('kiosk_sounds', false),
+            'sounds' => $settings->getBool('kiosk_sound_enabled', true),
         ];
 
         $document = Factory::getApplication()->getDocument();

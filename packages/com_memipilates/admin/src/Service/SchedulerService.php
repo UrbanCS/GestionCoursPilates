@@ -54,7 +54,7 @@ final class SchedulerService
             ->select([
                 'r.*',
                 'c.capacity AS course_capacity', 'c.default_duration_minutes', 'c.duration_minutes AS course_duration_minutes',
-                'c.credits_required', 'c.price_cents',
+                'c.credits_required', 'c.price_cents', 'c.tax_rate_basis_points AS course_tax_rate_basis_points',
                 'c.booking_opens_offset_minutes AS course_booking_opens_offset_minutes',
                 'c.booking_closes_offset_minutes AS course_booking_closes_offset_minutes',
                 'c.instructor_id AS course_instructor_id', 'c.room_id AS course_room_id',
@@ -62,7 +62,9 @@ final class SchedulerService
             ->from($this->db->quoteName('#__memi_session_rules', 'r'))
             ->join('INNER', $this->db->quoteName('#__memi_courses', 'c') . ' ON c.id = r.course_id')
             ->where('r.published = 1')
-            ->where('c.published = 1');
+            ->where('r.archived_at IS NULL')
+            ->where('c.published = 1')
+            ->where('c.archived_at IS NULL');
         $this->db->setQuery($query);
         $rules = $this->db->loadAssocList() ?: [];
         $created = 0;
@@ -74,6 +76,7 @@ final class SchedulerService
                 $ruleTimezone = $this->settings->timezone();
             }
             $today = new \DateTimeImmutable('today', $ruleTimezone);
+            $now = new \DateTimeImmutable('now', $ruleTimezone);
             $end = $today->modify('+' . $horizonDays . ' days');
             $startsOn = !empty($rule['starts_on']) ? new \DateTimeImmutable((string) $rule['starts_on'], $ruleTimezone) : $today;
             $endsOn = !empty($rule['ends_on']) ? new \DateTimeImmutable((string) $rule['ends_on'], $ruleTimezone) : $end;
@@ -87,6 +90,9 @@ final class SchedulerService
                 }
                 $startTime = preg_match('/^\d{2}:\d{2}(:\d{2})?$/D', (string) $rule['start_time']) ? (string) $rule['start_time'] : '09:00:00';
                 $startsAt = new \DateTimeImmutable($date->format('Y-m-d') . ' ' . $startTime, $ruleTimezone);
+                if ($startsAt <= $now) {
+                    continue;
+                }
                 $duration = max(1, (int) ($rule['duration_minutes'] ?: $rule['default_duration_minutes'] ?: $rule['course_duration_minutes'] ?: 60));
                 $endsAt = $startsAt->modify('+' . $duration . ' minutes');
                 if ($dryRun) {
@@ -258,6 +264,48 @@ final class SchedulerService
     /** @param array<string,mixed> $rule */
     private function insertSessionIfMissing(array $rule, \DateTimeInterface $startsAt, \DateTimeInterface $endsAt): bool
     {
+        return $this->tools->transaction(function () use ($rule, $startsAt, $endsAt): bool {
+            // The rule may have been archived after the scheduler took its
+            // initial list. Lock and reload it so a catalogue reset cannot
+            // leave a newly generated session behind.
+            $activeRule = $this->lockActiveRuleForGeneration((int) $rule['id']);
+            if ($activeRule === null) {
+                return false;
+            }
+
+            return $this->insertLockedSessionIfMissing($activeRule, $startsAt, $endsAt);
+        });
+    }
+
+    /** @return array<string,mixed>|null */
+    private function lockActiveRuleForGeneration(int $ruleId): ?array
+    {
+        $identifier = $ruleId;
+        $query = $this->db->getQuery(true)
+            ->select([
+                'r.*',
+                'c.capacity AS course_capacity', 'c.default_duration_minutes', 'c.duration_minutes AS course_duration_minutes',
+                'c.credits_required', 'c.price_cents', 'c.tax_rate_basis_points AS course_tax_rate_basis_points',
+                'c.booking_opens_offset_minutes AS course_booking_opens_offset_minutes',
+                'c.booking_closes_offset_minutes AS course_booking_closes_offset_minutes',
+                'c.instructor_id AS course_instructor_id', 'c.room_id AS course_room_id',
+            ])
+            ->from($this->db->quoteName('#__memi_session_rules', 'r'))
+            ->join('INNER', $this->db->quoteName('#__memi_courses', 'c') . ' ON c.id = r.course_id')
+            ->where('r.id = :rule_id')
+            ->where('r.published = 1')
+            ->where('r.archived_at IS NULL')
+            ->where('c.published = 1')
+            ->where('c.archived_at IS NULL')
+            ->bind(':rule_id', $identifier, ParameterType::INTEGER);
+        $this->db->setQuery(DatabaseTools::forUpdate($query));
+
+        return $this->db->loadAssoc() ?: null;
+    }
+
+    /** @param array<string,mixed> $rule */
+    private function insertLockedSessionIfMissing(array $rule, \DateTimeInterface $startsAt, \DateTimeInterface $endsAt): bool
+    {
         $courseId = (int) $rule['course_id'];
         if ($this->sessionExists($courseId, $startsAt)) {
             return false;
@@ -274,6 +322,7 @@ final class SchedulerService
         $creditsRequired = (int) ($rule['credits_required_override'] ?? 0) > 0
             ? max(0, (int) $rule['credits_required_override'])
             : max(0, (int) $rule['credits_required']);
+        $taxRateBasisPoints = max(0, (int) ($rule['course_tax_rate_basis_points'] ?? 0));
         $opensOffset = $rule['booking_opens_offset_minutes'] !== null
             ? max(0, (int) $rule['booking_opens_offset_minutes'])
             : max(0, (int) ($rule['course_booking_opens_offset_minutes'] ?? 0));
@@ -290,8 +339,8 @@ final class SchedulerService
         $published = 'published';
         $query = $this->db->getQuery(true)
             ->insert($this->db->quoteName('#__memi_sessions'))
-            ->columns(['course_id', 'rule_id', 'instructor_id', 'room_id', 'starts_at', 'ends_at', 'timezone', 'duration_minutes', 'capacity', 'reserved_count', 'credits_required', 'price_cents', 'registration_opens_at', 'registration_closes_at', 'status', 'created_at', 'updated_at'])
-            ->values(':course_id, :rule_id, :instructor_id, :room_id, :starts_at, :ends_at, :timezone, :duration_minutes, :capacity, 0, :credits_required, :price_cents, :registration_opens_at, :registration_closes_at, :status, :created_at, :updated_at')
+            ->columns(['course_id', 'rule_id', 'instructor_id', 'room_id', 'starts_at', 'ends_at', 'timezone', 'duration_minutes', 'capacity', 'reserved_count', 'credits_required', 'price_cents', 'tax_rate_basis_points', 'registration_opens_at', 'registration_closes_at', 'status', 'created_at', 'updated_at'])
+            ->values(':course_id, :rule_id, :instructor_id, :room_id, :starts_at, :ends_at, :timezone, :duration_minutes, :capacity, 0, :credits_required, :price_cents, :tax_rate_basis_points, :registration_opens_at, :registration_closes_at, :status, :created_at, :updated_at')
             ->bind(':course_id', $course, ParameterType::INTEGER)
             ->bind(':rule_id', $ruleId, ParameterType::INTEGER)
             ->bind(':instructor_id', $instructor, ParameterType::INTEGER)
@@ -303,6 +352,7 @@ final class SchedulerService
             ->bind(':capacity', $capacity, ParameterType::INTEGER)
             ->bind(':credits_required', $creditsRequired, ParameterType::INTEGER)
             ->bind(':price_cents', $priceCents, ParameterType::INTEGER)
+            ->bind(':tax_rate_basis_points', $taxRateBasisPoints, ParameterType::INTEGER)
             ->bind(':registration_opens_at', $registrationOpensAt)
             ->bind(':registration_closes_at', $registrationClosesAt)
             ->bind(':status', $published)

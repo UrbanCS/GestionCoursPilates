@@ -22,6 +22,7 @@ final class LoyaltyService
     public function __construct(
         private readonly DatabaseDriver $db,
         private readonly DatabaseTools $tools,
+        private readonly SettingsService $settings,
         private readonly PointLedgerService $points,
         private readonly CreditLedgerService $credits,
         private readonly AuditLogger $audit
@@ -44,6 +45,9 @@ final class LoyaltyService
 
         if ($userId <= 0 || $rewardId <= 0 || $key === '' || strlen($key) > 128) {
             throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
+        }
+        if (!$this->settings->getBool('loyalty_enabled', true)) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_REWARD_UNAVAILABLE', [], 409);
         }
 
         return $this->tools->transaction(function () use ($userId, $rewardId, $key, $actorId): array {

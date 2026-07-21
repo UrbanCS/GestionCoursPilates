@@ -52,7 +52,7 @@ final class HtmlView extends BaseHtmlView
         $this->payments = $this->loadPayments();
         $this->activePackages = $this->loadActivePackages();
         $this->pointHistory = $this->loadPointHistory();
-        $this->rewards = $this->loadRewards();
+        $this->rewards = ComponentServices::settings()->getBool('loyalty_enabled', true) ? $this->loadRewards() : [];
         $this->qrEndpoint = Route::_('index.php?option=com_memipilates&task=qr.regenerate&format=json', false);
         $this->loyaltyEndpoint = Route::_('index.php?option=com_memipilates&task=loyalty.redeem&format=json', false);
         $this->cancelEndpoint = Route::_('index.php?option=com_memipilates&task=booking.cancel&format=json', false);

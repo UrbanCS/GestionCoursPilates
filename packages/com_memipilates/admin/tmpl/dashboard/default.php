@@ -10,7 +10,12 @@ $link = static fn (string $view): string => $escape(Route::_('index.php?option=c
 $metrics = $this->metrics;
 ?>
 <div class="container-fluid memi-admin-dashboard">
-    <h1><?= $escape($this->label('COM_MEMIPILATES_SUBMENU_DASHBOARD', 'Dashboard')); ?></h1>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="mb-0"><?= $escape($this->label('COM_MEMIPILATES_SUBMENU_DASHBOARD', 'Dashboard')); ?></h1>
+        <?php if ($this->can('courses.manage') || $this->can('rooms.manage') || $this->can('schedules.manage')) : ?>
+            <a class="btn btn-primary" href="<?= $link('setup'); ?>"><?= $escape($this->label('COM_MEMIPILATES_SUBMENU_SETUP', 'Studio setup')); ?></a>
+        <?php endif; ?>
+    </div>
 
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-4">
         <div class="col"><div class="card h-100"><div class="card-body"><div class="text-muted small"><?= $escape($this->label('COM_MEMIPILATES_ADMIN_TODAY_SESSIONS', 'Today\'s sessions')); ?></div><div class="fs-2 fw-bold"><?= (int) ($metrics['today_sessions'] ?? 0); ?></div></div></div></div>

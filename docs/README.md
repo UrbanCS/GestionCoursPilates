@@ -4,7 +4,7 @@ Cette documentation accompagne le paquet Joomla **pkg_memipilates**. Le produit 
 
 ## Périmètre et prérequis
 
-- Joomla 4.4 ou Joomla 5.x, avec une version de PHP prise en charge par l’installation Joomla (PHP 8.1 ou supérieur pour ce paquet).
+- Joomla 6.x (l’interface d’administration a été observée sur Joomla 6.1.2), avec une version de PHP prise en charge par l’installation Joomla (PHP 8.1 ou supérieur pour ce paquet). La compatibilité avec une version Joomla antérieure doit être validée avant déploiement.
 - MySQL ou MariaDB déjà compatible avec Joomla. Toutes les tables fonctionnelles utilisent le préfixe Joomla #__ et sont donc créées comme #__memi_*.
 - Hébergement cPanel avec HTTPS, tâches cron et les extensions PHP nécessaires à Joomla et aux communications HTTPS (notamment cURL et OpenSSL).
 - Aucune application, session ou base d’utilisateurs parallèle : les comptes, groupes, ACL, sessions, mails et menus restent ceux de Joomla.

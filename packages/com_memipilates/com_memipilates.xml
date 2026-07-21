@@ -7,7 +7,7 @@
 	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
 	<authorEmail>info@memistudio.ca</authorEmail>
 	<authorUrl>https://memistudio.ca</authorUrl>
-	<version>1.0.4</version>
+	<version>1.3.1</version>
 	<description>COM_MEMIPILATES_XML_DESCRIPTION</description>
 	<element>com_memipilates</element>
 	<namespace path="src">Memi\Component\Memipilates</namespace>
@@ -55,10 +55,14 @@
 		<menu img="class:calendar" link="index.php?option=com_memipilates">COM_MEMIPILATES</menu>
 		<submenu>
 			<menu view="dashboard">COM_MEMIPILATES_SUBMENU_DASHBOARD</menu>
+			<menu view="setup">COM_MEMIPILATES_SUBMENU_SETUP</menu>
+			<menu view="catalog">COM_MEMIPILATES_SUBMENU_CATALOG</menu>
 			<menu view="sessions">COM_MEMIPILATES_SUBMENU_SESSIONS</menu>
 			<menu view="bookings">COM_MEMIPILATES_SUBMENU_BOOKINGS</menu>
 			<menu view="customers">COM_MEMIPILATES_SUBMENU_CUSTOMERS</menu>
 			<menu view="packages">COM_MEMIPILATES_SUBMENU_PACKAGES</menu>
+			<menu view="offers">COM_MEMIPILATES_SUBMENU_OFFERS</menu>
+			<menu view="payments">COM_MEMIPILATES_SUBMENU_PAYMENTS</menu>
 			<menu view="attendance">COM_MEMIPILATES_SUBMENU_ATTENDANCE</menu>
 		</submenu>
 		<files folder="admin">

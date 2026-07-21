@@ -50,6 +50,9 @@ final class HtmlView extends BaseHtmlView
             ->join('LEFT', $db->quoteName('#__memi_instructors', 'i') . ' ON i.id = s.instructor_id')
             ->join('LEFT', $db->quoteName('#__memi_rooms', 'r') . ' ON r.id = s.room_id')
             ->where('s.id = :id')
+            ->where('s.archived_at IS NULL')
+            ->where('c.archived_at IS NULL')
+            ->where('c.published = 1')
             ->bind(':id', $sessionId, ParameterType::INTEGER);
         $db->setQuery($query);
         return $db->loadAssoc() ?: null;

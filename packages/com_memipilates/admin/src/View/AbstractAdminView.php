@@ -109,6 +109,9 @@ abstract class AbstractAdminView extends BaseHtmlView
     {
         $keys = [
             'scheduled' => 'COM_MEMIPILATES_STATUS_SCHEDULED',
+            'published' => 'COM_MEMIPILATES_STATUS_PUBLISHED',
+            'open' => 'COM_MEMIPILATES_STATUS_OPEN',
+            'unpublished' => 'COM_MEMIPILATES_STATUS_UNPUBLISHED',
             'cancelled' => 'COM_MEMIPILATES_STATUS_CANCELLED',
             'completed' => 'COM_MEMIPILATES_STATUS_COMPLETED',
             'pending' => 'COM_MEMIPILATES_STATUS_PENDING',
@@ -119,6 +122,7 @@ abstract class AbstractAdminView extends BaseHtmlView
             'attended' => 'COM_MEMIPILATES_STATUS_ATTENDED',
             'no_show' => 'COM_MEMIPILATES_STATUS_NO_SHOW',
             'refunded' => 'COM_MEMIPILATES_STATUS_REFUNDED',
+            'void' => 'COM_MEMIPILATES_STATUS_VOID',
             'administratively_cancelled' => 'COM_MEMIPILATES_STATUS_ADMINISTRATIVELY_CANCELLED',
         ];
         $key = $keys[$status] ?? '';

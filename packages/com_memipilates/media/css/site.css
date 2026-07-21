@@ -1,167 +1,527 @@
 /*
- * Public schedule styles. Every selector is scoped to com_memipilates so the
- * active Joomla template remains the source of the site's global styling.
+ * Public component styles.
+ *
+ * Everything is scoped to a Memi Pilates view so that the active Joomla
+ * template remains responsible for the site-wide header, footer and theme.
  */
-[data-memi-schedule] {
-  --memi-schedule-surface: var(--body-bg, #fff);
-  --memi-schedule-ink: var(--body-color, #202124);
-  --memi-schedule-muted: color-mix(in srgb, var(--memi-schedule-ink) 62%, transparent);
-  --memi-schedule-border: color-mix(in srgb, var(--memi-schedule-ink) 18%, transparent);
-  --memi-schedule-accent: var(--link-color, #7a4562);
-  --memi-schedule-radius: 0.75rem;
-  color: var(--memi-schedule-ink);
+.memi-schedule,
+.memi-booking,
+.memi-checkout,
+.memi-dashboard {
+  --memi-surface: var(--body-bg, #fff);
+  --memi-ink: var(--body-color, #202124);
+  --memi-muted: #5f6670;
+  --memi-border: rgb(32 33 36 / 16%);
+  --memi-accent: var(--link-color, #7a4562);
+  --memi-success-bg: #e7f5eb;
+  --memi-success-ink: #145c35;
+  --memi-warning-bg: #fff2dc;
+  --memi-warning-ink: #754400;
+  --memi-danger-bg: #fbe8e9;
+  --memi-danger-ink: #8b2230;
+  --memi-radius: 0.875rem;
+  color: var(--memi-ink);
 }
 
-[data-memi-schedule] [data-memi-schedule-toolbar] {
-  align-items: end;
+@supports (color: color-mix(in srgb, black, white)) {
+  .memi-schedule,
+  .memi-booking,
+  .memi-checkout,
+  .memi-dashboard {
+    --memi-muted: color-mix(in srgb, var(--memi-ink) 62%, transparent);
+    --memi-border: color-mix(in srgb, var(--memi-ink) 18%, transparent);
+  }
+}
+
+.memi-schedule,
+.memi-booking,
+.memi-checkout,
+.memi-dashboard {
+  margin-inline: auto;
+  max-inline-size: 76rem;
+}
+
+.memi-schedule :is(button, a, input, select):focus-visible,
+.memi-booking :is(button, a, input, select):focus-visible,
+.memi-checkout :is(button, a, input, select):focus-visible,
+.memi-dashboard :is(button, a, input, select):focus-visible,
+[data-memi-kiosk] :is(button, a, input, select):focus-visible {
+  outline: 3px solid var(--memi-accent, var(--link-color, #7a4562));
+  outline: 3px solid color-mix(in srgb, var(--memi-accent, var(--link-color, #7a4562)) 58%, white);
+  outline-offset: 3px;
+}
+
+.memi-schedule :is(.btn, button),
+.memi-booking :is(.btn, button),
+.memi-checkout :is(.btn, button),
+.memi-dashboard :is(.btn, button),
+[data-memi-kiosk] :is(.btn, button) {
+  border-radius: 0.55rem;
+  min-block-size: 2.65rem;
+}
+
+/* Schedule */
+.memi-schedule__header {
+  align-items: flex-end;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-block-end: 1.25rem;
+  gap: 1rem 1.5rem;
+  justify-content: space-between;
+  margin-block-end: 1.5rem;
 }
 
-[data-memi-schedule] [data-memi-schedule-date-controls],
-[data-memi-schedule] [data-memi-schedule-view-controls],
-[data-memi-schedule] [data-memi-schedule-filters] {
-  align-items: center;
+.memi-schedule__header :is(h1, p) {
+  margin-block: 0;
+}
+
+.memi-schedule__header p {
+  color: var(--memi-muted);
+  margin-block-start: 0.3rem;
+}
+
+.memi-schedule__nav {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-[data-memi-schedule] [data-memi-schedule-filters] {
-  flex: 1 1 18rem;
-}
-
-[data-memi-schedule] [data-memi-schedule-filter],
-[data-memi-schedule] [data-memi-schedule-date] {
-  background: var(--memi-schedule-surface);
-  border: 1px solid var(--memi-schedule-border);
-  border-radius: 0.4rem;
-  color: inherit;
-  min-block-size: 2.75rem;
-  padding: 0.45rem 0.65rem;
-}
-
-[data-memi-schedule] [data-memi-schedule-filter] {
-  flex: 1 1 10rem;
-}
-
-[data-memi-schedule] [data-memi-schedule-date-label] {
-  font-weight: 600;
-  min-inline-size: 11rem;
-  text-align: center;
-}
-
-[data-memi-schedule] [data-memi-schedule-view].is-active,
-[data-memi-schedule] [data-memi-schedule-view][aria-pressed='true'] {
-  background-color: var(--memi-schedule-accent);
-  border-color: var(--memi-schedule-accent);
-  color: #fff;
-}
-
-[data-memi-schedule] [data-memi-schedule-list] {
+.memi-schedule__filters {
+  align-items: end;
+  background: var(--memi-surface);
+  background: color-mix(in srgb, var(--memi-surface) 94%, var(--memi-ink));
+  border: 1px solid var(--memi-border);
+  border-radius: var(--memi-radius);
   display: grid;
-  gap: 0.875rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: 0.85rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  margin-block-end: 1rem;
+  padding: 1rem;
 }
 
-[data-memi-schedule] [data-memi-schedule-card] {
-  background: var(--memi-schedule-surface);
-  border: 1px solid var(--memi-schedule-border);
-  border-inline-start: 0.35rem solid var(--memi-schedule-accent);
-  border-radius: var(--memi-schedule-radius);
-  box-shadow: 0 0.25rem 0.9rem rgb(0 0 0 / 5%);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.memi-schedule__filters label,
+.memi-checkout label {
+  display: grid;
+  font-weight: 600;
+  gap: 0.4rem;
+}
+
+.memi-schedule__filters select,
+.memi-checkout :is(select, input[type='text']) {
+  background: var(--memi-surface);
+  border: 1px solid var(--memi-border);
+  border-radius: 0.5rem;
+  color: inherit;
+  min-block-size: 2.65rem;
+  padding-inline: 0.7rem;
+  width: 100%;
+}
+
+.memi-schedule__filters [data-memi-clear-filters] {
+  align-self: end;
+  min-inline-size: max-content;
+}
+
+.memi-schedule [data-memi-schedule-count] {
+  color: var(--memi-muted);
+  font-size: 0.95rem;
+  margin-block: 0 0.85rem;
+  min-block-size: 1.25rem;
+}
+
+.memi-schedule__grid,
+.memi-schedule [data-memi-schedule-list] {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+}
+
+.memi-class-card,
+.memi-schedule [data-memi-schedule-card] {
+  background: var(--memi-surface);
+  border: 1px solid var(--memi-border);
+  border-inline-start: 0.35rem solid var(--memi-accent);
+  border-radius: var(--memi-radius);
+  box-shadow: 0 0.3rem 1.25rem rgb(0 0 0 / 6%);
+  display: grid;
+  gap: 0.55rem 0.9rem;
+  grid-template-columns: auto minmax(0, 1fr);
   min-inline-size: 0;
   padding: 1rem;
 }
 
-[data-memi-schedule] [data-memi-schedule-card][hidden] {
+.memi-class-card[hidden],
+.memi-schedule [data-memi-schedule-card][hidden] {
   display: none;
 }
 
-[data-memi-schedule] [data-memi-schedule-card] :is(h2, h3, h4, p) {
+.memi-class-card__time {
+  color: var(--memi-accent);
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.memi-class-card__main :is(h2, p) {
   margin-block: 0;
 }
 
-[data-memi-schedule] [data-memi-schedule-card-meta] {
-  color: var(--memi-schedule-muted);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 0.9375rem;
-  gap: 0.35rem 0.75rem;
+.memi-class-card__main h2 {
+  font-size: 1.1rem;
 }
 
-[data-memi-schedule] [data-memi-schedule-card-actions] {
-  align-items: center;
+.memi-class-card__main p {
+  color: var(--memi-muted);
+  font-size: 0.94rem;
+  margin-block-start: 0.35rem;
+}
+
+.memi-class-card__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-block-start: auto;
+  grid-column: 2;
+  margin-block-start: 0.15rem;
 }
 
-[data-memi-schedule] [data-memi-schedule-status] {
+.memi-status {
+  align-items: center;
+  background: var(--memi-success-bg);
   border-radius: 99rem;
+  color: var(--memi-success-ink);
   display: inline-flex;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  padding: 0.25rem 0.55rem;
-  width: fit-content;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.25;
+  padding: 0.24rem 0.55rem;
 }
 
-[data-memi-schedule] [data-memi-schedule-status='available'] {
-  background: #e3f5ea;
-  color: #145c35;
+.memi-status--almost-full {
+  background: var(--memi-warning-bg);
+  color: var(--memi-warning-ink);
 }
 
-[data-memi-schedule] [data-memi-schedule-status='limited'] {
-  background: #fff1d8;
-  color: #754400;
+.memi-status--full,
+.memi-status--cancelled {
+  background: var(--memi-danger-bg);
+  color: var(--memi-danger-ink);
 }
 
-[data-memi-schedule] [data-memi-schedule-status='full'],
-[data-memi-schedule] [data-memi-schedule-status='cancelled'] {
-  background: #fbe5e7;
-  color: #8b2230;
-}
-
-[data-memi-schedule] [data-memi-schedule-empty] {
-  border: 1px dashed var(--memi-schedule-border);
-  border-radius: var(--memi-schedule-radius);
-  color: var(--memi-schedule-muted);
+.memi-empty-state,
+.memi-schedule [data-memi-schedule-empty] {
+  border: 1px dashed var(--memi-border);
+  border-radius: var(--memi-radius);
+  color: var(--memi-muted);
   margin-block: 1rem 0;
   padding: 1.25rem;
   text-align: center;
 }
 
-[data-memi-schedule] :is(button, a, input, select):focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--memi-schedule-accent) 58%, white);
-  outline-offset: 2px;
+/* Booking, waitlist offer and checkout */
+.memi-booking,
+.memi-checkout {
+  background: var(--memi-surface);
+  border: 1px solid var(--memi-border);
+  border-radius: var(--memi-radius);
+  box-shadow: 0 0.3rem 1.25rem rgb(0 0 0 / 5%);
+  padding: clamp(1.15rem, 3vw, 2rem);
 }
 
-@media (max-width: 37.5rem) {
-  [data-memi-schedule] [data-memi-schedule-toolbar] {
-    align-items: stretch;
+.memi-booking > :first-child,
+.memi-checkout > :first-child {
+  margin-block-start: 0;
+}
+
+.memi-booking > a:first-child {
+  color: var(--memi-accent);
+  display: inline-block;
+  font-weight: 600;
+  margin-block-end: 1rem;
+}
+
+.memi-booking > h1,
+.memi-checkout > h1 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  margin-block: 0 0.75rem;
+}
+
+.memi-booking > p {
+  color: var(--memi-muted);
+  line-height: 1.6;
+}
+
+.memi-booking form[data-memi-booking-form],
+.memi-checkout {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.memi-booking form[data-memi-booking-form] {
+  border-block-start: 1px solid var(--memi-border);
+  margin-block-start: 1.35rem;
+  padding-block-start: 1.25rem;
+}
+
+.memi-waitlist-offer {
+  max-inline-size: 42rem;
+}
+
+.memi-checkout {
+  max-inline-size: 42rem;
+}
+
+.memi-checkout [data-memi-square-card] {
+  background: var(--memi-surface);
+  border: 1px solid var(--memi-border);
+  border-radius: 0.55rem;
+  min-block-size: 0;
+  padding: 0.8rem;
+}
+
+.memi-booking [role='status'],
+.memi-checkout [role='status'],
+.memi-dashboard [role='status'] {
+  color: var(--memi-muted);
+  margin-block: 0.25rem 0;
+  min-block-size: 1.3rem;
+}
+
+/* Client dashboard */
+.memi-dashboard {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.memi-dashboard__header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.25rem;
+  justify-content: space-between;
+}
+
+.memi-dashboard__header h1 {
+  margin: 0;
+}
+
+.memi-dashboard__metrics {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.memi-dashboard__metrics article,
+.memi-dashboard > section {
+  background: var(--memi-surface);
+  border: 1px solid var(--memi-border);
+  border-radius: var(--memi-radius);
+  box-shadow: 0 0.2rem 0.9rem rgb(0 0 0 / 4%);
+  padding: clamp(1rem, 2.5vw, 1.4rem);
+}
+
+.memi-dashboard__metrics h2,
+.memi-dashboard > section h2 {
+  font-size: 1.05rem;
+  margin-block: 0 0.65rem;
+}
+
+.memi-dashboard__metrics p {
+  color: var(--memi-accent);
+  font-size: clamp(1.75rem, 4vw, 2.35rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1;
+  margin: 0;
+}
+
+.memi-dashboard__list {
+  display: grid;
+  gap: 0.65rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.memi-dashboard__list > li {
+  background: var(--memi-surface);
+  background: color-mix(in srgb, var(--memi-surface) 95%, var(--memi-ink));
+  border: 1px solid var(--memi-border);
+  border-radius: 0.55rem;
+  line-height: 1.55;
+  padding: 0.75rem 0.85rem;
+}
+
+.memi-dashboard__list :is(button, .btn) {
+  margin-inline-start: 0.45rem;
+  vertical-align: middle;
+}
+
+.memi-qr {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--memi-border);
+  border-radius: 0.65rem;
+  display: grid;
+  justify-content: center;
+  margin-block: 1rem;
+  min-block-size: 12rem;
+  padding: 1rem;
+  width: fit-content;
+}
+
+.memi-qr :is(canvas, img) {
+  display: block;
+  height: auto !important;
+  max-inline-size: min(100%, 17.5rem);
+  width: auto !important;
+}
+
+/* Kiosk markup has its own stylesheet; these selectors bridge the public
+ * template classes that are intentionally kept separate from its JS hooks. */
+[data-memi-kiosk] .memi-kiosk__header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  justify-content: space-between;
+  margin-block-end: 1.25rem;
+}
+
+[data-memi-kiosk] .memi-kiosk__header :is(h1, p) {
+  margin-block: 0;
+}
+
+[data-memi-kiosk] .memi-kiosk__session-label {
+  display: grid;
+  font-weight: 600;
+  gap: 0.4rem;
+  margin-block-end: 1rem;
+  max-inline-size: 48rem;
+}
+
+[data-memi-kiosk] [data-memi-kiosk-session] {
+  background: var(--memi-kiosk-surface, #fff);
+  border: 1px solid var(--memi-kiosk-border, rgb(0 0 0 / 18%));
+  border-radius: 0.55rem;
+  color: inherit;
+  min-block-size: 3rem;
+  padding-inline: 0.75rem;
+}
+
+[data-memi-kiosk] .memi-kiosk__modes {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-block-end: 1rem;
+}
+
+[data-memi-kiosk] [data-memi-kiosk-pane] {
+  display: grid;
+  gap: 0.9rem;
+}
+
+[data-memi-kiosk] [data-memi-kiosk-pane] label {
+  display: grid;
+  font-weight: 600;
+  gap: 0.4rem;
+}
+
+[data-memi-kiosk] .memi-kiosk__camera {
+  aspect-ratio: 4 / 3;
+  background: #101315;
+  border-radius: 0.65rem;
+  display: block;
+  inline-size: 100%;
+  max-inline-size: 48rem;
+  object-fit: cover;
+}
+
+[data-memi-kiosk] [data-memi-test-diagnostics] {
+  display: grid;
+  gap: 0.5rem 1rem;
+  grid-template-columns: max-content minmax(0, 1fr);
+  margin: 0;
+}
+
+[data-memi-kiosk] [data-memi-test-diagnostics] :is(dt, dd) {
+  margin: 0;
+}
+
+[data-memi-kiosk] [data-memi-test-diagnostics] dd {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+@media (max-width: 52rem) {
+  .memi-schedule__filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  [data-memi-schedule] [data-memi-schedule-date-controls],
-  [data-memi-schedule] [data-memi-schedule-view-controls],
-  [data-memi-schedule] [data-memi-schedule-filters] {
+  .memi-schedule__filters [data-memi-clear-filters] {
+    justify-self: start;
+  }
+
+  [data-memi-kiosk] .memi-kiosk__modes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .memi-schedule__header,
+  .memi-dashboard__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .memi-schedule__nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .memi-schedule__nav .btn {
+    padding-inline: 0.4rem;
+  }
+
+  .memi-schedule__filters,
+  .memi-dashboard__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .memi-class-card {
+    grid-template-columns: 1fr;
+  }
+
+  .memi-class-card__actions {
+    grid-column: 1;
+  }
+
+  .memi-qr {
     width: 100%;
   }
+}
 
-  [data-memi-schedule] [data-memi-schedule-date-label] {
-    flex: 1 1 100%;
-    order: -1;
+@media (max-width: 32rem) {
+  [data-memi-kiosk] .memi-kiosk__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  [data-memi-kiosk] .memi-kiosk__modes {
+    grid-template-columns: 1fr;
+  }
+
+  [data-memi-kiosk] [data-memi-test-diagnostics] {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-memi-schedule] * {
+  .memi-schedule *,
+  .memi-booking *,
+  .memi-checkout *,
+  .memi-dashboard *,
+  [data-memi-kiosk] * {
     scroll-behavior: auto;
-    transition-duration: 0.01ms;
+    transition-duration: 0.01ms !important;
   }
 }

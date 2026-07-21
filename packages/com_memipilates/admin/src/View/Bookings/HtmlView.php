@@ -15,16 +15,25 @@ final class HtmlView extends AbstractAdminView
 {
     /** @var list<array<string, mixed>> */
     public array $items = [];
+    /** @var list<array<string, mixed>> */
+    public array $manualClients = [];
+    /** @var list<array<string, mixed>> */
+    public array $manualSessions = [];
     /** @var list<string> */
     public array $statuses = ['pending', 'confirmed', 'attended', 'waitlisted', 'cancelled_on_time', 'cancelled_late', 'administratively_cancelled', 'no_show', 'refunded'];
     public bool $canCancel = false;
+    public bool $canManualBooking = false;
 
     public function display($tpl = null): void
     {
-        $this->initialise(['core.manage', 'bookings.manage', 'waitlist.manage'], ['core.edit', 'bookings.manage']);
+        $this->initialise(['core.manage', 'bookings.manage', 'bookings.manual', 'waitlist.manage'], ['core.edit', 'bookings.manage']);
         $this->filterStatus = $this->normaliseStatus(Factory::getApplication()->input->getCmd('filter_status', ''), $this->statuses);
         $this->canCancel = $this->can('core.edit') || $this->can('bookings.manage');
+        $this->canManualBooking = $this->can('bookings.manual') || $this->can('bookings.manage');
         $this->loadItems();
+        if ($this->canManualBooking) {
+            $this->loadManualBookingData();
+        }
         Factory::getApplication()->getDocument()->setTitle($this->label('COM_MEMIPILATES_SUBMENU_BOOKINGS', 'Bookings'));
         parent::display($tpl);
     }
@@ -76,5 +85,39 @@ final class HtmlView extends AbstractAdminView
             $query->where('(u.name LIKE :filter_search OR u.email LIKE :filter_search OR c.title LIKE :filter_search)')
                 ->bind(':filter_search', $term);
         }
+    }
+
+    private function loadManualBookingData(): void
+    {
+        $clientQuery = $this->db->getQuery(true)
+            ->select(['u.id', 'u.name', 'u.email', 'cp.phone'])
+            ->from($this->db->quoteName('#__memi_client_profiles', 'cp'))
+            ->join('INNER', $this->db->quoteName('#__users', 'u') . ' ON u.id = cp.user_id')
+            ->where('cp.archived_at IS NULL')
+            ->where('u.block = 0')
+            ->order('u.name ASC, u.id ASC');
+        $this->db->setQuery($clientQuery, 0, 250);
+        $this->manualClients = $this->db->loadAssocList() ?: [];
+
+        $now = gmdate('Y-m-d H:i:s');
+        $sessionQuery = $this->db->getQuery(true)
+            ->select([
+                's.id', 's.starts_at', 's.capacity', 's.reserved_count', 's.credits_required',
+                'c.title AS course_title',
+                'GREATEST(0, s.capacity - s.reserved_count) AS available_places',
+            ])
+            ->from($this->db->quoteName('#__memi_sessions', 's'))
+            ->join('INNER', $this->db->quoteName('#__memi_courses', 'c') . ' ON c.id = s.course_id')
+            ->where('s.archived_at IS NULL')
+            ->where('c.archived_at IS NULL')
+            ->where('s.status IN (' . $this->db->quote('published') . ', ' . $this->db->quote('open') . ')')
+            ->where('s.starts_at > :now')
+            ->where('s.reserved_count < s.capacity')
+            ->where('(s.registration_opens_at IS NULL OR s.registration_opens_at <= :now)')
+            ->where('(s.registration_closes_at IS NULL OR s.registration_closes_at > :now)')
+            ->order('s.starts_at ASC')
+            ->bind(':now', $now);
+        $this->db->setQuery($sessionQuery, 0, 150);
+        $this->manualSessions = $this->db->loadAssocList() ?: [];
     }
 }

@@ -91,6 +91,7 @@ final class NotificationService
             try {
                 $payload = json_decode((string) $notification['payload'], true, 512, JSON_THROW_ON_ERROR);
                 $mailer = Factory::getMailer();
+                $this->configureSender($mailer);
                 $mailer->addRecipient((string) $notification['email'], (string) $notification['name']);
                 $mailer->setSubject($this->subject((string) $notification['template_key'], $payload));
                 $mailer->isHtml(true);
@@ -224,5 +225,19 @@ final class NotificationService
     private function queuedStatus(): string
     {
         return 'queued';
+    }
+
+    /** Use the studio display name while preserving Joomla's configured mailbox. */
+    private function configureSender(object $mailer): void
+    {
+        $application = Factory::getApplication();
+        $address = trim((string) $application->get('mailfrom', ''));
+        if ($address === '' || filter_var($address, FILTER_VALIDATE_EMAIL) === false || !method_exists($mailer, 'setSender')) {
+            return;
+        }
+
+        $configuredName = trim((string) $this->settings->get('email_from_name', ''));
+        $fallbackName = trim((string) $application->get('fromname', ''));
+        $mailer->setSender([$address, $configuredName !== '' ? $configuredName : $fallbackName]);
     }
 }

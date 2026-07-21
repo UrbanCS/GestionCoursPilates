@@ -25,10 +25,14 @@ final class DisplayController extends BaseController
     /** @var array<string, list<string>> */
     private const VIEW_PERMISSIONS = [
         'dashboard' => ['core.manage', 'reports.view'],
+        'setup' => ['core.manage', 'courses.manage', 'schedules.manage', 'instructors.manage', 'rooms.manage', 'packages.manage'],
+        'catalog' => ['core.manage', 'courses.manage', 'schedules.manage', 'instructors.manage', 'rooms.manage', 'packages.manage'],
         'sessions' => ['core.manage', 'schedules.manage', 'courses.manage'],
-        'bookings' => ['core.manage', 'bookings.manage', 'waitlist.manage'],
+        'bookings' => ['core.manage', 'bookings.manage', 'bookings.manual', 'waitlist.manage'],
         'customers' => ['core.manage', 'clients.manage'],
         'packages' => ['core.manage', 'packages.manage'],
+        'offers' => ['core.manage', 'promotions.manage', 'loyalty.adjust'],
+        'payments' => ['core.manage', 'payments.view'],
         'attendance' => ['core.manage', 'attendance.scan', 'attendance.manual', 'attendance.undo'],
     ];
 
@@ -57,6 +61,48 @@ final class DisplayController extends BaseController
 
             $reason = trim(substr(Factory::getApplication()->input->post->getString('reason', ''), 0, 500));
             ComponentServices::bookings()->cancelSession($id, $actorId, $reason !== '' ? $reason : null);
+        });
+    }
+
+    /** Creates one setup-catalogue entity through the protected onboarding screen. */
+    public function saveSetup(): void
+    {
+        $input = Factory::getApplication()->input;
+        $entity = $input->post->getCmd('entity');
+        $permissions = [
+            'location' => ['core.manage', 'core.create', 'rooms.manage'],
+            'room' => ['core.manage', 'core.create', 'rooms.manage'],
+            'instructor' => ['core.manage', 'core.create', 'instructors.manage'],
+            'course_type' => ['core.manage', 'core.create', 'courses.manage'],
+            'course' => ['core.manage', 'core.create', 'courses.manage'],
+            'session' => ['core.manage', 'core.create', 'schedules.manage'],
+            'session_rule' => ['core.manage', 'core.create', 'schedules.manage'],
+            'package' => ['core.manage', 'core.create', 'packages.manage'],
+        ];
+        if (!isset($permissions[$entity])) {
+            $this->processPost('setup', ['core.manage'], static function (): void {
+                throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
+            });
+
+            return;
+        }
+
+        $this->processPost('setup', $permissions[$entity], static function (int $actorId) use ($entity, $input): void {
+            ComponentServices::catalog()->create($entity, $input->post, $actorId);
+
+            if ($entity === 'session_rule') {
+                $horizon = ComponentServices::settings()->getInt('session_generation_lookahead_days', 90);
+                ComponentServices::scheduler()->generateRecurringSessions($horizon, false);
+            }
+        });
+    }
+
+    /** Archives an unused bootstrap catalogue after an explicit confirmation. */
+    public function resetTestCatalog(): void
+    {
+        $input = Factory::getApplication()->input;
+        $this->processPost('setup', ['core.admin'], static function (int $actorId) use ($input): void {
+            ComponentServices::catalog()->archiveTestCatalog($input->post, $actorId);
         });
     }
 

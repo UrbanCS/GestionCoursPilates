@@ -30,6 +30,21 @@ final class ComponentServices
         return new SettingsService(self::database());
     }
 
+    public static function catalog(): CatalogService
+    {
+        return new CatalogService(self::database(), self::databaseTools(), self::settings(), self::audit());
+    }
+
+    public static function catalogManagement(): CatalogManagementService
+    {
+        return new CatalogManagementService(self::database(), self::databaseTools(), self::settings(), self::audit());
+    }
+
+    public static function offers(): OfferManagementService
+    {
+        return new OfferManagementService(self::database(), self::databaseTools(), self::settings(), self::audit());
+    }
+
     public static function audit(): AuditLogger
     {
         return new AuditLogger(self::database());
@@ -55,6 +70,7 @@ final class ComponentServices
         return new LoyaltyService(
             self::database(),
             self::databaseTools(),
+            self::settings(),
             self::points(),
             self::credits(),
             self::audit()

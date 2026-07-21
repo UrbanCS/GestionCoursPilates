@@ -15,10 +15,29 @@ Un gestionnaire configure les données dans cet ordre afin d’éviter les séan
 
 Chaque réglage doit être testé avec un compte client fictif avant publication. N’accordez pas settings.manage ou square.configure à un employé qui ne doit que scanner des présences.
 
+## Mise en route initiale
+
+Après l’installation, ouvrir **Composants → Memi Pilates → Mise en route** et créer le catalogue dans cet ordre :
+
+1. Emplacement;
+2. Salle;
+3. Instructeur;
+4. Type de cours;
+5. Cours;
+6. Séance unique ou horaire hebdomadaire;
+7. Forfait de cours.
+
+L’enregistrement d’un horaire hebdomadaire génère immédiatement les séances futures selon l’horizon configuré dans les Options. Une séance publiée future est nécessaire avant que l’horaire public puisse afficher un cours. L’écran **Catalogue** permet ensuite de modifier ou de retirer de la vente les emplacements, salles, instructeurs, types de cours, cours, horaires récurrents et forfaits. Les séances ponctuelles se créent dans Catalogue; l’annulation d’une séance existante se fait dans **Séances** afin de préserver l’historique client.
+
 ## Gestion quotidienne
 
 | Activité | Action sécurisée |
 | --- | --- |
+| Catalogue courant | Utiliser **Catalogue** pour modifier les cours et forfaits, ou retirer un élément qui n’a pas de dépendance active. Créer les séances ponctuelles et les horaires récurrents depuis ce même écran. |
+| Créer un client | Utiliser **Clients → Créer un client**. Transmettre le mot de passe temporaire par un canal sécurisé, puis demander à la cliente de le changer. |
+| Inscription manuelle | Utiliser **Réservations → Inscrire un client**. Choisir « crédit » ou « gratuit » et ajouter une note si nécessaire. |
+| Promotions et fidélité | Utiliser **Promotions et fidélité** pour créer les codes, limites, offres de forfait et les récompenses de points. |
+| Suivre les paiements | Utiliser **Paiements** pour rapprocher les commandes locales et les états Square; les numéros complets de carte ne sont jamais affichés. |
 | Ajouter/modifier un cours | Vérifier capacité, salle, instructeur, période de réservation et publication; conserver une note interne seulement si nécessaire. |
 | Annuler une séance | Utiliser l’action d’annulation studio; elle annule les réservations, restaure les crédits selon règle, ferme l’attente et notifie. Un remboursement Square reste explicite. |
 | Inscrire manuellement un client | Rechercher le bon compte Joomla, confirmer son identité, choisir la séance, appliquer crédit/promo/paiement selon les droits et ajouter une justification. |

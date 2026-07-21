@@ -44,7 +44,8 @@ final class PaymentService
             }
             $now = gmdate('Y-m-d H:i:s');
             $subtotal = max(0, (int) $package['price_cents']);
-            $discount = $this->promotionDiscount($userId, $package, $promotionCode, $subtotal);
+            $promotion = $this->promotionForOrder($clientId, $packageId, $promotionCode, $subtotal);
+            $discount = (int) $promotion['discount_cents'];
             $taxRateBasisPoints = max(0, (int) ($package['tax_rate_basis_points'] ?? 0));
             $taxable = max(0, $subtotal - $discount);
             $tax = (int) round($taxable * $taxRateBasisPoints / 10000);
@@ -54,22 +55,25 @@ final class PaymentService
             $packageIdentifier = $packageId;
             $pendingStatus = 'pending';
             $currency = (string) $this->settings->get('currency', 'CAD');
+            $promotionId = $promotion['id'];
+            $normalisedPromotionCode = $promotion['code'];
             $query = $this->db->getQuery(true)
                 ->insert($this->db->quoteName('#__memi_orders'))
                 ->columns([
-                    'client_id', 'user_id', 'status', 'currency', 'subtotal_cents', 'discount_cents', 'tax_cents',
+                    'client_id', 'user_id', 'promotion_id', 'status', 'currency', 'subtotal_cents', 'discount_cents', 'tax_cents',
                     'total_cents', 'promotion_code', 'order_key', 'created_at', 'updated_at',
                 ])
-                ->values(':client_id, :user_id, :status, :currency, :subtotal_cents, :discount_cents, :tax_cents, :total_cents, :promotion_code, :order_key, :created_at, :updated_at')
+                ->values(':client_id, :user_id, :promotion_id, :status, :currency, :subtotal_cents, :discount_cents, :tax_cents, :total_cents, :promotion_code, :order_key, :created_at, :updated_at')
                 ->bind(':client_id', $clientId, ParameterType::INTEGER)
                 ->bind(':user_id', $user, ParameterType::INTEGER)
+                ->bind(':promotion_id', $promotionId, ParameterType::INTEGER)
                 ->bind(':status', $pendingStatus)
                 ->bind(':currency', $currency)
                 ->bind(':subtotal_cents', $subtotal, ParameterType::INTEGER)
                 ->bind(':discount_cents', $discount, ParameterType::INTEGER)
                 ->bind(':tax_cents', $tax, ParameterType::INTEGER)
                 ->bind(':total_cents', $total, ParameterType::INTEGER)
-                ->bind(':promotion_code', $promotionCode)
+                ->bind(':promotion_code', $normalisedPromotionCode)
                 ->bind(':order_key', $orderKey)
                 ->bind(':created_at', $now)
                 ->bind(':updated_at', $now);
@@ -447,6 +451,7 @@ final class PaymentService
         $this->db->setQuery($query);
         $items = $this->db->loadAssocList() ?: [];
         $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        $loyaltyEnabled = $this->settings->getBool('loyalty_enabled', true);
 
         foreach ($items as $item) {
             $credits = max(0, (int) $item['credits']);
@@ -479,13 +484,16 @@ final class PaymentService
                 $this->credits->grant($userId, $credits, 'purchase', 'order:' . $orderId . ':package:' . $customerPackageId, $customerPackageId, $orderId, $expires, $userId, 'Forfait acheté');
             }
             $bonus = max(0, (int) $item['points_bonus']);
-            if ($bonus > 0) {
+            if ($loyaltyEnabled && $bonus > 0) {
                 $this->points->award($userId, $bonus, 'package_purchase', 'order:' . $orderId . ':points', null, $orderId, $userId, 'Points de forfait');
             }
         }
 
         $orderData = $this->tools->lockById('#__memi_orders', $orderId);
         if ($orderData) {
+            $this->fulfillPromotion($userId, $clientId, $orderData, $items, $loyaltyEnabled);
+        }
+        if ($loyaltyEnabled && $orderData) {
             $perDollar = max(0, $this->settings->getInt('points_per_dollar', 0));
             $orderPoints = (int) floor((int) $orderData['total_cents'] / 100) * $perDollar;
             if ($orderPoints > 0) {
@@ -495,12 +503,102 @@ final class PaymentService
         $this->notifications->queue($userId, 'payment.receipt', ['order_id' => $orderId]);
     }
 
-    private function promotionDiscount(int $userId, array $package, ?string $code, int $subtotal): int
+    /**
+     * Makes a paid promotion auditable and delivers any configured bonus once.
+     * It runs inside the same transaction as payment fulfillment, so a failed
+     * bonus cannot leave a recorded redemption without its entitlement.
+     *
+     * @param array<string,mixed> $order
+     * @param list<array<string,mixed>> $items
+     */
+    private function fulfillPromotion(int $userId, int $clientId, array $order, array $items, bool $loyaltyEnabled): void
     {
-        // The booking flow deliberately validates promotions on the server.
-        // Full eligibility is stored in promotion_json by the administrator.
+        $promotionId = (int) ($order['promotion_id'] ?? 0);
+        if ($promotionId <= 0) {
+            return;
+        }
+        $promotion = $this->tools->lockById('#__memi_promotions', $promotionId);
+        if ($promotion === null) {
+            return;
+        }
+        $orderId = (int) $order['id'];
+        $key = hash('sha256', 'promotion-redemption:order:' . $orderId);
+        $existing = $this->db->getQuery(true)
+            ->select($this->db->quoteName('id'))
+            ->from($this->db->quoteName('#__memi_promotion_redemptions'))
+            ->where($this->db->quoteName('idempotency_key') . ' = :idempotency_key')
+            ->bind(':idempotency_key', $key);
+        $this->db->setQuery(DatabaseTools::forUpdate($existing));
+        if ((int) $this->db->loadResult() > 0) {
+            return;
+        }
+
+        $now = gmdate('Y-m-d H:i:s');
+        $identifier = $promotionId;
+        $client = $clientId;
+        $orderIdentifier = $orderId;
+        $discount = max(0, (int) ($order['discount_cents'] ?? 0));
+        $redemption = $this->db->getQuery(true)
+            ->insert($this->db->quoteName('#__memi_promotion_redemptions'))
+            ->columns(['promotion_id', 'client_id', 'order_id', 'booking_id', 'discount_cents', 'idempotency_key', 'redeemed_at', 'created_at'])
+            ->values(':promotion_id, :client_id, :order_id, NULL, :discount_cents, :idempotency_key, :redeemed_at, :created_at')
+            ->bind(':promotion_id', $identifier, ParameterType::INTEGER)
+            ->bind(':client_id', $client, ParameterType::INTEGER)
+            ->bind(':order_id', $orderIdentifier, ParameterType::INTEGER)
+            ->bind(':discount_cents', $discount, ParameterType::INTEGER)
+            ->bind(':idempotency_key', $key)
+            ->bind(':redeemed_at', $now)
+            ->bind(':created_at', $now);
+        $this->db->setQuery($redemption)->execute();
+
+        $bonusCredits = max(0, (int) ($promotion['bonus_credits'] ?? 0));
+        if ($bonusCredits > 0 && $items !== []) {
+            $item = $items[0];
+            $packageId = (int) ($item['package_id'] ?? 0);
+            $validityDays = max(0, (int) ($item['validity_days'] ?? 0));
+            if ($packageId > 0) {
+                $issued = new \DateTimeImmutable($now, new \DateTimeZone('UTC'));
+                $expires = $validityDays > 0 ? $issued->modify('+' . $validityDays . ' days') : null;
+                $expiresAt = $expires?->format('Y-m-d H:i:s');
+                $active = 'active';
+                $allocation = $this->db->getQuery(true)
+                    ->insert($this->db->quoteName('#__memi_customer_packages'))
+                    ->columns(['client_id', 'user_id', 'package_id', 'order_id', 'status', 'original_credits', 'remaining_credits', 'credits_granted', 'purchased_at', 'starts_at', 'expires_at', 'created_at', 'updated_at'])
+                    ->values(':client_id, :user_id, :package_id, :order_id, :status, :original_credits, :remaining_credits, :credits_granted, :purchased_at, :starts_at, :expires_at, :created_at, :updated_at')
+                    ->bind(':client_id', $client, ParameterType::INTEGER)
+                    ->bind(':user_id', $userId, ParameterType::INTEGER)
+                    ->bind(':package_id', $packageId, ParameterType::INTEGER)
+                    ->bind(':order_id', $orderIdentifier, ParameterType::INTEGER)
+                    ->bind(':status', $active)
+                    ->bind(':original_credits', $bonusCredits, ParameterType::INTEGER)
+                    ->bind(':remaining_credits', $bonusCredits, ParameterType::INTEGER)
+                    ->bind(':credits_granted', $bonusCredits, ParameterType::INTEGER)
+                    ->bind(':purchased_at', $now)
+                    ->bind(':starts_at', $now)
+                    ->bind(':expires_at', $expiresAt)
+                    ->bind(':created_at', $now)
+                    ->bind(':updated_at', $now);
+                $this->db->setQuery($allocation)->execute();
+                $allocationId = (int) $this->db->insertid();
+                $this->credits->grant($userId, $bonusCredits, 'promotion_bonus', 'order:' . $orderId . ':promotion-credits', $allocationId, $orderId, $expires, $userId, 'Crédits promotionnels');
+            }
+        }
+        $bonusPoints = max(0, (int) ($promotion['bonus_points'] ?? 0));
+        if ($loyaltyEnabled && $bonusPoints > 0) {
+            $this->points->award($userId, $bonusPoints, 'promotion_bonus', 'order:' . $orderId . ':promotion-points', null, $orderId, $userId, 'Points promotionnels');
+        }
+    }
+
+    /**
+     * Validates a code under a promotion row lock before the pending order is
+     * created. A package restriction table with no rows means “all packages”.
+     *
+     * @return array{id:?int,code:?string,discount_cents:int}
+     */
+    private function promotionForOrder(int $clientId, int $packageId, ?string $code, int $subtotal): array
+    {
         if ($code === null || trim($code) === '') {
-            return 0;
+            return ['id' => null, 'code' => null, 'discount_cents' => 0];
         }
         $normalised = mb_strtoupper(trim($code));
         $query = $this->db->getQuery(true)
@@ -508,8 +606,9 @@ final class PaymentService
             ->from($this->db->quoteName('#__memi_promotions'))
             ->where($this->db->quoteName('code') . ' = :code')
             ->where($this->db->quoteName('published') . ' = 1')
+            ->where($this->db->quoteName('archived_at') . ' IS NULL')
             ->bind(':code', $normalised);
-        $this->db->setQuery($query);
+        $this->db->setQuery(DatabaseTools::forUpdate($query));
         $promotion = $this->db->loadAssoc();
         if (!$promotion) {
             throw new DomainException('COM_MEMIPILATES_ERROR_PROMOTION_INVALID');
@@ -517,13 +616,76 @@ final class PaymentService
         $now = gmdate('Y-m-d H:i:s');
         if ((!empty($promotion['starts_at']) && (string) $promotion['starts_at'] > $now)
             || (!empty($promotion['ends_at']) && (string) $promotion['ends_at'] < $now)
-            || (int) $promotion['minimum_amount_cents'] > $subtotal) {
+            || max((int) ($promotion['minimum_amount_cents'] ?? 0), (int) ($promotion['minimum_order_cents'] ?? 0)) > $subtotal) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_PROMOTION_INVALID');
+        }
+        $promotionId = (int) $promotion['id'];
+        if (!$this->promotionAppliesToPackage($promotionId, $packageId)
+            || !$this->withinPromotionLimits($promotion, $clientId)) {
             throw new DomainException('COM_MEMIPILATES_ERROR_PROMOTION_INVALID');
         }
         $fixed = max(0, (int) ($promotion['discount_cents'] ?? 0));
         $percentBasisPoints = max(0, (int) ($promotion['discount_basis_points'] ?? 0));
 
-        return min($subtotal, max($fixed, (int) round($subtotal * $percentBasisPoints / 10000)));
+        return [
+            'id' => $promotionId,
+            'code' => (string) $promotion['code'],
+            'discount_cents' => min($subtotal, max($fixed, (int) round($subtotal * $percentBasisPoints / 10000))),
+        ];
+    }
+
+    private function promotionAppliesToPackage(int $promotionId, int $packageId): bool
+    {
+        $promotion = $promotionId;
+        $count = $this->db->getQuery(true)
+            ->select('COUNT(*)')->from($this->db->quoteName('#__memi_promotion_packages'))
+            ->where($this->db->quoteName('promotion_id') . ' = :promotion_id')
+            ->bind(':promotion_id', $promotion, ParameterType::INTEGER);
+        $this->db->setQuery($count);
+        if ((int) $this->db->loadResult() === 0) {
+            return true;
+        }
+        $package = $packageId;
+        $allowed = $this->db->getQuery(true)
+            ->select('1')->from($this->db->quoteName('#__memi_promotion_packages'))
+            ->where($this->db->quoteName('promotion_id') . ' = :promotion_id')
+            ->where($this->db->quoteName('package_id') . ' = :package_id')
+            ->bind(':promotion_id', $promotion, ParameterType::INTEGER)
+            ->bind(':package_id', $package, ParameterType::INTEGER);
+        $this->db->setQuery($allowed, 0, 1);
+
+        return (bool) $this->db->loadResult();
+    }
+
+    /** @param array<string,mixed> $promotion */
+    private function withinPromotionLimits(array $promotion, int $clientId): bool
+    {
+        $promotionId = (int) $promotion['id'];
+        $identifier = $promotionId;
+        $count = $this->db->getQuery(true)
+            ->select('COUNT(*)')->from($this->db->quoteName('#__memi_promotion_redemptions'))
+            ->where($this->db->quoteName('promotion_id') . ' = :promotion_id')
+            ->bind(':promotion_id', $identifier, ParameterType::INTEGER);
+        $this->db->setQuery($count);
+        $total = (int) $this->db->loadResult();
+        $maximum = $promotion['maximum_redemptions'] === null ? null : (int) $promotion['maximum_redemptions'];
+        if ($maximum !== null && $total >= $maximum) {
+            return false;
+        }
+        $perCustomer = $promotion['per_customer_limit'] === null ? null : (int) $promotion['per_customer_limit'];
+        if ($perCustomer === null) {
+            return true;
+        }
+        $client = $clientId;
+        $perClient = $this->db->getQuery(true)
+            ->select('COUNT(*)')->from($this->db->quoteName('#__memi_promotion_redemptions'))
+            ->where($this->db->quoteName('promotion_id') . ' = :promotion_id')
+            ->where($this->db->quoteName('client_id') . ' = :client_id')
+            ->bind(':promotion_id', $identifier, ParameterType::INTEGER)
+            ->bind(':client_id', $client, ParameterType::INTEGER);
+        $this->db->setQuery($perClient);
+
+        return (int) $this->db->loadResult() < $perCustomer;
     }
 
     private function markOrderFailed(int $orderId, string $reason): void

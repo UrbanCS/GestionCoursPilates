@@ -2,6 +2,85 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.3.1] - 2026-07-21
+
+### Corrigé
+
+- Les six types d’éléments de menu du site affichent maintenant leurs libellés français ou anglais dans l’administration Joomla au lieu des clés `COM_MEMIPILATES_*`.
+
+### Validation connue
+
+- Archive : `dist/pkg_memipilates-1.3.1.zip`
+- SHA-256 : `277E27C74F86795016E60DDC78BE507CC8CD4808452744BFB075728E1ABEA12C`
+
+## [1.3.0] - 2026-07-18
+
+### Ajouté
+
+- Écrans d’administration **Catalogue**, **Promotions et fidélité** et **Paiements** : création, modification, retrait sécurisé et suivi des opérations courantes.
+- Création d’un client Joomla/Memi par le personnel et inscription manuelle à une séance avec crédit ou à titre gratuit.
+- Création et gestion des codes promotionnels, restrictions par forfait, limites, bonus de crédits/points et catalogue de récompenses fidélité.
+- Types d’éléments de menu Joomla pour Horaire, Réservation, Achat de forfait, Espace client, Borne et offre de liste d’attente.
+
+### Corrigé
+
+- Les réglages de fidélité, de borne, du nom d’expéditeur et du mode de promotion de liste d’attente s’appliquent réellement aux flux métier.
+- Les points de fidélité sont également bloqués pour les présences ajoutées manuellement lorsque la fidélité est désactivée.
+- Les promotions sont validées côté serveur pour les dates, forfaits, minimums et limites, puis journalisées et créditées après paiement.
+
+### Validation connue
+
+- Archive : `dist/pkg_memipilates-1.3.0.zip`
+- SHA-256 : `18E92A43F82FC13C93E8B7DB15D94B9855A29FF20F0A485973C63558F6AEFBC7`
+- Contrôles statiques : PHP lint sur les 70 fichiers PHP du paquet, XML des manifestes et métadonnées de menu, vérification de l’archive.
+
+## [1.2.0] - 2026-07-17
+
+### Ajouté
+
+- Bouton protégé de réinitialisation du catalogue de test dans « Mise en route », réservé aux administrateurs du composant et confirmé par la saisie de `REINITIALISER`.
+- Archivage cohérent des emplacements, salles, instructeurs, cours, horaires, séances et forfaits de test sans effacer le journal d’audit.
+
+### Corrigé
+
+- Empêche la génération d’une nouvelle séance par le planificateur pendant ou après la réinitialisation.
+- Les anciennes URL de réservation pour une séance archivée répondent maintenant 404.
+- Les étiquettes « Publiée » et « Actions » sont traduites dans les tableaux d’administration.
+
+### Validation connue
+
+- Archive : `dist/pkg_memipilates-1.2.0.zip`
+- SHA-256 : `5062AC779A56319D40FBA218E51ED8DE90EA72311F6DCC28B8BD530DB3B77606`
+
+## [1.1.1] - 2026-07-17
+
+### Corrigé
+
+- Compatibilité Joomla 6.1 : le formulaire de mise en route accepte maintenant le type d’entrée réellement transmis par Joomla lors de l’enregistrement.
+
+### Validation connue
+
+- Archive : `dist/pkg_memipilates-1.1.1.zip`
+- SHA-256 : `2FA67B4122C339C2D4C2ACB1BCD12807AAEAED876CAA884077C59E1444B692B5`
+
+## [1.1.0] - 2026-07-17
+
+### Ajouté
+
+- Écran d’administration protégé « Mise en route » pour créer l’emplacement, la salle, l’instructeur, le type de cours, le cours, les séances, les horaires hebdomadaires et les forfaits de départ.
+- Génération immédiate des séances futures lors de l’enregistrement d’un horaire hebdomadaire, selon l’horizon configuré.
+
+### Corrigé
+
+- Liaison des valeurs SQL de l’écran de mise en route afin que chaque champ soit enregistré dans sa propre colonne.
+- Conservation du taux de taxe du cours lors de la génération de séances récurrentes.
+- Réduction des coordonnées enregistrées dans le journal d’audit et alignement des droits de création avec l’accès d’administration du composant.
+
+### Validation connue
+
+- Archive : `dist/pkg_memipilates-1.1.0.zip`
+- SHA-256 : `956654CECF093124527C11C4DB17F348EB80806C34550D770A00C37F9599AB96`
+
 ## [1.0.4] - 2026-07-15
 
 ### Corrigé

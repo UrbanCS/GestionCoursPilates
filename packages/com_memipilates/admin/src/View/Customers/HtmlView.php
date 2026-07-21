@@ -15,10 +15,12 @@ final class HtmlView extends AbstractAdminView
 {
     /** @var list<array<string, mixed>> */
     public array $items = [];
+    public bool $canCreateClient = false;
 
     public function display($tpl = null): void
     {
-        $this->initialise(['core.manage', 'clients.manage']);
+        $this->initialise(['core.manage', 'clients.manage'], ['clients.manage']);
+        $this->canCreateClient = $this->can('clients.manage');
         $this->loadItems();
         Factory::getApplication()->getDocument()->setTitle($this->label('COM_MEMIPILATES_SUBMENU_CUSTOMERS', 'Customers'));
         parent::display($tpl);

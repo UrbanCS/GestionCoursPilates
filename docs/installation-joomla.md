@@ -19,10 +19,11 @@ Ce guide installe le paquet natif Joomla **pkg_memipilates**. Il ne faut jamais 
 4. Attendre le message de succès de l’installateur. Garder la page d’erreurs si l’opération échoue; ne pas réessayer plusieurs fois sans comprendre la cause.
 5. Aller dans **Système → Gérer → Extensions** et confirmer que le composant et les éventuels modules/plugins du paquet sont présents. N’activer que les plugins nécessaires.
 6. Ouvrir **Composants → Memi Pilates → Options** et renseigner les réglages non secrets : fuseau, délai d’annulation, fenêtres d’activité des cours, politique de promotion de liste d’attente et règles de points.
-7. Configurer les secrets Square uniquement côté administration sécurisée/serveur, selon [Square](square.md). Commencer obligatoirement en Sandbox.
-8. Créer des éléments de menu Joomla vers les vues publiques. Les routes publiques doivent rester menu-centrées afin de conserver le template, l’en-tête, le pied de page et les URL SEO du site.
-9. Attribuer les groupes et actions ACL décrits dans [Routes et ACL](routes-acl.md). Ne pas donner l’accès d’administration global à un employé de borne.
-10. Purger seulement les caches concernés puis ouvrir le site dans une session client distincte.
+7. Ouvrir **Composants → Memi Pilates → Mise en route** et créer l’emplacement, la salle, l’instructeur, le type de cours, le cours, une séance future ou un horaire hebdomadaire, puis un forfait. Une séance future publiée est requise avant que l’horaire public puisse afficher le cours.
+8. Configurer les secrets Square uniquement côté administration sécurisée/serveur, selon [Square](square.md). Commencer obligatoirement en Sandbox.
+9. Créer des éléments de menu Joomla vers les vues publiques. Dans **Menus → [menu voulu] → Nouveau → Type d’élément de menu → Memi Pilates**, choisir : **Horaire**, **Réservation**, **Acheter un forfait**, **Mon espace client**, **Borne de présence** ou **Offre de liste d’attente**. Les routes restent ainsi menu-centrées et conservent le template, l’en-tête, le pied de page et les URL SEO du site. Ajouter au minimum Horaire, Acheter un forfait et Mon espace client; limiter Borne de présence au personnel.
+10. Attribuer les groupes et actions ACL décrits dans [Routes et ACL](routes-acl.md). Ne pas donner l’accès d’administration global à un employé de borne.
+11. Purger seulement les caches concernés puis ouvrir le site dans une session client distincte.
 
 Le paquet peut inclure un composant, des modules et des plugins. Joomla gère leur enregistrement et les migrations : les fichiers ne doivent pas être déplacés manuellement après installation.
 
