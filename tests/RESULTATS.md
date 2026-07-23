@@ -1,5 +1,18 @@
 # Résultats de tests
 
+## Contrôles locaux de la version 1.5.0 — 2026-07-22
+
+| Contrôle | Statut | Preuve / limite |
+| --- | --- | --- |
+| Manifestes XML | Réussi (statique) | 13 fichiers XML du paquet et de ses extensions enfants analysés. |
+| Assets Joomla | Réussi (statique) | JSON valide, 10 assets uniques, dépendances internes et fichiers locaux présents. |
+| Langues | Réussi (statique) | 8 paires FR/EN symétriques, sans clé dupliquée; les 539 références `COM_MEMIPILATES_*` utilisées ont une définition. |
+| Schéma et mise à jour | Réussi (statique) | 34 tables d’installation; migration 1.5.0 non destructive avec les colonnes de reprise des courriels et d’unicité QR. |
+| Recherche de secrets | Réussi (statique) | 144 fichiers de code, configuration et documentation inspectés; aucun motif de secret concret détecté. |
+| Diff Git | Réussi (statique) | `git diff --check` ne signale aucune erreur d’espace ou de conflit. |
+| Archive Joomla 1.5.0 | Réussi (statique) | ZIP externe de 9 entrées et 3 ZIP enfants (110/8/2 entrées), chemins POSIX, manifestes 1.5.0 et fichiers de migration/services/assets critiques présents. SHA-256 `2A522C8E32165733EBA11159C76A190EFCBF91C8A00E723272AFE2D369B5CC96`. |
+| Syntaxe PHP / exécution Joomla | Non exécutée dans cette campagne | Aucun exécutable PHP, serveur Joomla ou moteur MySQL/MariaDB n’est disponible dans cet espace local. La validation préproduction reste obligatoire. |
+
 ## Statut du squelette
 
 | Contrôle | Statut | Preuve / limite |

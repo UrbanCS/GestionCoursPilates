@@ -158,9 +158,10 @@ final class CatalogService
         if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
             throw new DomainException('COM_MEMIPILATES_ERROR_SETUP_INVALID_EMAIL');
         }
+        $userId = $this->validatedInstructorUserId($input);
         $now = $this->now();
         $row = [
-            'user_id' => null,
+            'user_id' => $userId,
             'display_name' => $this->requiredText($input, 'display_name', 255),
             'bio' => $this->text($input, 'bio', 20000),
             'image' => '',
@@ -175,6 +176,39 @@ final class CatalogService
         ];
 
         return $this->store('instructor', '#__memi_instructors', $row, $actorId);
+    }
+
+    private function validatedInstructorUserId(Input $input): ?int
+    {
+        $userId = $this->optionalId($input, 'user_id');
+        if ($userId === null) {
+            return null;
+        }
+
+        $identifier = $userId;
+        $query = $this->db->getQuery(true)
+            ->select('COUNT(*)')
+            ->from($this->db->quoteName('#__users'))
+            ->where($this->db->quoteName('id') . ' = :user_id')
+            ->where($this->db->quoteName('block') . ' = 0')
+            ->bind(':user_id', $identifier, ParameterType::INTEGER);
+        $this->db->setQuery($query);
+        if ((int) $this->db->loadResult() !== 1) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_NOT_FOUND', [], 404);
+        }
+
+        $linkedUser = $userId;
+        $query = $this->db->getQuery(true)
+            ->select('COUNT(*)')
+            ->from($this->db->quoteName('#__memi_instructors'))
+            ->where($this->db->quoteName('user_id') . ' = :linked_user_id')
+            ->bind(':linked_user_id', $linkedUser, ParameterType::INTEGER);
+        $this->db->setQuery($query);
+        if ((int) $this->db->loadResult() > 0) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_SETUP_DUPLICATE', [], 409);
+        }
+
+        return $userId;
     }
 
     private function createCourseType(Input $input, int $actorId): int

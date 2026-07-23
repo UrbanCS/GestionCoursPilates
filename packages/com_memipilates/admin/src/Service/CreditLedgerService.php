@@ -86,18 +86,19 @@ final class CreditLedgerService
         $now = gmdate('Y-m-d H:i:s');
         $client = $clientId;
         $activeStatus = $this->activeStatus();
+        $restoredStatus = $this->restoredStatus();
         $query = $this->db->getQuery(true)
             ->select(['cp.*', 'COALESCE(SUM(cl.credits_delta), 0) AS remaining_credits'])
             ->from($this->db->quoteName('#__memi_customer_packages', 'cp'))
             ->join('LEFT', $this->db->quoteName('#__memi_credit_ledger', 'cl') . ' ON cl.customer_package_id = cp.id')
             ->where('cp.client_id = :client_id')
-            ->where('cp.status = :status')
-            ->where('(cp.expires_at IS NULL OR cp.expires_at > :now)')
+            ->where('((cp.status = :active_status AND (cp.expires_at IS NULL OR cp.expires_at > :now)) OR cp.status = :restored_status)')
             ->group('cp.id')
             ->having('COALESCE(SUM(cl.credits_delta), 0) > 0')
-            ->order('cp.expires_at ASC, cp.id ASC')
+            ->order('CASE WHEN cp.status = ' . $this->db->quote($restoredStatus) . ' THEN 0 ELSE 1 END, cp.expires_at ASC, cp.id ASC')
             ->bind(':client_id', $client, ParameterType::INTEGER)
-            ->bind(':status', $activeStatus)
+            ->bind(':active_status', $activeStatus)
+            ->bind(':restored_status', $restoredStatus)
             ->bind(':now', $now);
         $query->setLimit(1);
         $this->db->setQuery(DatabaseTools::forUpdate($query));
@@ -157,6 +158,7 @@ final class CreditLedgerService
         }
 
         $totalRestored = 0;
+        $now = gmdate('Y-m-d H:i:s');
         foreach ($consumed as $allocationKey => $usedCredits) {
             $outstanding = $usedCredits - ($restored[$allocationKey] ?? 0);
             if ($outstanding <= 0) {
@@ -164,6 +166,47 @@ final class CreditLedgerService
             }
 
             $allocationId = $allocationKey === 'none' ? null : (int) $allocationKey;
+            $allocation = $allocationId === null ? null : $this->tools->lockById('#__memi_customer_packages', $allocationId);
+            $allocationStatus = (string) ($allocation['status'] ?? '');
+            $allocationExpired = $allocation !== null
+                && ($allocationStatus === 'expired'
+                    || ($allocationStatus === $this->activeStatus() && !empty($allocation['expires_at']) && (string) $allocation['expires_at'] <= $now));
+            if ($allocationExpired && $allocationId !== null) {
+                // First zero every unused credit that really expired. The
+                // special status then exposes only credits restored below.
+                $this->expireAllocation($allocation);
+                $restoredStatus = $this->restoredStatus();
+                $identifier = $allocationId;
+                $reactivate = $this->db->getQuery(true)
+                    ->update($this->db->quoteName('#__memi_customer_packages'))
+                    ->set($this->db->quoteName('status') . ' = :status')
+                    ->set($this->db->quoteName('remaining_credits') . ' = 0')
+                    ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+                    ->where($this->db->quoteName('id') . ' = :id')
+                    ->bind(':status', $restoredStatus)
+                    ->bind(':updated_at', $now)
+                    ->bind(':id', $identifier, ParameterType::INTEGER);
+                $this->db->setQuery($reactivate)->execute();
+                $allocationStatus = $restoredStatus;
+                $this->audit->log($actorId, 'credit.allocation_restored', 'customer_package', $allocationId, $allocation, [
+                    'status' => $restoredStatus,
+                    'booking_id' => $bookingId,
+                ]);
+            }
+
+            $allocationIsUsable = $allocation !== null
+                && (int) $allocation['user_id'] === $userId
+                && ($allocationStatus === $this->restoredStatus()
+                    || ($allocationStatus === $this->activeStatus()
+                        && (empty($allocation['expires_at']) || (string) $allocation['expires_at'] > $now)));
+            if (!$allocationIsUsable) {
+                $this->audit->log($actorId, 'credit.restore_skipped_inactive', 'customer_package', $allocationId, $allocation, [
+                    'booking_id' => $bookingId,
+                    'credits_not_restored' => $outstanding,
+                ]);
+                continue;
+            }
+
             $entryKey = hash('sha256', $idempotencyKey . ':allocation:' . $allocationKey);
             $this->insertEntry(
                 $userId,
@@ -289,6 +332,11 @@ final class CreditLedgerService
     private function activeStatus(): string
     {
         return 'active';
+    }
+
+    private function restoredStatus(): string
+    {
+        return 'restored';
     }
 
     private function remainingForAllocation(int $customerPackageId): int

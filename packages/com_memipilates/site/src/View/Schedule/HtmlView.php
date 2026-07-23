@@ -19,18 +19,28 @@ final class HtmlView extends BaseHtmlView
     /** @var array<string,list<array<string,mixed>>> */
     public array $filters = [];
     public string $startDate = '';
-    public string $viewMode = 'day';
+    public string $viewMode = 'week';
+    public string $locale = 'fr-FR';
 
     public function display($tpl = null): void
     {
-        $input = Factory::getApplication()->input;
-        $candidate = $input->getString('date', gmdate('Y-m-d'));
-        $this->startDate = preg_match('/^\d{4}-\d{2}-\d{2}$/D', $candidate) ? $candidate : gmdate('Y-m-d');
-        $this->viewMode = $input->getCmd('mode', 'day') === 'week' ? 'week' : 'day';
+        $application = Factory::getApplication();
+        $input = $application->input;
+        $timezone = ComponentServices::settings()->timezone();
+        $today = (new \DateTimeImmutable('now', $timezone))->format('Y-m-d');
+        $candidate = $input->getString('date', $today);
+        $parsedDate = preg_match('/^\d{4}-\d{2}-\d{2}$/D', $candidate)
+            ? \DateTimeImmutable::createFromFormat('!Y-m-d', $candidate, $timezone)
+            : false;
+        $this->startDate = $parsedDate instanceof \DateTimeImmutable && $parsedDate->format('Y-m-d') === $candidate
+            ? $candidate
+            : $today;
+        $this->viewMode = 'week';
+        $this->locale = $application->getLanguage()->getTag() ?: 'fr-FR';
         $this->sessions = $this->loadSessions();
         $this->filters = $this->loadFilters();
 
-        $document = Factory::getApplication()->getDocument();
+        $document = $application->getDocument();
         $document->getWebAssetManager()
             ->useStyle('com_memipilates.site')
             ->useScript('com_memipilates.schedule');
@@ -49,7 +59,7 @@ final class HtmlView extends BaseHtmlView
     {
         $db = ComponentServices::database();
         $start = new \DateTimeImmutable($this->startDate . ' 00:00:00', ComponentServices::settings()->timezone());
-        $end = $this->viewMode === 'week' ? $start->modify('+7 days') : $start->modify('+1 day');
+        $end = $start->modify('+7 days');
         $startUtc = $start->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
         $endUtc = $end->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
         $query = $db->getQuery(true)
@@ -84,9 +94,9 @@ final class HtmlView extends BaseHtmlView
     {
         $db = ComponentServices::database();
         $queries = [
-            'types' => $db->getQuery(true)->select(['id', 'title'])->from($db->quoteName('#__memi_course_types'))->where('published = 1')->order('ordering, title'),
-            'instructors' => $db->getQuery(true)->select(['id', 'display_name AS title'])->from($db->quoteName('#__memi_instructors'))->where('published = 1')->order('ordering, display_name'),
-            'locations' => $db->getQuery(true)->select(['id', 'title'])->from($db->quoteName('#__memi_locations'))->where('published = 1')->order('ordering, title'),
+            'types' => $db->getQuery(true)->select(['id', 'title'])->from($db->quoteName('#__memi_course_types'))->where('published = 1')->where('archived_at IS NULL')->order('ordering, title'),
+            'instructors' => $db->getQuery(true)->select(['id', 'display_name AS title'])->from($db->quoteName('#__memi_instructors'))->where('published = 1')->where('archived_at IS NULL')->order('ordering, display_name'),
+            'locations' => $db->getQuery(true)->select(['id', 'title'])->from($db->quoteName('#__memi_locations'))->where('published = 1')->where('archived_at IS NULL')->order('ordering, title'),
         ];
         $result = [];
         foreach ($queries as $key => $query) {

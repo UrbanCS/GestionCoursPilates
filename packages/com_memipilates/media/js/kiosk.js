@@ -17,6 +17,7 @@
     minTokenLength: 8,
     requireSession: false,
     sounds: false,
+    timeZone: '',
     tokenPattern: '^[A-Za-z0-9_-]+$'
   };
 
@@ -97,6 +98,7 @@
         scanUrl: root.dataset.scanUrl || options.scanUrl || '',
         sounds: toBoolean(root.dataset.sounds, toBoolean(options.sounds, DEFAULTS.sounds)),
         testMode: toBoolean(root.dataset.testMode, toBoolean(options.testMode, false)),
+        timeZone: root.dataset.timeZone || options.timeZone || DEFAULTS.timeZone,
         tokenPattern: root.dataset.tokenPattern || options.tokenPattern || DEFAULTS.tokenPattern
       };
 
@@ -1129,12 +1131,25 @@
       if (!clock) {
         return;
       }
+      const formatOptions = {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      };
+      if (this.options.timeZone) {
+        formatOptions.timeZone = this.options.timeZone;
+      }
+
+      let formatter;
+      try {
+        formatter = new Intl.DateTimeFormat(this.options.locale, formatOptions);
+      } catch (error) {
+        delete formatOptions.timeZone;
+        formatter = new Intl.DateTimeFormat(this.options.locale, formatOptions);
+      }
+
       const format = () => {
-        clock.textContent = new Intl.DateTimeFormat(this.options.locale, {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        }).format(new Date());
+        clock.textContent = formatter.format(new Date());
       };
       format();
       window.setInterval(format, 1000);

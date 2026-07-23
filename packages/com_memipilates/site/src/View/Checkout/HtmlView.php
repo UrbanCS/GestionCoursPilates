@@ -18,6 +18,7 @@ final class HtmlView extends BaseHtmlView
     public array $packages = [];
     /** @var array<string,string> */
     public array $square = [];
+    public string $currency = 'CAD';
     public string $createEndpoint = '';
     public string $payEndpoint = '';
 
@@ -28,6 +29,8 @@ final class HtmlView extends BaseHtmlView
             return;
         }
         $db = ComponentServices::database();
+        $configuredCurrency = strtoupper((string) ComponentServices::settings()->get('currency', 'CAD'));
+        $this->currency = preg_match('/^[A-Z]{3}$/D', $configuredCurrency) ? $configuredCurrency : 'CAD';
         $query = $db->getQuery(true)->select('*')->from($db->quoteName('#__memi_packages'))->where('published = 1')->where('archived_at IS NULL')->order('ordering ASC, title ASC');
         $db->setQuery($query);
         $this->packages = $db->loadAssocList() ?: [];

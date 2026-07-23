@@ -8,6 +8,7 @@ namespace Memi\Component\Memipilates\Site\View\Booking;
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Router\Route;
 use Joomla\Database\ParameterType;
@@ -21,6 +22,22 @@ final class HtmlView extends BaseHtmlView
     public int $creditBalance = 0;
     public string $reserveEndpoint = '';
     public string $waitlistEndpoint = '';
+
+    /** Formats UTC database values in the configured studio timezone. */
+    public function formatDate(?string $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        try {
+            $date = new \DateTimeImmutable($value, new \DateTimeZone('UTC'));
+
+            return $date->setTimezone(ComponentServices::settings()->timezone())->format(Text::_('DATE_FORMAT_LC5'));
+        } catch (\Throwable) {
+            return $value;
+        }
+    }
 
     public function display($tpl = null): void
     {
@@ -43,6 +60,7 @@ final class HtmlView extends BaseHtmlView
         if ($id <= 0) return null;
         $db = ComponentServices::database();
         $sessionId = $id;
+        $now = gmdate('Y-m-d H:i:s');
         $query = $db->getQuery(true)
             ->select(['s.*', 'c.title AS course_title', 'c.description', 'i.display_name AS instructor_name', 'r.title AS room_title'])
             ->from($db->quoteName('#__memi_sessions', 's'))
@@ -53,7 +71,10 @@ final class HtmlView extends BaseHtmlView
             ->where('s.archived_at IS NULL')
             ->where('c.archived_at IS NULL')
             ->where('c.published = 1')
-            ->bind(':id', $sessionId, ParameterType::INTEGER);
+            ->where('s.status IN (' . $db->quote('published') . ', ' . $db->quote('open') . ')')
+            ->where('s.starts_at > :now')
+            ->bind(':id', $sessionId, ParameterType::INTEGER)
+            ->bind(':now', $now);
         $db->setQuery($query);
         return $db->loadAssoc() ?: null;
     }

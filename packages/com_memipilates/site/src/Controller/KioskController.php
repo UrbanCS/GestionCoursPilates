@@ -25,13 +25,15 @@ final class KioskController extends BaseController
             $actorId = $this->requirePermission('attendance.kiosk');
             $this->requirePermission('attendance.scan');
             $input = Factory::getApplication()->input;
+            $sessionId = $input->post->getInt('session_id');
+            $this->assertSessionScope($actorId, $sessionId);
             $override = $input->post->getInt('override', 0) === 1;
             if ($override) {
                 $this->requirePermission('attendance.override');
             }
             $result = ComponentServices::attendance()->scan(
                 $actorId,
-                $input->post->getInt('session_id'),
+                $sessionId,
                 $input->post->getString('token'),
                 $input->post->getCmd('method', 'hid'),
                 $this->idempotencyKey(),
@@ -71,7 +73,7 @@ final class KioskController extends BaseController
     {
         try {
             $this->requirePostToken();
-            $this->requirePermission('attendance.kiosk');
+            $actorId = $this->requirePermission('attendance.kiosk');
             $this->requirePermission('attendance.manual');
             $queryText = trim(Factory::getApplication()->input->post->getString('query'));
             if (mb_strlen($queryText) < 2) {
@@ -81,6 +83,7 @@ final class KioskController extends BaseController
             if ($sessionId <= 0) {
                 throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
             }
+            $this->assertSessionScope($actorId, $sessionId);
             $db = ComponentServices::database();
             $term = '%' . $queryText . '%';
             $session = $sessionId;
@@ -113,16 +116,18 @@ final class KioskController extends BaseController
             $this->requirePermission('attendance.manual');
             $input = Factory::getApplication()->input;
             $userId = $input->post->getInt('user_id');
-            if ($userId <= 0) {
+            $sessionId = $input->post->getInt('session_id');
+            if ($userId <= 0 || $sessionId <= 0) {
                 throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
             }
+            $this->assertSessionScope($actorId, $sessionId);
             $override = $input->post->getInt('override', 0) === 1;
             if ($override) {
                 $this->requirePermission('attendance.override');
             }
             $result = ComponentServices::attendance()->manualCheckIn(
                 $actorId,
-                $input->post->getInt('session_id'),
+                $sessionId,
                 $userId,
                 $this->idempotencyKey(),
                 $override,
@@ -132,5 +137,20 @@ final class KioskController extends BaseController
         } catch (\Throwable $error) {
             $this->respondError($error);
         }
+    }
+
+    private function assertSessionScope(int $actorId, int $sessionId): void
+    {
+        if ($sessionId <= 0) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
+        }
+
+        $identity = Factory::getApplication()->getIdentity();
+        if ((bool) $identity->authorise('core.admin', 'com_memipilates')
+            || (bool) $identity->authorise('attendance.all_sessions', 'com_memipilates')) {
+            return;
+        }
+
+        ComponentServices::staffScope()->assertAssignedSession($actorId, $sessionId);
     }
 }

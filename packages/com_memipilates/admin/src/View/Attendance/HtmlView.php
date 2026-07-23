@@ -22,13 +22,15 @@ final class HtmlView extends AbstractAdminView
     public array $statuses = ['confirmed', 'void'];
     public bool $canManualCheckIn = false;
     public bool $canUndo = false;
+    public bool $canViewContact = false;
 
     public function display($tpl = null): void
     {
-        $this->initialise(['core.manage', 'attendance.scan', 'attendance.manual', 'attendance.undo'], ['core.edit', 'attendance.manual', 'attendance.undo']);
+        $this->initialise(['attendance.manual', 'attendance.undo'], ['attendance.manual', 'attendance.undo']);
         $this->filterStatus = $this->normaliseStatus(Factory::getApplication()->input->getCmd('filter_status', ''), $this->statuses);
-        $this->canManualCheckIn = $this->can('core.edit') || $this->can('attendance.manual');
-        $this->canUndo = $this->can('core.edit') || $this->can('attendance.undo');
+        $this->canManualCheckIn = $this->can('attendance.manual');
+        $this->canUndo = $this->can('attendance.undo');
+        $this->canViewContact = $this->can('clients.manage');
         $this->loadItems();
         $this->checkInCandidates = $this->canManualCheckIn ? $this->loadCheckInCandidates() : [];
         Factory::getApplication()->getDocument()->setTitle($this->label('COM_MEMIPILATES_SUBMENU_ATTENDANCE', 'Attendance'));
@@ -46,9 +48,13 @@ final class HtmlView extends AbstractAdminView
             ->select([
                 'a.id', 'a.status', 'a.method', 'a.checked_in_at', 'a.override_reason', 'a.voided_at',
                 's.id AS session_id', 's.starts_at', 'c.title AS course_title',
-                'u.id AS user_id', 'u.name AS customer_name', 'u.email AS customer_email',
+                'u.id AS user_id', 'u.name AS customer_name',
                 'scanner.name AS scanner_name',
-            ])
+            ]);
+        if ($this->canViewContact) {
+            $query->select('u.email AS customer_email');
+        }
+        $query
             ->order('a.checked_in_at DESC, a.id DESC');
         $this->applyFilters($query);
         $this->db->setQuery($query, $this->limitStart, $this->limit);
@@ -57,12 +63,15 @@ final class HtmlView extends AbstractAdminView
 
     private function baseQuery(): mixed
     {
-        return $this->db->getQuery(true)
+        $query = $this->db->getQuery(true)
             ->from($this->db->quoteName('#__memi_attendance', 'a'))
             ->join('INNER', $this->db->quoteName('#__memi_sessions', 's') . ' ON s.id = a.session_id')
             ->join('INNER', $this->db->quoteName('#__memi_courses', 'c') . ' ON c.id = s.course_id')
             ->join('INNER', $this->db->quoteName('#__users', 'u') . ' ON u.id = a.user_id')
             ->join('LEFT', $this->db->quoteName('#__users', 'scanner') . ' ON scanner.id = a.scanned_by_user_id');
+        $this->applyInstructorSessionScope($query, 's', ['bookings.manage', 'attendance.all_sessions']);
+
+        return $query;
     }
 
     private function applyFilters(mixed $query): void
@@ -79,7 +88,10 @@ final class HtmlView extends AbstractAdminView
         }
         if ($this->filterSearch !== '') {
             $term = '%' . $this->filterSearch . '%';
-            $query->where('(u.name LIKE :filter_search OR u.email LIKE :filter_search OR c.title LIKE :filter_search)')
+            $columns = $this->canViewContact
+                ? 'u.name LIKE :filter_search OR u.email LIKE :filter_search OR c.title LIKE :filter_search'
+                : 'u.name LIKE :filter_search OR c.title LIKE :filter_search';
+            $query->where('(' . $columns . ')')
                 ->bind(':filter_search', $term);
         }
     }
@@ -97,8 +109,12 @@ final class HtmlView extends AbstractAdminView
         $query = $this->db->getQuery(true)
             ->select([
                 'b.id AS booking_id', 's.id AS session_id', 's.starts_at', 'c.title AS course_title',
-                'u.name AS customer_name', 'u.email AS customer_email',
-            ])
+                'u.name AS customer_name',
+            ]);
+        if ($this->canViewContact) {
+            $query->select('u.email AS customer_email');
+        }
+        $query
             ->from($this->db->quoteName('#__memi_bookings', 'b'))
             ->join('INNER', $this->db->quoteName('#__memi_sessions', 's') . ' ON s.id = b.session_id')
             ->join('INNER', $this->db->quoteName('#__memi_courses', 'c') . ' ON c.id = s.course_id')
@@ -113,6 +129,7 @@ final class HtmlView extends AbstractAdminView
             ->bind(':booking_status', $bookingStatus)
             ->bind(':candidate_upper', $upper)
             ->bind(':candidate_lower', $lower);
+        $this->applyInstructorSessionScope($query, 's', ['bookings.manage', 'attendance.all_sessions']);
         $this->db->setQuery($query, 0, 30);
 
         return $this->db->loadAssocList() ?: [];

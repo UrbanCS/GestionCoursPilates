@@ -44,9 +44,21 @@ final class HtmlView extends AbstractAdminView
 
     public function display($tpl = null): void
     {
-        $this->initialise(['core.manage', 'courses.manage', 'schedules.manage', 'instructors.manage', 'rooms.manage', 'packages.manage'], ['core.edit', 'core.create']);
+        $this->initialise(['courses.manage', 'schedules.manage', 'instructors.manage', 'rooms.manage', 'packages.manage']);
+        $permissions = [
+            'location' => 'rooms.manage', 'room' => 'rooms.manage',
+            'instructor' => 'instructors.manage',
+            'course_type' => 'courses.manage', 'course' => 'courses.manage',
+            'session_rule' => 'schedules.manage', 'session' => 'schedules.manage',
+            'package' => 'packages.manage',
+        ];
+        $this->entities = array_filter(
+            $this->entities,
+            fn (string $key): bool => $this->can($permissions[$key]),
+            ARRAY_FILTER_USE_KEY
+        );
         $candidate = Factory::getApplication()->input->getCmd('entity', 'course');
-        $this->entity = array_key_exists($candidate, $this->entities) ? $candidate : 'course';
+        $this->entity = array_key_exists($candidate, $this->entities) ? $candidate : (string) array_key_first($this->entities);
         $this->loadOptions();
         $this->loadRecord();
         $this->loadItems();

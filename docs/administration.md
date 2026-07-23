@@ -5,7 +5,7 @@
 Un gestionnaire configure les données dans cet ordre afin d’éviter les séances impossibles à réserver :
 
 1. Emplacements et salles, avec leur capacité réelle et leur fuseau.
-2. Instructeurs, éventuellement liés à un compte Joomla existant.
+2. Instructeurs, liés à leur compte Joomla existant lorsque le rôle doit être limité à ses propres séances.
 3. Types de cours, puis cours : durée, prix en cents, crédits requis, capacité, salle, instructeur, fenêtre d’inscription et publication.
 4. Règles de récurrence et séances générées; vérifier qu’aucun doublon de créneau ou de salle n’existe.
 5. Forfaits, restrictions, dates d’expiration, taxes et points bonus.
@@ -13,11 +13,11 @@ Un gestionnaire configure les données dans cet ordre afin d’éviter les séan
 7. Modèles courriel, règles de rappel, délai d’annulation, liste d’attente et fidélité.
 8. Menus publics, niveaux d’accès et groupes ACL.
 
-Chaque réglage doit être testé avec un compte client fictif avant publication. N’accordez pas settings.manage ou square.configure à un employé qui ne doit que scanner des présences.
+Chaque réglage doit être testé avec un compte client fictif avant publication. La page Options regroupe les réglages et les secrets Square : elle est donc réservée aux Super administrateurs disposant de core.admin.
 
 ## Mise en route initiale
 
-Après l’installation, ouvrir **Composants → Memi Pilates → Mise en route** et créer le catalogue dans cet ordre :
+Après l’installation, un Super administrateur ouvre **Composants → Memi Pilates → Mise en route** et crée le catalogue dans cet ordre. Cet écran initial combine tous les domaines; le personnel délégué utilise ensuite l’écran **Catalogue**, filtré selon ses droits :
 
 1. Emplacement;
 2. Salle;
@@ -49,13 +49,13 @@ L’enregistrement d’un horaire hebdomadaire génère immédiatement les séan
 
 ## Configuration Square
 
-Seuls les Super administrateurs, ou les gestionnaires explicitement approuvés avec square.configure, peuvent modifier l’environnement Square. Commencer en Sandbox, vérifier le webhook signé et les paiements de test, puis suivre [Square](square.md) pour le passage Production.
+Seuls les Super administrateurs disposant de core.admin peuvent modifier l’environnement Square. Commencer en Sandbox, vérifier le webhook signé et les paiements de test, puis suivre [Square](square.md) pour le passage Production.
 
 Les champs access token et clé de signature sont des secrets. Les saisir directement depuis le gestionnaire de secrets approuvé; ne pas les copier dans un ticket, un navigateur partagé, un tableur ou une exportation Joomla.
 
 ## Présences et corrections
 
-Le tableau de présence doit distinguer participants attendus, présents, absents et états exceptionnels. Une correction ou dérogation comporte un utilisateur, une date, une raison et une trace d’audit. La borne nécessite attendance.kiosk et attendance.scan; une dérogation est séparée par attendance.override.
+Le tableau de présence doit distinguer participants attendus, présents, absents et états exceptionnels. Une correction ou dérogation comporte un utilisateur, une date, une raison et une trace d’audit. La borne nécessite attendance.kiosk et attendance.scan; sans `attendance.all_sessions`, son compte Joomla doit être lié à un instructeur et reste limité aux séances assignées. Une dérogation est séparée par attendance.override.
 
 Voir [Borne QR sur Mac](borne-qr-mac.md) avant de remettre le poste au personnel.
 

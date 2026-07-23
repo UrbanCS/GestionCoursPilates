@@ -30,7 +30,7 @@ final class HtmlView extends AbstractAdminView
 
     public function display($tpl = null): void
     {
-        $this->initialise(['core.manage', 'promotions.manage', 'loyalty.adjust']);
+        $this->initialise(['promotions.manage', 'loyalty.adjust']);
         $this->canManagePromotions = $this->can('promotions.manage') || $this->can('core.admin');
         $this->canManageRewards = $this->can('loyalty.adjust') || $this->can('core.admin');
         $this->loadPackages();

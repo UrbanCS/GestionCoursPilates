@@ -2,6 +2,101 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.5.0] - 2026-07-22
+
+### Ajouté
+
+- Remboursement Square total et idempotent depuis l’administration, protégé par l’ACL `payments.refund` et consigné dans l’audit.
+- Réglage explicite de l’URL du webhook Square et contrôles de reprise des courriels (nombre maximal d’essais et délai exponentiel).
+- Actions administratives pour régénérer ou révoquer le QR d’un client, protégées par l’ACL `qr.manage`.
+- Fiche QR imprimable depuis l’espace client et raccourcis cohérents entre l’horaire, les forfaits et le compte.
+- Liaison facultative d’un instructeur à son compte Joomla et droit explicite `attendance.all_sessions` pour une borne partagée autorisée.
+- Courriels métier détaillés pour les réservations, annulations, rappels, séances annulées, listes d’attente, paiements et crédits bientôt expirés.
+
+### Corrigé
+
+- Les webhooks Square ne dépendent plus d’un champ d’idempotence absent des objets Payment; ils valident l’ordre, le montant, la devise, l’emplacement et le statut avant attribution.
+- La réponse synchrone de Square est également rapprochée avec le montant, la devise, l’emplacement et la référence de la commande avant toute attribution de forfait ou de points.
+- Les paiements dont la réponse réseau est inconnue sont rapprochés automatiquement par référence immuable, puis annulés par leur clé Square avant qu’un nouvel essai ne soit autorisé; les remboursements incertains sont rejoués avec leur requête idempotente d’origine.
+- Un paiement définitivement refusé reçoit une nouvelle clé Square générée côté serveur lors de l’essai suivant; les clés de paiement et de remboursement respectent la limite Square de 45 caractères et les motifs envoyés respectent la limite de 192 caractères.
+- Une livraison concurrente ne peut plus rétrograder un webhook déjà traité de `processed` vers `failed`.
+- Le script de construction refuse désormais une version différente de celle déclarée dans l’un des quatre manifestes Joomla.
+- Les limites globales et par client des codes promotionnels sont vérifiées sous verrou afin d’éviter les dépassements simultanés.
+- Les courriels temporairement en échec sont repris avec temporisation; une offre de liste d’attente définitivement non livrable libère sa place et passe au client suivant.
+- Le lien d’acceptation de la liste d’attente est reconstruit à partir d’une signature HMAC et n’est plus conservé en clair dans la file de courriels.
+- Une annulation admissible restitue un crédit réellement réutilisable même si le forfait d’origine a expiré entre-temps, sans réactiver les autres crédits expirés.
+- Le QR actif reste affichable et imprimable après rechargement; la régénération est idempotente et la base garantit un seul QR actif par client.
+- Les QR appartenant à un compte Joomla bloqué ou à un profil client archivé sont refusés par la borne, tout en restant révocables par une personne autorisée.
+- La fidélité attribue maintenant un point par dollar par défaut, en plus des points de présence configurés.
+- Les employés et instructeurs ne voient et ne modifient plus que les séances qui leur sont assignées; les contacts clients restent masqués sans `clients.manage` et toutes les Options, y compris les secrets Square, exigent `core.admin`.
+- L’accès direct à une réservation rejette maintenant une séance passée, archivée, non publiée ou hors de sa fenêtre d’inscription, et affiche les dates dans le fuseau du studio.
+- L’acceptation d’une offre de liste d’attente envoie une confirmation de réservation; les avis d’expiration de crédits et reçus de paiement sont idempotents et ne contiennent aucun secret Square.
+- Les dates, montants et fenêtres d’inscription des tableaux et parcours publics utilisent désormais le fuseau et la devise configurés au lieu des valeurs du serveur ou du navigateur.
+
+### Migration
+
+- Ajout non destructif des métadonnées de reprise de notification et des clés d’idempotence/unicité QR.
+- Les anciens QR expirés ou actifs en double sont révoqués automatiquement; toutes les données métier existantes sont conservées.
+- Les anciennes autorisations `core.options`, `settings.manage` et `square.configure` sont retirées de l’asset Joomla afin qu’une mise à jour ne conserve pas un accès historique aux secrets Square.
+
+### Validation connue
+
+- Archive : `dist/pkg_memipilates-1.5.0.zip`
+- SHA-256 : `2A522C8E32165733EBA11159C76A190EFCBF91C8A00E723272AFE2D369B5CC96`
+
+## [1.4.2] - 2026-07-22
+
+### Corrigé
+
+- Le bouton « Calendrier complet » ouvre maintenant un calendrier mensuel intégré au lieu de dépendre du sélecteur de date natif et invisible du navigateur.
+- La sélection d’une date déjà chargée reste instantanée; une date hors de la semaine affichée recharge automatiquement la bonne période en conservant les filtres.
+
+### Modifié
+
+- Les accents roses et rouges de l’horaire public utilisent désormais le vert olive du site (`#9A9A8B`), avec des variantes foncées suffisamment contrastées pour les textes et le focus.
+- Le calendrier mensuel permet de changer de mois, revenir à aujourd’hui, fermer le panneau et naviguer entièrement au clavier.
+
+### Validation connue
+
+- Archive : `dist/pkg_memipilates-1.4.2.zip`
+- SHA-256 : `119B477D75F535F2A26AB36413F0895C76347C2A9D5D42048C50C28BC15FFCC6`
+
+## [1.4.1] - 2026-07-21
+
+### Corrigé
+
+- Les chemins déclarés au gestionnaire d’assets Joomla ne doublent plus les répertoires `css` et `js`; la feuille de style et le calendrier interactif se chargent maintenant sur le site public.
+- Le calendrier complet recharge la bonne période lorsqu’une date choisie se trouve hors des sept journées déjà affichées.
+- Les jours et les mois utilisent les traductions propres au composant afin d’éviter les dates anglaises sur le site français.
+
+### Modifié
+
+- L’horaire public adopte une présentation moderne inspirée du parcours Rouge Pilates : fond clair, grande carte blanche, filtres compacts, sélecteur de sept dates circulaires et lignes de cours lisibles.
+- La mise en page a été resserrée et adaptée aux ordinateurs, tablettes et téléphones sans reprendre la marque ni le code du site de référence.
+
+### Validation connue
+
+- Archive : `dist/pkg_memipilates-1.4.1.zip`
+- SHA-256 : `15758733982E7985F11862CB0DB5BA0ECB6B74397AA96DEE344A575CB31D13EE`
+
+## [1.4.0] - 2026-07-21
+
+### Ajouté
+
+- Sélecteur public de sept dates inspiré du parcours de réservation de Rouge Pilates, avec navigation vers la période précédente ou suivante.
+- Choix d’une date sans rechargement lorsque JavaScript est disponible, avec lien de repli fonctionnel dans le cas contraire.
+
+### Modifié
+
+- Présentation de l’horaire en lignes compactes indiquant l’heure, le cours, l’instructeur, le lieu, les places restantes et l’action de réservation ou de liste d’attente.
+- Dates et libellés localisés en français ou en anglais selon la langue du site, dans le fuseau horaire configuré pour le studio.
+- Mise en page adaptée aux téléphones, tablettes et ordinateurs, avec une apparence cohérente avec le site Memi Studio.
+
+### Validation connue
+
+- Archive : `dist/pkg_memipilates-1.4.0.zip`
+- SHA-256 : `31556C81897B394EAE000164AE7ABB2457115EA175E61C113BC12B84CAE36692`
+
 ## [1.3.1] - 2026-07-21
 
 ### Corrigé

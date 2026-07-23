@@ -6,6 +6,7 @@ use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
 
 $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+$label = fn (string $key, string $fallback): string => $this->label($key, $fallback);
 $record = $this->record ?? [];
 $value = static fn (string $key, mixed $default = ''): mixed => $record[$key] ?? $default;
 $money = static fn (mixed $cents): string => number_format(max(0, (int) $cents) / 100, 2, '.', '');
@@ -55,6 +56,7 @@ $selectOptions = static function (array $items, mixed $selected, bool $empty = f
                 <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" rows="3" name="description"><?= $escape($value('description')); ?></textarea></div>
             <?php elseif ($this->entity === 'instructor') : ?>
                 <div class="col-md-6"><label class="form-label">Nom affiché *</label><input required class="form-control" name="display_name" value="<?= $escape($value('display_name')); ?>"></div>
+                <div class="col-md-6"><label class="form-label"><?= $escape($label('COM_MEMIPILATES_INSTRUCTOR_JOOMLA_USER_ID', 'Linked Joomla account (ID)')); ?></label><input min="1" type="number" class="form-control" name="user_id" value="<?= $escape($value('user_id')); ?>"><small class="form-text"><?= $escape($label('COM_MEMIPILATES_INSTRUCTOR_JOOMLA_USER_ID_HELP', 'Optional. Without this link, the instructor account cannot access any assigned sessions.')); ?></small></div>
                 <div class="col-md-6"><label class="form-label">Courriel</label><input type="email" class="form-control" name="email" value="<?= $escape($value('email')); ?>"></div>
                 <div class="col-md-6"><label class="form-label">Téléphone</label><input class="form-control" name="phone" value="<?= $escape($value('phone')); ?>"></div>
                 <div class="col-12"><label class="form-label">Biographie</label><textarea class="form-control" rows="4" name="bio"><?= $escape($value('bio')); ?></textarea></div>

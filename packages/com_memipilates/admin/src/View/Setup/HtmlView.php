@@ -35,7 +35,9 @@ final class HtmlView extends AbstractAdminView
 
     public function display($tpl = null): void
     {
-        $this->initialise(['core.manage', 'courses.manage', 'schedules.manage', 'instructors.manage', 'rooms.manage', 'packages.manage']);
+        // This combined first-run screen exposes every catalogue domain. Keep
+        // it behind core.admin; delegated staff use the filtered Catalog view.
+        $this->initialise(['core.admin']);
         $now = new \DateTimeImmutable('now', $this->timezone);
         $this->today = $now->format('Y-m-d');
         $this->defaultSessionStart = $now->modify('+7 days')->setTime(9, 0)->format('Y-m-d\\TH:i');

@@ -85,13 +85,35 @@ abstract class AbstractAdminView extends BaseHtmlView
         return $this->hasAnyPermission([$action]);
     }
 
-    /** Adds the native Joomla component-settings button for authorised staff. */
+    /**
+     * Limits a query to sessions assigned to the connected instructor unless
+     * the user holds one of the explicitly broad management actions.
+     *
+     * @param list<string> $unrestrictedActions
+     */
+    protected function applyInstructorSessionScope(mixed $query, string $sessionAlias, array $unrestrictedActions): void
+    {
+        if ($this->hasAnyPermission($unrestrictedActions)) {
+            return;
+        }
+
+        $userId = (int) ($this->identity?->id ?? 0);
+        $instructorId = ComponentServices::staffScope()->instructorIdForUser($userId);
+        if ($instructorId === null) {
+            $query->where('1 = 0');
+
+            return;
+        }
+
+        $identifier = $instructorId;
+        $query->where($this->db->quoteName($sessionAlias . '.instructor_id') . ' = :scope_instructor_id')
+            ->bind(':scope_instructor_id', $identifier, \Joomla\Database\ParameterType::INTEGER);
+    }
+
+    /** Adds the native Joomla component-settings button for Super Users only. */
     private function addComponentToolbar(): void
     {
-        if (
-            !$this->identity?->authorise('core.admin', 'com_memipilates')
-            && !$this->identity?->authorise('core.options', 'com_memipilates')
-        ) {
+        if (!$this->identity?->authorise('core.admin', 'com_memipilates')) {
             return;
         }
 

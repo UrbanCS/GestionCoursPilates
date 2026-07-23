@@ -138,13 +138,25 @@ final class PaymentService
                 ? ['id' => 'zero-' . $orderId, 'status' => 'COMPLETED', 'receipt_url' => null, 'card_details' => null]
                 : $this->squareCharge($order, $sourceId, $paymentKey);
         } catch (\Throwable $error) {
-            $this->markOrderFailed($orderId, 'transport_error');
+            $definitiveLocalFailure = $this->isDefinitivePaymentFailure($error);
+            if ($definitiveLocalFailure) {
+                $this->markOrderFailed($orderId, 'provider_rejected');
+            } else {
+                // A timeout/5xx does not prove that Square rejected the
+                // charge. Keep the attempt and promotion claim in processing
+                // so a delayed webhook cannot create a double charge or an
+                // over-redemption window.
+                $this->audit->log($userId, 'payment.transport_unknown', 'order', $orderId, null, []);
+            }
 
             throw $error;
         }
 
         if (($squarePayment['status'] ?? '') !== 'COMPLETED') {
-            $this->markOrderFailed($orderId, (string) ($squarePayment['status'] ?? 'unknown'));
+            $providerStatus = strtoupper((string) ($squarePayment['status'] ?? 'unknown'));
+            if (in_array($providerStatus, ['FAILED', 'CANCELED', 'CANCELLED'], true)) {
+                $this->markOrderFailed($orderId, $providerStatus);
+            }
             throw new DomainException('COM_MEMIPILATES_ERROR_PAYMENT_FAILED');
         }
 
@@ -216,7 +228,13 @@ final class PaymentService
                 throw new DomainException('COM_MEMIPILATES_ERROR_ORDER_NOT_PAYABLE');
             }
 
-            $paymentKey = (string) ($order['idempotency_key'] ?: $requestedKey);
+            $this->assertPromotionClaimAvailable($order);
+
+            // A pending order has never reached Square and payment_failed is a
+            // definitive provider/local rejection. Each claim therefore gets
+            // a fresh server-generated key. The browser key is only an input
+            // nonce; row locking remains the protection against double-clicks.
+            $paymentKey = $this->newSquareIdempotencyKey('pay', $orderId, $requestedKey);
             $now = gmdate('Y-m-d H:i:s');
             $id = $orderId;
             $processing = 'payment_processing';
@@ -242,6 +260,8 @@ final class PaymentService
     public function handleWebhook(string $rawBody, string $signature, string $notificationUrl): void
     {
         if (!$this->verifyWebhookSignature($rawBody, $signature, $notificationUrl)) {
+            $hash = hash('sha256', $rawBody);
+            $this->recordWebhookFailure('invalid-' . substr($hash, 0, 64), 'unknown', $hash, false, 'invalid_signature');
             throw new DomainException('COM_MEMIPILATES_ERROR_WEBHOOK_SIGNATURE', [], 401);
         }
         $payload = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
@@ -249,40 +269,89 @@ final class PaymentService
         if ($eventId === '' || strlen($eventId) > 128) {
             throw new DomainException('COM_MEMIPILATES_ERROR_WEBHOOK_INVALID', [], 400);
         }
+        $type = mb_substr((string) ($payload['type'] ?? 'unknown'), 0, 128);
+        $hash = hash('sha256', $rawBody);
 
-        $this->tools->transaction(function () use ($payload, $eventId): void {
-            $event = $eventId;
-            $find = $this->db->getQuery(true)
-                ->select($this->db->quoteName('id'))
-                ->from($this->db->quoteName('#__memi_square_webhooks'))
-                ->where($this->db->quoteName('event_id') . ' = :event_id')
-                ->bind(':event_id', $event);
-            $this->db->setQuery(DatabaseTools::forUpdate($find));
-            if ((int) $this->db->loadResult() > 0) {
-                return;
-            }
-            $now = gmdate('Y-m-d H:i:s');
-            $type = (string) ($payload['type'] ?? 'unknown');
-            $hash = hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
-            $processedStatus = 'processed';
-            $insert = $this->db->getQuery(true)
-                ->insert($this->db->quoteName('#__memi_square_webhooks'))
-                ->columns(['event_id', 'event_type', 'payload_hash', 'received_at', 'processed_at', 'status'])
-                ->values(':event_id, :event_type, :payload_hash, :received_at, :processed_at, :status')
-                ->bind(':event_id', $event)
-                ->bind(':event_type', $type)
-                ->bind(':payload_hash', $hash)
-                ->bind(':received_at', $now)
-                ->bind(':processed_at', $now)
-                ->bind(':status', $processedStatus);
-            $this->db->setQuery($insert)->execute();
+        try {
+            $this->tools->transaction(function () use ($payload, $eventId, $type, $hash): void {
+                $event = $eventId;
+                $find = $this->db->getQuery(true)
+                    ->select(['id', 'status'])
+                    ->from($this->db->quoteName('#__memi_square_webhooks'))
+                    ->where($this->db->quoteName('event_id') . ' = :event_id')
+                    ->bind(':event_id', $event);
+                $this->db->setQuery(DatabaseTools::forUpdate($find));
+                $existing = $this->db->loadAssoc();
+                $now = gmdate('Y-m-d H:i:s');
+                $signatureValid = 1;
+                $processing = 'processing';
 
-            $payment = $payload['data']['object']['payment'] ?? null;
-            if (is_array($payment) && isset($payment['id'])) {
-                $this->syncPaymentStatus((string) $payment['id'], (string) ($payment['status'] ?? ''));
-                $this->reconcileCompletedWebhookPayment($payment);
-            }
-        });
+                if ($existing) {
+                    $identifier = (int) $existing['id'];
+                    $attempt = $this->db->getQuery(true)
+                        ->update($this->db->quoteName('#__memi_square_webhooks'))
+                        ->set($this->db->quoteName('attempt_count') . ' = LEAST(65535, ' . $this->db->quoteName('attempt_count') . ' + 1)')
+                        ->set($this->db->quoteName('signature_valid') . ' = :signature_valid')
+                        ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+                        ->where($this->db->quoteName('id') . ' = :id')
+                        ->bind(':signature_valid', $signatureValid, ParameterType::INTEGER)
+                        ->bind(':updated_at', $now)
+                        ->bind(':id', $identifier, ParameterType::INTEGER);
+                    if ((string) $existing['status'] !== 'processed') {
+                        $attempt->set($this->db->quoteName('status') . ' = :status')->bind(':status', $processing);
+                    }
+                    $this->db->setQuery($attempt)->execute();
+                    if ((string) $existing['status'] === 'processed') {
+                        return;
+                    }
+                } else {
+                    $attemptCount = 1;
+                    $insert = $this->db->getQuery(true)
+                        ->insert($this->db->quoteName('#__memi_square_webhooks'))
+                        ->columns(['event_id', 'square_event_id', 'event_type', 'signature_valid', 'payload_hash', 'status', 'received_at', 'attempt_count', 'created_at', 'updated_at'])
+                        ->values(':event_id, :square_event_id, :event_type, :signature_valid, :payload_hash, :status, :received_at, :attempt_count, :created_at, :updated_at')
+                        ->bind(':event_id', $event)
+                        ->bind(':square_event_id', $event)
+                        ->bind(':event_type', $type)
+                        ->bind(':signature_valid', $signatureValid, ParameterType::INTEGER)
+                        ->bind(':payload_hash', $hash)
+                        ->bind(':status', $processing)
+                        ->bind(':received_at', $now)
+                        ->bind(':attempt_count', $attemptCount, ParameterType::INTEGER)
+                        ->bind(':created_at', $now)
+                        ->bind(':updated_at', $now);
+                    $this->db->setQuery($insert)->execute();
+                }
+
+                $payment = $payload['data']['object']['payment'] ?? null;
+                if (is_array($payment) && isset($payment['id'])) {
+                    $this->syncPaymentStatus((string) $payment['id'], (string) ($payment['status'] ?? ''));
+                    $this->reconcileCompletedWebhookPayment($payment);
+                }
+                $refund = $payload['data']['object']['refund'] ?? null;
+                if (is_array($refund) && isset($refund['id'])) {
+                    $this->syncRefundWebhook($refund);
+                }
+
+                $processed = 'processed';
+                $finished = $this->db->getQuery(true)
+                    ->update($this->db->quoteName('#__memi_square_webhooks'))
+                    ->set($this->db->quoteName('status') . ' = :status')
+                    ->set($this->db->quoteName('processed_at') . ' = :processed_at')
+                    ->set($this->db->quoteName('error_message') . " = ''")
+                    ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+                    ->where($this->db->quoteName('event_id') . ' = :event_id')
+                    ->bind(':status', $processed)
+                    ->bind(':processed_at', $now)
+                    ->bind(':updated_at', $now)
+                    ->bind(':event_id', $event);
+                $this->db->setQuery($finished)->execute();
+            });
+        } catch (\Throwable $error) {
+            $this->recordWebhookFailure($eventId, $type, $hash, true, 'processing_error');
+
+            throw $error;
+        }
     }
 
     /** @return array{application_id:string,location_id:string,environment:string} */
@@ -295,6 +364,346 @@ final class PaymentService
         ];
     }
 
+    /**
+     * Refunds the remaining captured amount of a Square payment. The local
+     * processing row is claimed under the payment lock before the provider is
+     * called, preventing two administrators from refunding the same balance.
+     * Credits and package entitlements are deliberately not revoked here: a
+     * financial refund and an entitlement adjustment are separate audited
+     * business decisions.
+     *
+     * @return array{id:int,status:string,amount_cents:int,provider_refund_id:?string}
+     */
+    public function refundPayment(int $actorId, int $paymentId, string $reason): array
+    {
+        $reason = trim(mb_substr($reason, 0, 500));
+        if ($actorId <= 0 || $paymentId <= 0) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_REFUND_NOT_AVAILABLE');
+        }
+        if ($reason === '') {
+            throw new DomainException('COM_MEMIPILATES_ERROR_REFUND_REASON_REQUIRED');
+        }
+
+        try {
+            $claim = $this->tools->transaction(function () use ($actorId, $paymentId, $reason): array {
+                $payment = $this->tools->lockById('#__memi_payments', $paymentId);
+                if (!$payment || (string) $payment['provider'] !== 'square'
+                    || (string) $payment['status'] !== 'completed'
+                    || (string) ($payment['provider_payment_id'] ?? '') === '') {
+                    throw new DomainException('COM_MEMIPILATES_ERROR_REFUND_NOT_AVAILABLE');
+                }
+
+                $identifier = $paymentId;
+                $refundRows = $this->db->getQuery(true)
+                    ->select(['amount_cents', 'status'])
+                    ->from($this->db->quoteName('#__memi_refunds'))
+                    ->where($this->db->quoteName('payment_id') . ' = :payment_id')
+                    ->bind(':payment_id', $identifier, ParameterType::INTEGER);
+                $this->db->setQuery(DatabaseTools::forUpdate($refundRows));
+                $reserved = 0;
+                $manualRefundRequired = false;
+                foreach ($this->db->loadAssocList() ?: [] as $refund) {
+                    $refundStatus = (string) $refund['status'];
+                    if (in_array($refundStatus, ['failed', 'rejected'], true)) {
+                        // Square requires an alternate/manual refund after a
+                        // provider refund reaches FAILED or REJECTED. The
+                        // balance must be resolved manually instead of issuing a
+                        // fresh idempotency key and risking an inconsistent state.
+                        $manualRefundRequired = true;
+                    }
+                    if (in_array($refundStatus, ['pending', 'processing', 'completed'], true)) {
+                        $reserved += max(0, (int) $refund['amount_cents']);
+                    }
+                }
+                if ($manualRefundRequired) {
+                    throw new DomainException('COM_MEMIPILATES_ERROR_REFUND_MANUAL_REQUIRED');
+                }
+                $remaining = max(0, (int) $payment['amount_cents'] - $reserved);
+                if ($remaining <= 0) {
+                    throw new DomainException('COM_MEMIPILATES_ERROR_REFUND_NOT_AVAILABLE');
+                }
+
+                $now = gmdate('Y-m-d H:i:s');
+                $orderId = (int) $payment['order_id'];
+                $idempotencyKey = $this->newSquareIdempotencyKey('refund', $paymentId);
+                $processing = 'processing';
+                $insert = $this->db->getQuery(true)
+                    ->insert($this->db->quoteName('#__memi_refunds'))
+                    ->columns(['payment_id', 'order_id', 'idempotency_key', 'status', 'amount_cents', 'reason', 'requested_by', 'requested_at', 'created_at', 'updated_at'])
+                    ->values(':payment_id, :order_id, :idempotency_key, :status, :amount_cents, :reason, :requested_by, :requested_at, :created_at, :updated_at')
+                    ->bind(':payment_id', $identifier, ParameterType::INTEGER)
+                    ->bind(':order_id', $orderId, ParameterType::INTEGER)
+                    ->bind(':idempotency_key', $idempotencyKey)
+                    ->bind(':status', $processing)
+                    ->bind(':amount_cents', $remaining, ParameterType::INTEGER)
+                    ->bind(':reason', $reason)
+                    ->bind(':requested_by', $actorId, ParameterType::INTEGER)
+                    ->bind(':requested_at', $now)
+                    ->bind(':created_at', $now)
+                    ->bind(':updated_at', $now);
+                $this->db->setQuery($insert)->execute();
+
+                return [
+                    'id' => (int) $this->db->insertid(),
+                    'payment_id' => $paymentId,
+                    'order_id' => $orderId,
+                    'provider_payment_id' => (string) $payment['provider_payment_id'],
+                    'idempotency_key' => $idempotencyKey,
+                    'amount_cents' => $remaining,
+                    'currency' => strtoupper((string) $payment['currency']),
+                    'reason' => $reason,
+                ];
+            });
+        } catch (DomainException $error) {
+            if ($error->getMessage() === 'COM_MEMIPILATES_ERROR_REFUND_MANUAL_REQUIRED') {
+                $this->audit->log($actorId, 'refund.manual_required', 'payment', $paymentId, null, [
+                    'existing_terminal_refund' => true,
+                ]);
+            }
+            throw $error;
+        }
+
+        $accessToken = $this->squareAccessToken();
+        if ($accessToken === '') {
+            // No provider call was made. Keep the immutable refund claim so it
+            // can be replayed after configuration is repaired.
+            throw new DomainException('COM_MEMIPILATES_ERROR_SQUARE_NOT_CONFIGURED', [], 503);
+        }
+        try {
+            $response = $this->request(
+                'POST',
+                $this->squareBaseUrl() . '/v2/refunds',
+                $this->squareRefundPayload($claim),
+                $this->squareHeaders($accessToken)
+            );
+        } catch (\Throwable $error) {
+            // A transport failure is not proof that Square did not receive the
+            // request. Preserve the row and original key/body for scheduler
+            // reconciliation rather than enabling another refund.
+            throw $error;
+        }
+
+        if ($response['status'] < 200 || $response['status'] >= 300 || !isset($response['json']['refund'])) {
+            $this->audit->log($actorId, 'refund.square_error', 'refund', (int) $claim['id'], null, [
+                'http_status' => $response['status'],
+                'error_count' => count($response['json']['errors'] ?? []),
+            ]);
+            // Even 4xx responses can be retryable (notably 429), while an
+            // idempotency/authentication error can be operationally ambiguous.
+            // Keep processing and let the scheduler replay this exact request.
+            throw new DomainException('COM_MEMIPILATES_ERROR_PAYMENT_FAILED');
+        }
+
+        /** @var array<string,mixed> $refund */
+        $refund = $response['json']['refund'];
+        $providerRefundId = (string) ($refund['id'] ?? '');
+        $providerPaymentId = (string) ($refund['payment_id'] ?? '');
+        $amount = (int) ($refund['amount_money']['amount'] ?? -1);
+        $currency = strtoupper((string) ($refund['amount_money']['currency'] ?? ''));
+        if ($providerRefundId === '' || $providerPaymentId !== $claim['provider_payment_id']
+            || $amount !== (int) $claim['amount_cents'] || $currency !== $claim['currency']) {
+            $this->audit->log($actorId, 'refund.provider_mismatch', 'refund', (int) $claim['id'], null, [
+                'payment_matches' => $providerPaymentId === $claim['provider_payment_id'],
+                'amount_matches' => $amount === (int) $claim['amount_cents'],
+                'currency_matches' => $currency === $claim['currency'],
+            ]);
+            throw new DomainException('COM_MEMIPILATES_ERROR_REFUND_PROVIDER_MISMATCH');
+        }
+
+        $status = $this->normaliseRefundStatus((string) ($refund['status'] ?? 'PENDING'));
+        $this->updateRefundResult((int) $claim['id'], $providerRefundId, $status);
+        $this->audit->log($actorId, 'refund.request', 'refund', (int) $claim['id'], null, [
+            'payment_id' => $paymentId,
+            'order_id' => (int) $claim['order_id'],
+            'amount_cents' => (int) $claim['amount_cents'],
+            'status' => $status,
+        ]);
+
+        return [
+            'id' => (int) $claim['id'],
+            'status' => $status,
+            'amount_cents' => (int) $claim['amount_cents'],
+            'provider_refund_id' => $providerRefundId,
+        ];
+    }
+
+    /**
+     * Reconcile card attempts whose CreatePayment response was lost. Square's
+     * immutable reference locates a completed/failed payment. If no payment is
+     * visible, CancelPaymentByIdempotencyKey safely cancels the attempt (or is
+     * a no-op when Square never received it) before a fresh card is allowed.
+     */
+    public function reconcileUncertainPayments(int $limit = 25): int
+    {
+        $accessToken = $this->squareAccessToken();
+        $locationId = $this->publicLocationId();
+        if ($accessToken === '' || $locationId === '') {
+            return 0;
+        }
+
+        $limit = max(1, min($limit, 100));
+        $processing = 'payment_processing';
+        $cutoff = gmdate('Y-m-d H:i:s', time() - 120);
+        $query = $this->db->getQuery(true)
+            ->select($this->db->quoteName('id'))
+            ->from($this->db->quoteName('#__memi_orders'))
+            ->where($this->db->quoteName('status') . ' = :status')
+            ->where($this->db->quoteName('updated_at') . ' <= :cutoff')
+            ->order($this->db->quoteName('updated_at') . ' ASC')
+            ->bind(':status', $processing)
+            ->bind(':cutoff', $cutoff);
+        $this->db->setQuery($query, 0, $limit);
+        $orderIds = array_map('intval', $this->db->loadColumn() ?: []);
+        $reconciled = 0;
+
+        foreach ($orderIds as $orderId) {
+            try {
+                $order = $this->orderForReconciliation($orderId);
+                if ($order === null || (string) $order['status'] !== $processing) {
+                    continue;
+                }
+                $paymentKey = (string) ($order['idempotency_key'] ?? '');
+                if ($paymentKey === '') {
+                    continue;
+                }
+
+                $payment = $this->findSquarePaymentForOrder($order, $accessToken, $locationId);
+                if ($payment !== null) {
+                    $providerStatus = strtoupper((string) ($payment['status'] ?? ''));
+                    if ($providerStatus === 'COMPLETED') {
+                        $this->tools->transaction(function () use ($payment): void {
+                            $this->reconcileCompletedWebhookPayment($payment);
+                        });
+                        $after = $this->orderForReconciliation($orderId);
+                        if ((string) ($after['status'] ?? '') === 'paid') {
+                            ++$reconciled;
+                        }
+                        continue;
+                    }
+                    if (in_array($providerStatus, ['FAILED', 'CANCELED', 'CANCELLED'], true)) {
+                        if ($this->failReconciledPaymentAttempt($orderId, $paymentKey, $providerStatus)) {
+                            ++$reconciled;
+                        }
+                        continue;
+                    }
+                }
+
+                // For APPROVED/PENDING or no visible payment, this endpoint is
+                // Square's documented recovery path for an unknown response.
+                if ($this->cancelSquarePaymentAttempt($paymentKey, $accessToken)
+                    && $this->failReconciledPaymentAttempt($orderId, $paymentKey, 'reconciled_cancelled')) {
+                    ++$reconciled;
+                }
+            } catch (\Throwable $error) {
+                $this->audit->log(null, 'payment.reconcile_error', 'order', $orderId, null, [
+                    'error_code' => (int) $error->getCode(),
+                ]);
+            }
+        }
+
+        return $reconciled;
+    }
+
+    /**
+     * Replays an uncertain RefundPayment with its original immutable key and
+     * fields, or polls a known provider refund. Square returns the same refund
+     * for a repeated key, so parallel scheduler runs cannot issue it twice.
+     */
+    public function reconcileUncertainRefunds(int $limit = 25): int
+    {
+        $accessToken = $this->squareAccessToken();
+        if ($accessToken === '') {
+            return 0;
+        }
+
+        $limit = max(1, min($limit, 100));
+        $processing = 'processing';
+        $pending = 'pending';
+        $cutoff = gmdate('Y-m-d H:i:s', time() - 300);
+        $query = $this->db->getQuery(true)
+            ->select($this->db->quoteName('id'))
+            ->from($this->db->quoteName('#__memi_refunds'))
+            ->where($this->db->quoteName('status') . ' IN (:processing_status, :pending_status)')
+            ->where($this->db->quoteName('updated_at') . ' <= :cutoff')
+            ->order($this->db->quoteName('updated_at') . ' ASC')
+            ->bind(':processing_status', $processing)
+            ->bind(':pending_status', $pending)
+            ->bind(':cutoff', $cutoff);
+        $this->db->setQuery($query, 0, $limit);
+        $refundIds = array_map('intval', $this->db->loadColumn() ?: []);
+        $reconciled = 0;
+
+        foreach ($refundIds as $refundId) {
+            $refundKey = '';
+            try {
+                $refund = $this->refundForReconciliation($refundId);
+                if ($refund === null || !in_array((string) $refund['status'], [$processing, $pending], true)) {
+                    continue;
+                }
+                $refundKey = (string) ($refund['idempotency_key'] ?? '');
+                if ($refundKey === '' || !$this->refundReconciliationIsDue($refund)) {
+                    continue;
+                }
+                if ($this->refundReconciliationIsProlonged($refund)) {
+                    $this->audit->log(null, 'refund.reconcile_prolonged', 'refund', $refundId, null, [
+                        'status' => (string) $refund['status'],
+                    ]);
+                }
+                $providerRefundId = (string) ($refund['provider_refund_id'] ?? '');
+                if ($providerRefundId !== '') {
+                    $response = $this->request(
+                        'GET',
+                        $this->squareBaseUrl() . '/v2/refunds/' . rawurlencode($providerRefundId),
+                        null,
+                        $this->squareHeaders($accessToken)
+                    );
+                } else {
+                    $response = $this->request(
+                        'POST',
+                        $this->squareBaseUrl() . '/v2/refunds',
+                        $this->squareRefundPayload($refund),
+                        $this->squareHeaders($accessToken)
+                    );
+                }
+
+                if ($response['status'] < 200 || $response['status'] >= 300 || !isset($response['json']['refund'])) {
+                    $this->audit->log(null, 'refund.reconcile_error', 'refund', $refundId, null, [
+                        'http_status' => $response['status'],
+                    ]);
+                    // Preserve the same key/body for 429 and all ambiguous
+                    // provider errors. Touching updated_at implements backoff
+                    // without introducing a second financial state machine.
+                    $this->touchRefundReconciliation($refundId, $refundKey);
+                    continue;
+                }
+
+                /** @var array<string,mixed> $providerRefund */
+                $providerRefund = $response['json']['refund'];
+                $beforeStatus = (string) $refund['status'];
+                $beforeProviderId = $providerRefundId;
+                $this->tools->transaction(function () use ($providerRefund): void {
+                    $this->syncRefundWebhook($providerRefund);
+                });
+                $after = $this->refundForReconciliation($refundId);
+                if ($after !== null && (
+                    (string) $after['status'] !== $beforeStatus
+                    || (string) ($after['provider_refund_id'] ?? '') !== $beforeProviderId
+                )) {
+                    ++$reconciled;
+                }
+            } catch (\Throwable $error) {
+                if ($refundKey !== '') {
+                    $this->touchRefundReconciliation($refundId, $refundKey);
+                }
+                $this->audit->log(null, 'refund.reconcile_error', 'refund', $refundId, null, [
+                    'error_code' => (int) $error->getCode(),
+                ]);
+            }
+        }
+
+        return $reconciled;
+    }
+
     private function publicApplicationId(): string
     {
         return (string) $this->settings->get('square_application_id', '');
@@ -303,6 +712,343 @@ final class PaymentService
     private function publicLocationId(): string
     {
         return (string) $this->settings->get('square_location_id', '');
+    }
+
+    private function squareAccessToken(): string
+    {
+        return getenv('MEMI_SQUARE_ACCESS_TOKEN') ?: (string) $this->settings->get('square_access_token', '');
+    }
+
+    /** @return list<string> */
+    private function squareHeaders(string $accessToken): array
+    {
+        return [
+            'Authorization: Bearer ' . $accessToken,
+            'Square-Version: 2024-08-21',
+        ];
+    }
+
+    /** Square currently accepts idempotency keys of at most 45 characters. */
+    private function newSquareIdempotencyKey(string $scope, int $entityId, string $nonce = ''): string
+    {
+        $prefix = preg_replace('/[^a-z0-9]/', '', strtolower($scope)) ?: 'op';
+        $prefix = substr($prefix, 0, 8);
+        $entropy = $entityId . ':' . $nonce . ':' . bin2hex(random_bytes(16));
+
+        return $prefix . '-' . substr(hash('sha256', $entropy), 0, 36);
+    }
+
+    private function squarePaymentReference(int $orderId, string $paymentKey): string
+    {
+        // Square caps reference_id at 40 characters. The order remains
+        // readable to the webhook while the hash binds the reference to one
+        // specific provider attempt rather than to every retry of the order.
+        return 'memi-o-' . $orderId . '-' . substr(hash('sha256', $paymentKey), 0, 12);
+    }
+
+    /** @return array{order_id:int,legacy:bool}|null */
+    private function parseSquarePaymentReference(string $reference): ?array
+    {
+        if (preg_match('/^memi-o-(\d+)-[a-f0-9]{12}$/D', $reference, $matches)) {
+            return ['order_id' => (int) $matches[1], 'legacy' => false];
+        }
+        // Compatibility for payments submitted by releases before references
+        // were made attempt-specific.
+        if (preg_match('/^memi-order-(\d+)$/D', $reference, $matches)) {
+            return ['order_id' => (int) $matches[1], 'legacy' => true];
+        }
+
+        return null;
+    }
+
+    private function isDefinitivePaymentFailure(\Throwable $error): bool
+    {
+        if (!$error instanceof DomainException) {
+            return false;
+        }
+        if (in_array($error->getMessage(), [
+            'COM_MEMIPILATES_ERROR_SQUARE_NOT_CONFIGURED',
+            'COM_MEMIPILATES_ERROR_HTTP_CLIENT_UNAVAILABLE',
+        ], true)) {
+            return true;
+        }
+
+        // Card/payment-method declines are definitive and can safely release
+        // this attempt. Rate limits, authentication errors and idempotency
+        // conflicts remain ambiguous and must be closed by reconciliation
+        // with the original key before another card is attempted.
+        $categories = strtoupper((string) ($error->getContext()['square_error_categories'] ?? ''));
+
+        return in_array('PAYMENT_METHOD_ERROR', array_filter(explode(',', $categories)), true);
+    }
+
+    /** Square limits the provider-visible refund reason to 192 characters. */
+    private function squareRefundReason(string $reason): string
+    {
+        return mb_substr(trim($reason), 0, 192);
+    }
+
+    /** @param array<string,mixed> $refund */
+    private function squareRefundPayload(array $refund): array
+    {
+        return [
+            'idempotency_key' => (string) $refund['idempotency_key'],
+            'amount_money' => [
+                'amount' => (int) $refund['amount_cents'],
+                'currency' => strtoupper((string) $refund['currency']),
+            ],
+            'payment_id' => (string) $refund['provider_payment_id'],
+            'reason' => $this->squareRefundReason((string) $refund['reason']),
+        ];
+    }
+
+    /** @return array<string,mixed>|null */
+    private function orderForReconciliation(int $orderId): ?array
+    {
+        $identifier = $orderId;
+        $query = $this->db->getQuery(true)
+            ->select('*')
+            ->from($this->db->quoteName('#__memi_orders'))
+            ->where($this->db->quoteName('id') . ' = :id')
+            ->bind(':id', $identifier, ParameterType::INTEGER);
+        $this->db->setQuery($query);
+
+        return $this->db->loadAssoc() ?: null;
+    }
+
+    /** @return array<string,mixed>|null */
+    private function refundForReconciliation(int $refundId): ?array
+    {
+        $identifier = $refundId;
+        $query = $this->db->getQuery(true)
+            ->select(['r.*', 'p.provider_payment_id', 'p.currency'])
+            ->from($this->db->quoteName('#__memi_refunds', 'r'))
+            ->join('INNER', $this->db->quoteName('#__memi_payments', 'p') . ' ON p.id = r.payment_id')
+            ->where('r.id = :id')
+            ->bind(':id', $identifier, ParameterType::INTEGER);
+        $this->db->setQuery($query);
+
+        return $this->db->loadAssoc() ?: null;
+    }
+
+    /** @param array<string,mixed> $refund */
+    private function refundReconciliationIsDue(array $refund): bool
+    {
+        $now = time();
+        $requestedAt = $this->utcTimestamp((string) ($refund['requested_at'] ?? $refund['created_at'] ?? ''), $now);
+        $updatedAt = $this->utcTimestamp((string) ($refund['updated_at'] ?? ''), $requestedAt);
+        $age = max(0, $now - $requestedAt);
+        $delay = match (true) {
+            $age < 3600 => 300,
+            $age < 86400 => 1800,
+            $age < 604800 => 21600,
+            default => 86400,
+        };
+
+        return $updatedAt <= ($now - $delay);
+    }
+
+    /** @param array<string,mixed> $refund */
+    private function refundReconciliationIsProlonged(array $refund): bool
+    {
+        $now = time();
+        $requestedAt = $this->utcTimestamp((string) ($refund['requested_at'] ?? $refund['created_at'] ?? ''), $now);
+
+        return ($now - $requestedAt) >= (14 * 86400);
+    }
+
+    private function utcTimestamp(string $value, int $fallback): int
+    {
+        if ($value === '') {
+            return $fallback;
+        }
+        try {
+            return (new \DateTimeImmutable($value, new \DateTimeZone('UTC')))->getTimestamp();
+        } catch (\Throwable) {
+            return $fallback;
+        }
+    }
+
+    private function touchRefundReconciliation(int $refundId, string $expectedKey): void
+    {
+        if ($refundId <= 0 || $expectedKey === '') {
+            return;
+        }
+        $identifier = $refundId;
+        $processing = 'processing';
+        $pending = 'pending';
+        $now = gmdate('Y-m-d H:i:s');
+        $query = $this->db->getQuery(true)
+            ->update($this->db->quoteName('#__memi_refunds'))
+            ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+            ->where($this->db->quoteName('id') . ' = :id')
+            ->where($this->db->quoteName('idempotency_key') . ' = :idempotency_key')
+            ->where('(' . $this->db->quoteName('status') . ' = :processing_status OR '
+                . $this->db->quoteName('status') . ' = :pending_status)')
+            ->bind(':updated_at', $now)
+            ->bind(':id', $identifier, ParameterType::INTEGER)
+            ->bind(':idempotency_key', $expectedKey)
+            ->bind(':processing_status', $processing)
+            ->bind(':pending_status', $pending);
+        $this->db->setQuery($query)->execute();
+    }
+
+    /**
+     * @param array<string,mixed> $order
+     * @return array<string,mixed>|null
+     */
+    private function findSquarePaymentForOrder(array $order, string $accessToken, string $locationId): ?array
+    {
+        $timezone = new \DateTimeZone('UTC');
+        try {
+            $attempt = new \DateTimeImmutable((string) $order['updated_at'], $timezone);
+        } catch (\Throwable) {
+            $attempt = new \DateTimeImmutable('now', $timezone);
+        }
+        $now = new \DateTimeImmutable('now', $timezone);
+        if ($attempt > $now) {
+            $attempt = $now;
+        }
+        $end = $attempt->modify('+1 day');
+        if ($end > $now) {
+            $end = $now;
+        }
+
+        $baseParameters = [
+            'begin_time' => $attempt->modify('-5 minutes')->format('Y-m-d\TH:i:s\Z'),
+            'end_time' => $end->format('Y-m-d\TH:i:s\Z'),
+            'sort_order' => 'ASC',
+            'location_id' => $locationId,
+            'total' => (int) $order['total_cents'],
+            'limit' => 100,
+        ];
+        $paymentKey = (string) ($order['idempotency_key'] ?? '');
+        $expectedReference = $this->squarePaymentReference((int) $order['id'], $paymentKey);
+        $legacyReference = 'memi-order-' . (int) $order['id'];
+        $acceptLegacyReference = strncmp($paymentKey, 'pay-', 4) !== 0;
+        $expectedCurrency = strtoupper((string) $order['currency']);
+        $cursor = '';
+        $exactCandidate = null;
+        $exactCandidateScore = -1;
+        $exactCandidateIds = [];
+        $exactCandidateStatuses = [];
+        $legacyCandidate = null;
+        $legacyCandidateScore = -1;
+        $legacyCandidateIds = [];
+        $legacyCandidateStatuses = [];
+        $pages = 0;
+
+        do {
+            $parameters = $baseParameters;
+            if ($cursor !== '') {
+                $parameters['cursor'] = $cursor;
+            }
+            $url = $this->squareBaseUrl() . '/v2/payments?' . http_build_query($parameters, '', '&', PHP_QUERY_RFC3986);
+            $response = $this->request('GET', $url, null, $this->squareHeaders($accessToken));
+            if ($response['status'] < 200 || $response['status'] >= 300) {
+                throw new DomainException('COM_MEMIPILATES_ERROR_PAYMENT_FAILED', [], $response['status'] ?: 503);
+            }
+
+            foreach (($response['json']['payments'] ?? []) as $payment) {
+                $providerPaymentId = is_array($payment) ? (string) ($payment['id'] ?? '') : '';
+                $reference = is_array($payment) ? (string) ($payment['reference_id'] ?? '') : '';
+                $referenceMode = $reference === $expectedReference ? 'exact'
+                    : ($acceptLegacyReference && $reference === $legacyReference ? 'legacy' : '');
+                if (!is_array($payment) || $providerPaymentId === ''
+                    || $referenceMode === ''
+                    || (int) ($payment['amount_money']['amount'] ?? -1) !== (int) $order['total_cents']
+                    || strtoupper((string) ($payment['amount_money']['currency'] ?? '')) !== $expectedCurrency
+                    || (string) ($payment['location_id'] ?? '') !== $locationId) {
+                    continue;
+                }
+                $status = strtoupper((string) ($payment['status'] ?? ''));
+                $score = $status === 'COMPLETED' ? 3
+                    : (in_array($status, ['APPROVED', 'PENDING'], true) ? 2 : 1);
+                if ($referenceMode === 'exact') {
+                    $exactCandidateIds[$providerPaymentId] = true;
+                    $exactCandidateStatuses[$status !== '' ? $status : 'UNKNOWN'] = true;
+                    if ($score >= $exactCandidateScore) {
+                        $exactCandidate = $payment;
+                        $exactCandidateScore = $score;
+                    }
+                } else {
+                    $legacyCandidateIds[$providerPaymentId] = true;
+                    $legacyCandidateStatuses[$status !== '' ? $status : 'UNKNOWN'] = true;
+                    if ($score >= $legacyCandidateScore) {
+                        $legacyCandidate = $payment;
+                        $legacyCandidateScore = $score;
+                    }
+                }
+            }
+
+            $cursor = (string) ($response['json']['cursor'] ?? '');
+            ++$pages;
+            if ($pages >= 100 && $cursor !== '') {
+                throw new DomainException('COM_MEMIPILATES_ERROR_PAYMENT_FAILED', [], 503);
+            }
+        } while ($cursor !== '');
+
+        $candidate = $exactCandidate;
+        $candidateIds = $exactCandidateIds;
+        $candidateStatuses = $exactCandidateStatuses;
+        $referenceMode = 'exact';
+        if ($candidateIds === [] && $acceptLegacyReference) {
+            $candidate = $legacyCandidate;
+            $candidateIds = $legacyCandidateIds;
+            $candidateStatuses = $legacyCandidateStatuses;
+            $referenceMode = 'legacy';
+        }
+        if (count($candidateIds) > 1) {
+            $this->audit->log(null, 'payment.reconcile_duplicate_candidates', 'order', (int) $order['id'], null, [
+                'candidate_count' => count($candidateIds),
+                'statuses' => implode(',', array_keys($candidateStatuses)),
+                'reference_mode' => $referenceMode,
+            ]);
+            // Do not select, cancel or fulfill any one candidate: more than
+            // one provider payment for an immutable order reference is a
+            // possible double charge and requires explicit investigation.
+            throw new DomainException('COM_MEMIPILATES_ERROR_PAYMENT_FAILED', [], 409);
+        }
+
+        return is_array($candidate) ? $candidate : null;
+    }
+
+    private function cancelSquarePaymentAttempt(string $paymentKey, string $accessToken): bool
+    {
+        if ($paymentKey === '' || strlen($paymentKey) > 45) {
+            return false;
+        }
+        $response = $this->request(
+            'POST',
+            $this->squareBaseUrl() . '/v2/payments/cancel',
+            ['idempotency_key' => $paymentKey],
+            $this->squareHeaders($accessToken)
+        );
+        if ($response['status'] >= 200 && $response['status'] < 300) {
+            return true;
+        }
+        $this->audit->log(null, 'payment.reconcile_cancel_error', 'order', null, null, [
+            'http_status' => $response['status'],
+        ]);
+
+        return false;
+    }
+
+    private function failReconciledPaymentAttempt(int $orderId, string $expectedKey, string $reason): bool
+    {
+        return $this->tools->transaction(function () use ($orderId, $expectedKey, $reason): bool {
+            $order = $this->tools->lockById('#__memi_orders', $orderId);
+            if ($order === null || (string) $order['status'] !== 'payment_processing'
+                || !hash_equals($expectedKey, (string) ($order['idempotency_key'] ?? ''))) {
+                return false;
+            }
+            $this->markOrderFailed($orderId, $reason);
+            $this->audit->log(null, 'payment.reconciled_failed', 'order', $orderId, null, [
+                'provider_status' => mb_substr($reason, 0, 64),
+            ]);
+
+            return true;
+        });
     }
 
     /** @return array<string,mixed> */
@@ -341,7 +1087,7 @@ final class PaymentService
                 'currency' => (string) $order['currency'],
             ],
             'location_id' => $this->publicLocationId(),
-            'reference_id' => 'memi-order-' . (int) $order['id'],
+            'reference_id' => $this->squarePaymentReference((int) $order['id'], $idempotencyKey),
             'note' => 'Memi Studio order ' . (int) $order['id'],
         ];
         $response = $this->request('POST', $this->squareBaseUrl() . '/v2/payments', $body, [
@@ -349,21 +1095,61 @@ final class PaymentService
             'Square-Version: 2024-08-21',
         ]);
         if ($response['status'] < 200 || $response['status'] >= 300 || !isset($response['json']['payment'])) {
+            $categories = [];
+            $codes = [];
+            foreach (($response['json']['errors'] ?? []) as $providerError) {
+                if (!is_array($providerError)) {
+                    continue;
+                }
+                $category = strtoupper((string) ($providerError['category'] ?? ''));
+                $code = strtoupper((string) ($providerError['code'] ?? ''));
+                if ($category !== '') {
+                    $categories[$category] = true;
+                }
+                if ($code !== '') {
+                    $codes[$code] = true;
+                }
+            }
             $this->audit->log(null, 'payment.square_error', 'order', (int) $order['id'], null, [
                 'http_status' => $response['status'],
                 'error_count' => count($response['json']['errors'] ?? []),
             ]);
-            throw new DomainException('COM_MEMIPILATES_ERROR_PAYMENT_FAILED');
+            $statusCode = $response['status'] >= 400 ? $response['status'] : 502;
+            throw new DomainException('COM_MEMIPILATES_ERROR_PAYMENT_FAILED', [
+                'square_error_categories' => implode(',', array_keys($categories)),
+                'square_error_codes' => implode(',', array_keys($codes)),
+            ], $statusCode);
         }
 
         /** @var array<string,mixed> $payment */
         $payment = $response['json']['payment'];
 
+        $providerId = (string) ($payment['id'] ?? '');
+        $amount = (int) ($payment['amount_money']['amount'] ?? -1);
+        $currency = strtoupper((string) ($payment['amount_money']['currency'] ?? ''));
+        $locationId = (string) ($payment['location_id'] ?? '');
+        $referenceId = (string) ($payment['reference_id'] ?? '');
+        $expectedReference = $this->squarePaymentReference((int) $order['id'], $idempotencyKey);
+        if ($providerId === ''
+            || $amount !== (int) $order['total_cents']
+            || $currency !== strtoupper((string) $order['currency'])
+            || $locationId !== $this->publicLocationId()
+            || $referenceId !== $expectedReference) {
+            $this->audit->log(null, 'payment.provider_mismatch', 'order', (int) $order['id'], null, [
+                'provider_id_present' => $providerId !== '',
+                'amount_matches' => $amount === (int) $order['total_cents'],
+                'currency_matches' => $currency === strtoupper((string) $order['currency']),
+                'location_matches' => $locationId === $this->publicLocationId(),
+                'reference_matches' => $referenceId === $expectedReference,
+            ]);
+            throw new DomainException('COM_MEMIPILATES_ERROR_PAYMENT_FAILED', [], 502);
+        }
+
         return $payment;
     }
 
     /** @return array{status:int,json:array<string,mixed>} */
-    private function request(string $method, string $url, array $body, array $headers): array
+    private function request(string $method, string $url, ?array $body, array $headers): array
     {
         if (!function_exists('curl_init')) {
             throw new DomainException('COM_MEMIPILATES_ERROR_HTTP_CLIENT_UNAVAILABLE', [], 503);
@@ -372,19 +1158,28 @@ final class PaymentService
         if ($curl === false) {
             throw new DomainException('COM_MEMIPILATES_ERROR_PAYMENT_FAILED');
         }
-        $json = json_encode($body, JSON_THROW_ON_ERROR);
-        curl_setopt_array($curl, [
+        $options = [
             CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_POSTFIELDS => $json,
             CURLOPT_HTTPHEADER => array_merge(['Content-Type: application/json', 'Accept: application/json'], $headers),
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_TIMEOUT => 30,
             CURLOPT_SSL_VERIFYPEER => true,
-        ]);
+        ];
+        if ($body !== null) {
+            $options[CURLOPT_POSTFIELDS] = json_encode($body, JSON_THROW_ON_ERROR);
+        }
+        curl_setopt_array($curl, $options);
         $responseBody = curl_exec($curl);
         $status = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+        $transportFailed = $responseBody === false;
         curl_close($curl);
+        if ($transportFailed) {
+            // The provider may still have received the idempotent request.
+            // Keep the local operation reconcilable instead of assuming a
+            // definitive rejection or exposing cURL diagnostics.
+            throw new DomainException('COM_MEMIPILATES_ERROR_PAYMENT_FAILED', [], 503);
+        }
         $decoded = is_string($responseBody) ? json_decode($responseBody, true) : null;
 
         return ['status' => $status, 'json' => is_array($decoded) ? $decoded : []];
@@ -392,16 +1187,26 @@ final class PaymentService
 
     private function insertPayment(array $order, array $squarePayment, string $idempotencyKey): int
     {
-        $providerId = (string) $squarePayment['id'];
+        $providerId = (string) ($squarePayment['id'] ?? '');
+        if ($providerId === '') {
+            throw new DomainException('COM_MEMIPILATES_ERROR_PAYMENT_FAILED');
+        }
         $existing = $this->db->getQuery(true)
-            ->select($this->db->quoteName('id'))
+            ->select([$this->db->quoteName('id'), $this->db->quoteName('order_id')])
             ->from($this->db->quoteName('#__memi_payments'))
             ->where($this->db->quoteName('provider_payment_id') . ' = :provider_payment_id')
             ->bind(':provider_payment_id', $providerId);
         $this->db->setQuery($existing);
-        $existingId = (int) $this->db->loadResult();
-        if ($existingId > 0) {
-            return $existingId;
+        $existingPayment = $this->db->loadAssoc();
+        if ($existingPayment) {
+            if ((int) $existingPayment['order_id'] !== (int) $order['id']) {
+                $this->audit->log(null, 'payment.provider_order_mismatch', 'order', (int) $order['id'], null, [
+                    'existing_order_id' => (int) $existingPayment['order_id'],
+                ]);
+                throw new DomainException('COM_MEMIPILATES_ERROR_PAYMENT_FAILED');
+            }
+
+            return (int) $existingPayment['id'];
         }
 
         $now = gmdate('Y-m-d H:i:s');
@@ -494,7 +1299,7 @@ final class PaymentService
             $this->fulfillPromotion($userId, $clientId, $orderData, $items, $loyaltyEnabled);
         }
         if ($loyaltyEnabled && $orderData) {
-            $perDollar = max(0, $this->settings->getInt('points_per_dollar', 0));
+            $perDollar = max(0, $this->settings->getInt('points_per_dollar', 1));
             $orderPoints = (int) floor((int) $orderData['total_cents'] / 100) * $perDollar;
             if ($orderPoints > 0) {
                 $this->points->award($userId, $orderPoints, 'order_paid', 'order:' . $orderId . ':spend-points', null, $orderId, $userId, 'Points d’achat');
@@ -657,15 +1462,56 @@ final class PaymentService
         return (bool) $this->db->loadResult();
     }
 
+    /** @param array<string,mixed> $order */
+    private function assertPromotionClaimAvailable(array $order): void
+    {
+        $promotionId = (int) ($order['promotion_id'] ?? 0);
+        if ($promotionId <= 0) {
+            return;
+        }
+        // This row lock serialises payment claims for the same promotion. The
+        // current order becomes payment_processing before the lock is
+        // released, so the next checkout observes the claimed redemption.
+        $promotion = $this->tools->lockById('#__memi_promotions', $promotionId);
+        if ($promotion === null || !$this->withinPromotionLimits(
+            $promotion,
+            (int) $order['client_id'],
+            (int) $order['id']
+        )) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_PROMOTION_INVALID');
+        }
+    }
+
     /** @param array<string,mixed> $promotion */
-    private function withinPromotionLimits(array $promotion, int $clientId): bool
+    private function withinPromotionLimits(array $promotion, int $clientId, int $excludeOrderId = 0): bool
     {
         $promotionId = (int) $promotion['id'];
         $identifier = $promotionId;
+        $paid = 'paid';
+        $processing = 'payment_processing';
+        $pending = 'pending';
+        // Pending carts reserve a scarce code briefly. Processing attempts
+        // remain claimed until Square or its webhook gives a definitive
+        // result; releasing them after a timeout could oversubscribe a code
+        // even though the card was actually charged.
+        $reservationCutoff = gmdate('Y-m-d H:i:s', time() - 30 * 60);
         $count = $this->db->getQuery(true)
-            ->select('COUNT(*)')->from($this->db->quoteName('#__memi_promotion_redemptions'))
+            ->select('COUNT(*)')->from($this->db->quoteName('#__memi_orders'))
             ->where($this->db->quoteName('promotion_id') . ' = :promotion_id')
-            ->bind(':promotion_id', $identifier, ParameterType::INTEGER);
+            ->where('(' . $this->db->quoteName('status') . ' = :paid_status'
+                . ' OR ' . $this->db->quoteName('status') . ' = :processing_status'
+                . ' OR (' . $this->db->quoteName('status') . ' = :pending_status'
+                . ' AND ' . $this->db->quoteName('created_at') . ' >= :reservation_cutoff))')
+            ->bind(':promotion_id', $identifier, ParameterType::INTEGER)
+            ->bind(':paid_status', $paid)
+            ->bind(':processing_status', $processing)
+            ->bind(':pending_status', $pending)
+            ->bind(':reservation_cutoff', $reservationCutoff);
+        if ($excludeOrderId > 0) {
+            $excluded = $excludeOrderId;
+            $count->where($this->db->quoteName('id') . ' <> :exclude_order_id')
+                ->bind(':exclude_order_id', $excluded, ParameterType::INTEGER);
+        }
         $this->db->setQuery($count);
         $total = (int) $this->db->loadResult();
         $maximum = $promotion['maximum_redemptions'] === null ? null : (int) $promotion['maximum_redemptions'];
@@ -678,11 +1524,24 @@ final class PaymentService
         }
         $client = $clientId;
         $perClient = $this->db->getQuery(true)
-            ->select('COUNT(*)')->from($this->db->quoteName('#__memi_promotion_redemptions'))
+            ->select('COUNT(*)')->from($this->db->quoteName('#__memi_orders'))
             ->where($this->db->quoteName('promotion_id') . ' = :promotion_id')
             ->where($this->db->quoteName('client_id') . ' = :client_id')
+            ->where('(' . $this->db->quoteName('status') . ' = :paid_status'
+                . ' OR ' . $this->db->quoteName('status') . ' = :processing_status'
+                . ' OR (' . $this->db->quoteName('status') . ' = :pending_status'
+                . ' AND ' . $this->db->quoteName('created_at') . ' >= :reservation_cutoff))')
             ->bind(':promotion_id', $identifier, ParameterType::INTEGER)
-            ->bind(':client_id', $client, ParameterType::INTEGER);
+            ->bind(':client_id', $client, ParameterType::INTEGER)
+            ->bind(':paid_status', $paid)
+            ->bind(':processing_status', $processing)
+            ->bind(':pending_status', $pending)
+            ->bind(':reservation_cutoff', $reservationCutoff);
+        if ($excludeOrderId > 0) {
+            $excluded = $excludeOrderId;
+            $perClient->where($this->db->quoteName('id') . ' <> :exclude_order_id')
+                ->bind(':exclude_order_id', $excluded, ParameterType::INTEGER);
+        }
         $this->db->setQuery($perClient);
 
         return (int) $this->db->loadResult() < $perCustomer;
@@ -735,6 +1594,176 @@ final class PaymentService
         return hash_equals($expected, $signature);
     }
 
+    private function recordWebhookFailure(
+        string $eventId,
+        string $eventType,
+        string $payloadHash,
+        bool $signatureValid,
+        string $errorMessage
+    ): void {
+        try {
+            $this->tools->transaction(function () use ($eventId, $eventType, $payloadHash, $signatureValid, $errorMessage): void {
+                $event = mb_substr($eventId, 0, 128);
+                $find = $this->db->getQuery(true)
+                    ->select([$this->db->quoteName('id'), $this->db->quoteName('status')])
+                    ->from($this->db->quoteName('#__memi_square_webhooks'))
+                    ->where($this->db->quoteName('event_id') . ' = :event_id')
+                    ->bind(':event_id', $event);
+                $this->db->setQuery(DatabaseTools::forUpdate($find));
+                $existing = $this->db->loadAssoc();
+                $existingId = (int) ($existing['id'] ?? 0);
+                $now = gmdate('Y-m-d H:i:s');
+                $valid = $signatureValid ? 1 : 0;
+                $failed = 'failed';
+                $message = mb_substr($errorMessage, 0, 500);
+                if ($existingId > 0) {
+                    $processedStatus = 'processed';
+                    if ((string) ($existing['status'] ?? '') === $processedStatus) {
+                        // A concurrent duplicate may fail its insert after the
+                        // first worker committed. Never turn the successfully
+                        // processed event back into a retryable failed event.
+                        return;
+                    }
+                    $update = $this->db->getQuery(true)
+                        ->update($this->db->quoteName('#__memi_square_webhooks'))
+                        ->set($this->db->quoteName('attempt_count') . ' = LEAST(65535, ' . $this->db->quoteName('attempt_count') . ' + 1)')
+                        ->set($this->db->quoteName('signature_valid') . ' = :signature_valid')
+                        ->set($this->db->quoteName('status') . ' = :status')
+                        ->set($this->db->quoteName('error_message') . ' = :error_message')
+                        ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+                        ->where($this->db->quoteName('id') . ' = :id')
+                        ->where($this->db->quoteName('status') . ' <> :processed_status')
+                        ->bind(':signature_valid', $valid, ParameterType::INTEGER)
+                        ->bind(':status', $failed)
+                        ->bind(':processed_status', $processedStatus)
+                        ->bind(':error_message', $message)
+                        ->bind(':updated_at', $now)
+                        ->bind(':id', $existingId, ParameterType::INTEGER);
+                    $this->db->setQuery($update)->execute();
+
+                    return;
+                }
+
+                $attemptCount = 1;
+                $insert = $this->db->getQuery(true)
+                    ->insert($this->db->quoteName('#__memi_square_webhooks'))
+                    ->columns(['event_id', 'square_event_id', 'event_type', 'signature_valid', 'payload_hash', 'status', 'received_at', 'attempt_count', 'error_message', 'created_at', 'updated_at'])
+                    ->values(':event_id, :square_event_id, :event_type, :signature_valid, :payload_hash, :status, :received_at, :attempt_count, :error_message, :created_at, :updated_at')
+                    ->bind(':event_id', $event)
+                    ->bind(':square_event_id', $event)
+                    ->bind(':event_type', $eventType)
+                    ->bind(':signature_valid', $valid, ParameterType::INTEGER)
+                    ->bind(':payload_hash', $payloadHash)
+                    ->bind(':status', $failed)
+                    ->bind(':received_at', $now)
+                    ->bind(':attempt_count', $attemptCount, ParameterType::INTEGER)
+                    ->bind(':error_message', $message)
+                    ->bind(':created_at', $now)
+                    ->bind(':updated_at', $now);
+                $this->db->setQuery($insert)->execute();
+            });
+        } catch (\Throwable) {
+            // Preserve the original webhook error even if diagnostic storage
+            // is unavailable.
+        }
+    }
+
+    /** @param array<string,mixed> $refund */
+    private function syncRefundWebhook(array $refund): void
+    {
+        $providerRefundId = (string) ($refund['id'] ?? '');
+        $providerPaymentId = (string) ($refund['payment_id'] ?? '');
+        $amount = (int) ($refund['amount_money']['amount'] ?? -1);
+        $currency = strtoupper((string) ($refund['amount_money']['currency'] ?? ''));
+        if ($providerRefundId === '' || $providerPaymentId === '' || $amount < 0 || $currency === '') {
+            return;
+        }
+
+        $query = $this->db->getQuery(true)
+            ->select(['r.*', 'p.provider_payment_id', 'p.currency'])
+            ->from($this->db->quoteName('#__memi_refunds', 'r'))
+            ->join('INNER', $this->db->quoteName('#__memi_payments', 'p') . ' ON p.id = r.payment_id')
+            ->where('r.provider_refund_id = :provider_refund_id')
+            ->bind(':provider_refund_id', $providerRefundId);
+        $this->db->setQuery(DatabaseTools::forUpdate($query), 0, 1);
+        $local = $this->db->loadAssoc();
+        if (!$local) {
+            $processing = 'processing';
+            $query = $this->db->getQuery(true)
+                ->select(['r.*', 'p.provider_payment_id', 'p.currency'])
+                ->from($this->db->quoteName('#__memi_refunds', 'r'))
+                ->join('INNER', $this->db->quoteName('#__memi_payments', 'p') . ' ON p.id = r.payment_id')
+                ->where('r.provider_refund_id IS NULL')
+                ->where('r.status = :processing_status')
+                ->where('r.amount_cents = :amount_cents')
+                ->where('p.provider_payment_id = :provider_payment_id')
+                ->order('r.id DESC')
+                ->bind(':processing_status', $processing)
+                ->bind(':amount_cents', $amount, ParameterType::INTEGER)
+                ->bind(':provider_payment_id', $providerPaymentId);
+            $this->db->setQuery(DatabaseTools::forUpdate($query), 0, 1);
+            $local = $this->db->loadAssoc();
+        }
+        if (!$local) {
+            return;
+        }
+        if ((string) $local['provider_payment_id'] !== $providerPaymentId
+            || (int) $local['amount_cents'] !== $amount
+            || strtoupper((string) $local['currency']) !== $currency) {
+            $this->audit->log(null, 'refund.webhook_mismatch', 'refund', (int) $local['id'], null, [
+                'payment_matches' => (string) $local['provider_payment_id'] === $providerPaymentId,
+                'amount_matches' => (int) $local['amount_cents'] === $amount,
+                'currency_matches' => strtoupper((string) $local['currency']) === $currency,
+            ]);
+
+            return;
+        }
+
+        $status = $this->normaliseRefundStatus((string) ($refund['status'] ?? 'PENDING'));
+        $this->updateRefundResult((int) $local['id'], $providerRefundId, $status);
+        $this->audit->log(null, 'refund.webhook_status', 'refund', (int) $local['id'], null, ['status' => $status]);
+    }
+
+    private function normaliseRefundStatus(string $providerStatus): string
+    {
+        return match (strtoupper($providerStatus)) {
+            'COMPLETED' => 'completed',
+            'REJECTED' => 'rejected',
+            'FAILED', 'CANCELED', 'CANCELLED' => 'failed',
+            'PENDING' => 'pending',
+            default => 'processing',
+        };
+    }
+
+    private function updateRefundResult(int $refundId, string $providerRefundId, string $status): void
+    {
+        $now = gmdate('Y-m-d H:i:s');
+        $terminal = in_array($status, ['completed', 'rejected', 'failed'], true);
+        $processedAt = $terminal ? $now : null;
+        $failureReason = in_array($status, ['rejected', 'failed'], true) ? $status : '';
+        $identifier = $refundId;
+        $query = $this->db->getQuery(true)
+            ->update($this->db->quoteName('#__memi_refunds'))
+            ->set($this->db->quoteName('provider_refund_id') . ' = :provider_refund_id')
+            ->set($this->db->quoteName('status') . ' = :status')
+            ->set($this->db->quoteName('processed_at') . ' = :processed_at')
+            ->set($this->db->quoteName('failure_reason') . ' = :failure_reason')
+            ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+            ->where($this->db->quoteName('id') . ' = :id')
+            ->bind(':provider_refund_id', $providerRefundId)
+            ->bind(':status', $status)
+            ->bind(':processed_at', $processedAt)
+            ->bind(':failure_reason', $failureReason)
+            ->bind(':updated_at', $now)
+            ->bind(':id', $identifier, ParameterType::INTEGER);
+        $this->db->setQuery($query)->execute();
+        if (in_array($status, ['rejected', 'failed'], true)) {
+            $this->audit->log(null, 'refund.manual_required', 'refund', $refundId, null, [
+                'provider_status' => $status,
+            ]);
+        }
+    }
+
     private function syncPaymentStatus(string $providerPaymentId, string $status): void
     {
         $provider = $providerPaymentId;
@@ -763,11 +1792,16 @@ final class PaymentService
         if ((string) ($payment['status'] ?? '') !== 'COMPLETED') {
             return;
         }
-        $reference = (string) ($payment['reference_id'] ?? '');
-        if (!preg_match('/^memi-order-(\d+)$/D', $reference, $matches)) {
+        $providerPaymentId = (string) ($payment['id'] ?? '');
+        if ($providerPaymentId === '') {
             return;
         }
-        $orderId = (int) $matches[1];
+        $reference = (string) ($payment['reference_id'] ?? '');
+        $referenceData = $this->parseSquarePaymentReference($reference);
+        if ($referenceData === null) {
+            return;
+        }
+        $orderId = $referenceData['order_id'];
         if ($orderId <= 0) {
             return;
         }
@@ -776,32 +1810,67 @@ final class PaymentService
         if ($order === null) {
             return;
         }
+        $currentPaymentKey = (string) ($order['idempotency_key'] ?? '');
+        if ($referenceData['legacy'] && strncmp($currentPaymentKey, 'pay-', 4) === 0) {
+            $auditAction = (string) $order['status'] === 'paid'
+                ? 'payment.webhook_duplicate_charge'
+                : 'payment.webhook_attempt_mismatch';
+            $this->audit->log(null, $auditAction, 'order', $orderId, null, [
+                'legacy_reference_on_current_attempt' => true,
+            ]);
+
+            return;
+        }
+        if (!$referenceData['legacy']) {
+            $expectedReference = $this->squarePaymentReference($orderId, $currentPaymentKey);
+            if (!hash_equals($expectedReference, $reference)) {
+                $auditAction = (string) $order['status'] === 'paid'
+                    ? 'payment.webhook_duplicate_charge'
+                    : 'payment.webhook_attempt_mismatch';
+                $this->audit->log(null, $auditAction, 'order', $orderId, null, [
+                    'provider_payment_id_present' => true,
+                ]);
+
+                return;
+            }
+        }
         $amount = (int) ($payment['amount_money']['amount'] ?? -1);
         $currency = strtoupper((string) ($payment['amount_money']['currency'] ?? ''));
         $expectedCurrency = strtoupper((string) $order['currency']);
-        $paymentKey = (string) ($payment['idempotency_key'] ?? '');
-        $orderKey = (string) ($order['idempotency_key'] ?? '');
         $location = (string) ($payment['location_id'] ?? '');
         if ($amount !== (int) $order['total_cents'] || $currency !== $expectedCurrency
-            || ($this->publicLocationId() !== '' && $location !== $this->publicLocationId())
-            || ($orderKey !== '' && ($paymentKey === '' || !hash_equals($orderKey, $paymentKey)))) {
+            || ($this->publicLocationId() !== '' && $location !== $this->publicLocationId())) {
             $this->audit->log(null, 'payment.webhook_mismatch', 'order', $orderId, null, [
                 'amount_matches' => $amount === (int) $order['total_cents'],
                 'currency_matches' => $currency === $expectedCurrency,
                 'location_matches' => $this->publicLocationId() === '' || $location === $this->publicLocationId(),
-                'idempotency_matches' => $orderKey === '' || ($paymentKey !== '' && hash_equals($orderKey, $paymentKey)),
             ]);
 
             return;
         }
 
-        $paymentId = $this->insertPayment($order, $payment, $paymentKey !== '' ? $paymentKey : (string) $order['order_key']);
         if ((string) $order['status'] === 'paid') {
+            $existingPayment = $this->paymentForOrder($orderId);
+            if ($existingPayment && (string) ($existingPayment['provider_payment_id'] ?? '') !== $providerPaymentId) {
+                $this->audit->log(null, 'payment.webhook_duplicate_charge', 'order', $orderId, null, [
+                    'existing_payment_id' => (int) $existingPayment['id'],
+                ]);
+            }
             return;
         }
         if (!in_array((string) $order['status'], ['pending', 'payment_processing', 'payment_failed'], true)) {
             return;
         }
+
+        // Square's Payment object intentionally does not expose the
+        // idempotency key used to create it. Reconciliation therefore relies
+        // on the signed event plus the attempt-specific reference (which is
+        // bound to that key), amount, currency and location.
+        $localPaymentKey = (string) ($order['idempotency_key'] ?: $order['order_key']);
+        if ($localPaymentKey === '') {
+            $localPaymentKey = hash('sha256', 'square-webhook-payment:' . $providerPaymentId);
+        }
+        $paymentId = $this->insertPayment($order, $payment, $localPaymentKey);
 
         $now = gmdate('Y-m-d H:i:s');
         $identifier = $orderId;

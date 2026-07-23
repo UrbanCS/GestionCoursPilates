@@ -34,6 +34,7 @@ final class HtmlView extends BaseHtmlView
             'default_mode' => (string) $settings->get('kiosk_default_mode', 'reader'),
             'max_token_length' => $settings->getInt('qr_max_token_length', 128),
             'sounds' => $settings->getBool('kiosk_sound_enabled', true),
+            'timezone' => $settings->timezone()->getName(),
         ];
 
         $document = Factory::getApplication()->getDocument();
@@ -62,9 +63,25 @@ final class HtmlView extends BaseHtmlView
             'scanUrl' => $this->scanUrl,
             'manualUrl' => $this->manualUrl,
             'sounds' => $this->settings['sounds'],
+            'timeZone' => $this->settings['timezone'],
         ]);
 
         parent::display($tpl);
+    }
+
+    public function formatDate(?string $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        try {
+            $date = new \DateTimeImmutable($value, new \DateTimeZone('UTC'));
+
+            return $date->setTimezone(ComponentServices::settings()->timezone())->format(Text::_('DATE_FORMAT_LC5'));
+        } catch (\Throwable) {
+            return $value;
+        }
     }
 
     /** @return list<array<string,mixed>> */
@@ -84,6 +101,18 @@ final class HtmlView extends BaseHtmlView
             ->where('s.starts_at <= :to_at')
             ->order('s.starts_at ASC');
         $query->bind(':from_at', $from)->bind(':to_at', $to);
+        $identity = Factory::getApplication()->getIdentity();
+        if (!(bool) $identity->authorise('core.admin', 'com_memipilates')
+            && !(bool) $identity->authorise('attendance.all_sessions', 'com_memipilates')) {
+            $instructorId = ComponentServices::staffScope()->instructorIdForUser((int) ($identity->id ?? 0));
+            if ($instructorId === null) {
+                $query->where('1 = 0');
+            } else {
+                $scopeInstructor = $instructorId;
+                $query->where('s.instructor_id = :scope_instructor_id')
+                    ->bind(':scope_instructor_id', $scopeInstructor, \Joomla\Database\ParameterType::INTEGER);
+            }
+        }
         $db->setQuery($query);
 
         return $db->loadAssocList() ?: [];

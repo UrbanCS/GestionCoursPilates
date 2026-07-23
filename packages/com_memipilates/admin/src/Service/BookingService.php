@@ -151,13 +151,13 @@ final class BookingService
                 'title' => $session['course_title'] ?? '',
                 'credits_used' => $creditRequired,
                 'customer_package_id' => $customerPackageId,
+                'notification_payload' => $this->notificationPayload($session),
             ];
         });
 
-        $this->notifications->queue($userId, 'booking.confirmed', [
-            'session_title' => (string) $result['title'],
-            'starts_at' => (string) $result['starts_at'],
-        ]);
+        $notificationPayload = (array) $result['notification_payload'];
+        unset($result['notification_payload']);
+        $this->notifications->queue($userId, 'booking.confirmed', $notificationPayload);
 
         return $result;
     }
@@ -185,7 +185,6 @@ final class BookingService
             $onTime = $forceRestore || $this->isOnTimeCancellation($session);
             $newStatus = $onTime ? 'cancelled_on_time' : 'cancelled_late';
             $now = gmdate('Y-m-d H:i:s');
-            $creditRestoredAt = $onTime ? $now : null;
             $id = $bookingId;
             $query = $this->db->getQuery(true)
                 ->update($this->db->quoteName('#__memi_bookings'))
@@ -194,37 +193,54 @@ final class BookingService
                 ->set($this->db->quoteName('cancelled_by') . ' = :cancelled_by')
                 ->set($this->db->quoteName('cancellation_reason') . ' = :reason')
                 ->set($this->db->quoteName('active_booking_key') . ' = NULL')
-                ->set($this->db->quoteName('credit_restored_at') . ' = :credit_restored_at')
+                ->set($this->db->quoteName('credit_restored_at') . ' = NULL')
                 ->set($this->db->quoteName('updated_at') . ' = :updated_at')
                 ->where($this->db->quoteName('id') . ' = :id')
                 ->bind(':status', $newStatus)
                 ->bind(':cancelled_at', $now)
                 ->bind(':cancelled_by', $actorId, ParameterType::INTEGER)
                 ->bind(':reason', $reason)
-                ->bind(':credit_restored_at', $creditRestoredAt)
                 ->bind(':updated_at', $now)
                 ->bind(':id', $id, ParameterType::INTEGER);
             $this->db->setQuery($query)->execute();
             $this->releaseCapacity((int) $booking['session_id']);
 
+            $restoredCredits = 0;
             if ($onTime) {
-                $this->credits->restoreForBooking($userId, $bookingId, 'cancellation_restore', 'cancel:' . $bookingId . ':' . (string) $booking['booking_key'], $actorId);
+                $restoredCredits = $this->credits->restoreForBooking($userId, $bookingId, 'cancellation_restore', 'cancel:' . $bookingId . ':' . (string) $booking['booking_key'], $actorId);
+            }
+            $creditRestored = $restoredCredits > 0;
+            if ($creditRestored) {
+                $restoredAt = $this->db->getQuery(true)
+                    ->update($this->db->quoteName('#__memi_bookings'))
+                    ->set($this->db->quoteName('credit_restored_at') . ' = :credit_restored_at')
+                    ->where($this->db->quoteName('id') . ' = :id')
+                    ->bind(':credit_restored_at', $now)
+                    ->bind(':id', $id, ParameterType::INTEGER);
+                $this->db->setQuery($restoredAt)->execute();
             }
 
             $this->audit->log($actorId, 'booking.cancel', 'booking', $bookingId, $booking, [
                 'status' => $newStatus,
-                'credit_restored' => $onTime,
+                'credit_restored' => $creditRestored,
+                'credits_restored' => $restoredCredits,
             ], $reason);
 
             return [
                 'booking_id' => $bookingId,
                 'session_id' => (int) $booking['session_id'],
                 'status' => $newStatus,
-                'credit_restored' => $onTime,
+                'credit_restored' => $creditRestored,
+                'notification_payload' => $this->notificationPayload($session, [
+                    'credit_restored' => $creditRestored ? 1 : 0,
+                    'reason' => $reason ?? '',
+                ]),
             ];
         });
 
-        $this->notifications->queue($userId, 'booking.' . $result['status'], []);
+        $notificationPayload = (array) $result['notification_payload'];
+        unset($result['notification_payload']);
+        $this->notifications->queue($userId, 'booking.' . $result['status'], $notificationPayload);
         try {
             // This happens only after the cancellation transaction commits.
             // offerNext() itself honors the automatic/manual setting.
@@ -295,8 +311,11 @@ final class BookingService
                     ->bind(':updated_at', $now)
                     ->bind(':id', $bookingId, ParameterType::INTEGER);
                 $this->db->setQuery($update)->execute();
-                $this->credits->restoreForBooking($userId, $bookingId, 'studio_cancellation_restore', 'session-cancel:' . $bookingId . ':' . (string) $booking['booking_key'], $actorId);
-                $this->notifications->queue($userId, 'session.cancelled', ['reason' => $reason ?? '']);
+                $restored = $this->credits->restoreForBooking($userId, $bookingId, 'studio_cancellation_restore', 'session-cancel:' . $bookingId . ':' . (string) $booking['booking_key'], $actorId);
+                $this->notifications->queue($userId, 'session.cancelled', $this->notificationPayload($session, [
+                    'reason' => $reason ?? '',
+                    'credit_restored' => $restored > 0 ? 1 : 0,
+                ]));
             }
 
             $waiting = 'waiting';
@@ -328,7 +347,9 @@ final class BookingService
                 $this->db->setQuery($waitlistUpdate)->execute();
 
                 foreach ($waitlistEntries as $entry) {
-                    $this->notifications->queue((int) $entry['user_id'], 'session.cancelled', ['reason' => $reason ?? '']);
+                    $this->notifications->queue((int) $entry['user_id'], 'session.cancelled', $this->notificationPayload($session, [
+                        'reason' => $reason ?? '',
+                    ]));
                 }
             }
 
@@ -346,16 +367,45 @@ final class BookingService
             throw new DomainException('COM_MEMIPILATES_ERROR_SESSION_NOT_FOUND', [], 404);
         }
 
-        $courseId = (int) $session['course_id'];
-        $courseQuery = $this->db->getQuery(true)
-            ->select($this->db->quoteName('title'))
-            ->from($this->db->quoteName('#__memi_courses'))
-            ->where($this->db->quoteName('id') . ' = :course_id')
-            ->bind(':course_id', $courseId, ParameterType::INTEGER);
-        $this->db->setQuery($courseQuery);
-        $session['course_title'] = (string) $this->db->loadResult();
+        $identifier = $sessionId;
+        $contextQuery = $this->db->getQuery(true)
+            ->select([
+                'c.title AS course_title',
+                'i.display_name AS instructor_name',
+                'r.title AS room_title',
+                'l.title AS location_title',
+            ])
+            ->from($this->db->quoteName('#__memi_sessions', 's'))
+            ->join('INNER', $this->db->quoteName('#__memi_courses', 'c') . ' ON c.id = s.course_id')
+            ->join('LEFT', $this->db->quoteName('#__memi_instructors', 'i') . ' ON i.id = s.instructor_id')
+            ->join('LEFT', $this->db->quoteName('#__memi_rooms', 'r') . ' ON r.id = s.room_id')
+            ->join('LEFT', $this->db->quoteName('#__memi_locations', 'l') . ' ON l.id = r.location_id')
+            ->where('s.id = :session_id')
+            ->bind(':session_id', $identifier, ParameterType::INTEGER);
+        $this->db->setQuery($contextQuery, 0, 1);
+        $session = array_merge($session, $this->db->loadAssoc() ?: []);
 
         return $session;
+    }
+
+    /**
+     * Keep a non-sensitive snapshot in the queued email so a later catalogue
+     * edit cannot turn a confirmation or cancellation into an empty message.
+     *
+     * @param array<string,mixed> $session
+     * @param array<string,scalar|null> $extra
+     * @return array<string,scalar|null>
+     */
+    private function notificationPayload(array $session, array $extra = []): array
+    {
+        return array_merge([
+            'session_id' => (int) ($session['id'] ?? 0),
+            'session_title' => (string) ($session['course_title'] ?? ''),
+            'starts_at' => (string) ($session['starts_at'] ?? ''),
+            'instructor_name' => (string) ($session['instructor_name'] ?? ''),
+            'room_title' => (string) ($session['room_title'] ?? ''),
+            'location_title' => (string) ($session['location_title'] ?? ''),
+        ], $extra);
     }
 
     /** @return array<string, mixed>|null */

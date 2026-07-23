@@ -11,7 +11,7 @@ Une URL de menu Joomla peut être utilisée en production. La borne reste dispon
 ## Préparation du poste
 
 1. Réserver un compte macOS dédié au studio, non administrateur, avec verrouillage automatique de l’écran.
-2. Utiliser un compte Joomla individuel ou un compte de borne approuvé, membre uniquement du groupe doté de attendance.kiosk et attendance.scan. Ne jamais utiliser un Super administrateur sur le poste partagé.
+2. Utiliser un compte Joomla individuel lié à l’instructeur et doté de attendance.kiosk/attendance.scan, ou un compte de borne partagé approuvé doté en plus de attendance.all_sessions. Ne jamais utiliser un Super administrateur sur le poste partagé.
 3. Ouvrir la borne, sélectionner le cours actif, puis choisir le mode **Lecteur QR externe**, **Caméra** ou **Recherche manuelle**.
 4. Garder la page ouverte en plein écran au besoin. Le plein écran est une préférence d’ergonomie : il ne remplace pas la session Joomla, l’ACL ou le verrouillage du Mac.
 5. Vérifier chaque jour l’heure du Mac, la connexion réseau HTTPS et le cours sélectionné avant l’arrivée des clients.
@@ -74,7 +74,7 @@ Le mode test sert uniquement à diagnostiquer l’entrée HID. Il affiche :
 
 Il est entièrement local : aucune requête n’est envoyée, aucune présence/point/réservation n’est modifié et le QR complet n’est ni affiché, ni enregistré, ni journalisé. L’accès au bouton est gouverné par kiosk.test.
 
-La vue charge les assets Joomla com_memipilates.kiosk et com_memipilates.kiosk-scanner. Elle utilise BarcodeDetector lorsqu’il est disponible, puis la bibliothèque MIT qr-scanner 1.4.2 et son worker livrés localement sous media/vendor. Le scan caméra n’a donc aucune dépendance réseau/CDN à l’exécution. Pour les contrôles automatisés et l’accessibilité, le panneau de test expose uniquement les métriques suivantes :
+La vue charge les assets Joomla com_memipilates.kiosk et com_memipilates.kiosk-scanner. Elle utilise BarcodeDetector lorsqu’il est disponible, puis la bibliothèque MIT qr-scanner 1.4.2 et son worker livrés localement sous media/js/vendor. Le scan caméra n’a donc aucune dépendance réseau/CDN à l’exécution. Pour les contrôles automatisés et l’accessibilité, le panneau de test expose uniquement les métriques suivantes :
 
 ~~~text
 [data-memi-kiosk-test-field="received|chars|length|enter|duration|format|focus|transport"]
@@ -102,11 +102,13 @@ Pour corriger une présence erronée, utiliser l’interface prévue et attendan
 
 ## QR client : révocation et régénération
 
-Un client peut afficher ou imprimer son QR depuis son espace client. Le token est opaque et ne contient ni nom ni courriel. En cas de perte, soupçon de copie ou changement de support :
+Un client peut afficher le même QR après chaque connexion et imprimer une fiche dédiée depuis son espace client. Le token est opaque et ne contient ni nom ni courriel. Sa valeur brute n'est pas enregistrée en base : elle est reconstruite à partir d'une signature serveur, puis seule son empreinte est conservée. La première ouverture d'un ancien QR aléatoire provoque une rotation unique vers ce nouveau format; l'ancien support doit alors être remplacé.
 
-1. Ouvrir le profil client avec qr.manage.
-2. Révoquer le QR courant.
-3. Générer un nouveau QR et remettre seulement le nouveau support au client.
+Une régénération répétée avec la même clé d'idempotence retourne le même QR. Elle ne doit donc jamais invalider accidentellement le support qui vient d'être imprimé à cause d'un double clic ou d'une réponse réseau perdue. En cas de perte, soupçon de copie ou changement de support :
+
+1. Ouvrir **Clients** dans l'administration avec `qr.manage`.
+2. Utiliser **Révoquer** pour désactiver immédiatement le QR courant.
+3. Utiliser **Régénérer** pour créer un nouveau QR; le client peut ensuite l'afficher et imprimer sa fiche depuis son espace.
 4. Vérifier qu’un ancien QR est refusé et que le nouveau est accepté.
 5. Consulter le journal d’audit; ne copier aucun token dans une note.
 

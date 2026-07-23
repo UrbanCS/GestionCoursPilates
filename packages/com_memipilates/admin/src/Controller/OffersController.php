@@ -20,28 +20,28 @@ final class OffersController extends BaseController
 {
     public function savePromotion(): void
     {
-        $this->processPost(['core.manage', 'promotions.manage'], static function (int $actorId): void {
+        $this->processPost(['promotions.manage'], static function (int $actorId): void {
             ComponentServices::offers()->savePromotion(Factory::getApplication()->input->post, $actorId);
         });
     }
 
     public function archivePromotion(): void
     {
-        $this->processPost(['core.manage', 'promotions.manage'], static function (int $actorId): void {
+        $this->processPost(['promotions.manage'], static function (int $actorId): void {
             ComponentServices::offers()->archivePromotion(Factory::getApplication()->input->post->getInt('id'), $actorId);
         });
     }
 
     public function saveReward(): void
     {
-        $this->processPost(['core.manage', 'loyalty.adjust'], static function (int $actorId): void {
+        $this->processPost(['loyalty.adjust'], static function (int $actorId): void {
             ComponentServices::offers()->saveReward(Factory::getApplication()->input->post, $actorId);
         });
     }
 
     public function archiveReward(): void
     {
-        $this->processPost(['core.manage', 'loyalty.adjust'], static function (int $actorId): void {
+        $this->processPost(['loyalty.adjust'], static function (int $actorId): void {
             ComponentServices::offers()->archiveReward(Factory::getApplication()->input->post->getInt('id'), $actorId);
         });
     }

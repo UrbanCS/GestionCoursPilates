@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string] $Version = '1.3.1',
+    [string] $Version = '1.5.0',
     [string] $OutputDirectory = ''
 )
 
@@ -14,6 +14,26 @@ if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
 $packagesRoot = Join-Path $root 'packages'
 $packageSource = Join-Path $root 'package'
 $staging = Join-Path ([System.IO.Path]::GetTempPath()) ('memipilates-build-' + [guid]::NewGuid().ToString('N'))
+
+# The command-line version is only an assertion. Refuse to label an archive
+# differently from any extension manifest instead of silently publishing a
+# package whose filename and Joomla metadata disagree.
+$manifestPaths = @(
+    (Join-Path $packageSource 'pkg_memipilates.xml'),
+    (Join-Path $packagesRoot 'com_memipilates\com_memipilates.xml'),
+    (Join-Path $packagesRoot 'plg_task_memipilates\memipilates.xml'),
+    (Join-Path $packagesRoot 'file_memipilates_cli\memipilates-cli.xml')
+)
+foreach ($manifestPath in $manifestPaths) {
+    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+        throw "Missing Joomla manifest: $manifestPath"
+    }
+    [xml] $manifest = [System.IO.File]::ReadAllText($manifestPath)
+    $manifestVersion = ([string] $manifest.extension.version).Trim()
+    if ($manifestVersion -ne $Version) {
+        throw "Version mismatch: requested '$Version' but '$manifestPath' declares '$manifestVersion'. Update every manifest or build with the declared version."
+    }
+}
 
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem

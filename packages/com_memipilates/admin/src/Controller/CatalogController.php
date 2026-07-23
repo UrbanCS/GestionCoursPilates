@@ -20,21 +20,21 @@ final class CatalogController extends BaseController
 {
     /** @var array<string,list<string>> */
     private const PERMISSIONS = [
-        'location' => ['core.manage', 'rooms.manage'],
-        'room' => ['core.manage', 'rooms.manage'],
-        'instructor' => ['core.manage', 'instructors.manage'],
-        'course_type' => ['core.manage', 'courses.manage'],
-        'course' => ['core.manage', 'courses.manage'],
-        'session' => ['core.manage', 'schedules.manage'],
-        'session_rule' => ['core.manage', 'schedules.manage'],
-        'package' => ['core.manage', 'packages.manage'],
+        'location' => ['rooms.manage'],
+        'room' => ['rooms.manage'],
+        'instructor' => ['instructors.manage'],
+        'course_type' => ['courses.manage'],
+        'course' => ['courses.manage'],
+        'session' => ['schedules.manage'],
+        'session_rule' => ['schedules.manage'],
+        'package' => ['packages.manage'],
     ];
 
     public function save(): void
     {
         $input = Factory::getApplication()->input;
         $entity = $input->post->getCmd('entity');
-        $permissions = self::PERMISSIONS[$entity] ?? ['core.manage'];
+        $permissions = self::PERMISSIONS[$entity] ?? [];
         $this->processPost($entity, $permissions, function (int $actorId) use ($input, $entity): void {
             $id = $input->post->getInt('id');
             if ($id > 0 && $entity !== 'session') {
@@ -57,7 +57,7 @@ final class CatalogController extends BaseController
     {
         $input = Factory::getApplication()->input;
         $entity = $input->post->getCmd('entity');
-        $permissions = self::PERMISSIONS[$entity] ?? ['core.manage'];
+        $permissions = self::PERMISSIONS[$entity] ?? [];
         $this->processPost($entity, $permissions, function (int $actorId) use ($input, $entity): void {
             if ($entity === 'session') {
                 throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');

@@ -17,10 +17,12 @@ final class HtmlView extends AbstractAdminView
     public array $items = [];
     /** @var list<string> */
     public array $statuses = ['pending', 'payment_processing', 'payment_failed', 'paid'];
+    public bool $canRefund = false;
 
     public function display($tpl = null): void
     {
-        $this->initialise(['core.manage', 'payments.view']);
+        $this->initialise(['payments.view']);
+        $this->canRefund = $this->can('payments.refund');
         $this->filterStatus = $this->normaliseStatus(Factory::getApplication()->input->getCmd('filter_status', ''), $this->statuses);
         $this->loadItems();
         Factory::getApplication()->getDocument()->setTitle('Paiements');
@@ -38,7 +40,9 @@ final class HtmlView extends AbstractAdminView
             ->select([
                 'o.id', 'o.status', 'o.currency', 'o.subtotal_cents', 'o.discount_cents', 'o.tax_cents', 'o.total_cents', 'o.created_at', 'o.paid_at', 'o.promotion_code',
                 'u.name AS customer_name', 'u.email AS customer_email',
-                'p.provider', 'p.status AS payment_status', 'p.provider_payment_id', 'p.receipt_url', 'p.card_brand', 'p.card_last4',
+                'p.id AS payment_id', 'p.provider', 'p.status AS payment_status', 'p.amount_cents AS paid_cents', 'p.provider_payment_id', 'p.receipt_url', 'p.card_brand', 'p.card_last4',
+                "COALESCE((SELECT SUM(r.amount_cents) FROM #__memi_refunds AS r WHERE r.payment_id = p.id AND r.status IN ('pending', 'processing', 'completed')), 0) AS refunded_cents",
+                '(SELECT r2.status FROM #__memi_refunds AS r2 WHERE r2.payment_id = p.id ORDER BY r2.id DESC LIMIT 1) AS refund_status',
             ])
             ->order('o.created_at DESC, o.id DESC');
         $this->applyFilters($query);

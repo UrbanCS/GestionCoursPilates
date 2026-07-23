@@ -8,6 +8,7 @@ namespace Memi\Component\Memipilates\Site\View\Dashboard;
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Router\Route;
 use Memi\Component\Memipilates\Administrator\Service\ComponentServices;
@@ -32,6 +33,7 @@ final class HtmlView extends BaseHtmlView
     /** @var list<array<string,mixed>> */
     public array $rewards = [];
     public string $qrEndpoint = '';
+    public ?string $qrToken = null;
     public string $loyaltyEndpoint = '';
     public string $cancelEndpoint = '';
     public string $leaveWaitlistEndpoint = '';
@@ -53,6 +55,8 @@ final class HtmlView extends BaseHtmlView
         $this->activePackages = $this->loadActivePackages();
         $this->pointHistory = $this->loadPointHistory();
         $this->rewards = ComponentServices::settings()->getBool('loyalty_enabled', true) ? $this->loadRewards() : [];
+        $currentQr = ComponentServices::qrTokens()->current($this->userId, $this->userId);
+        $this->qrToken = isset($currentQr['token']) ? (string) $currentQr['token'] : null;
         $this->qrEndpoint = Route::_('index.php?option=com_memipilates&task=qr.regenerate&format=json', false);
         $this->loyaltyEndpoint = Route::_('index.php?option=com_memipilates&task=loyalty.redeem&format=json', false);
         $this->cancelEndpoint = Route::_('index.php?option=com_memipilates&task=booking.cancel&format=json', false);
@@ -60,6 +64,33 @@ final class HtmlView extends BaseHtmlView
         $document = Factory::getApplication()->getDocument();
         $document->getWebAssetManager()->useStyle('com_memipilates.site')->useScript('com_memipilates.dashboard');
         parent::display($tpl);
+    }
+
+    public function formatDate(?string $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        try {
+            $date = new \DateTimeImmutable($value, new \DateTimeZone('UTC'));
+
+            return $date->setTimezone(ComponentServices::settings()->timezone())->format(Text::_('DATE_FORMAT_LC5'));
+        } catch (\Throwable) {
+            return $value;
+        }
+    }
+
+    public function formatMoney(int $cents, string $currency): string
+    {
+        $candidate = strtoupper(trim($currency));
+        $safeCurrency = preg_match('/^[A-Z]{3}$/D', $candidate) ? $candidate : 'CAD';
+        $absoluteCents = abs($cents);
+        $whole = intdiv($absoluteCents, 100);
+        $fraction = str_pad((string) ($absoluteCents % 100), 2, '0', STR_PAD_LEFT);
+        $sign = $cents < 0 ? '-' : '';
+
+        return $sign . number_format($whole, 0, '.', ' ') . '.' . $fraction . ' ' . $safeCurrency;
     }
 
     /** @return list<array<string,mixed>> */
@@ -127,17 +158,19 @@ final class HtmlView extends BaseHtmlView
         $db = ComponentServices::database();
         $user = $this->userId;
         $active = 'active';
+        $restored = 'restored';
         $now = gmdate('Y-m-d H:i:s');
         $query = $db->getQuery(true)
             ->select(['cp.*', 'p.title AS package_title'])
             ->from($db->quoteName('#__memi_customer_packages', 'cp'))
             ->join('INNER', $db->quoteName('#__memi_packages', 'p') . ' ON p.id = cp.package_id')
             ->where('cp.user_id = :user_id')
-            ->where('cp.status = :status')
-            ->where('(cp.expires_at IS NULL OR cp.expires_at > :now)')
-            ->order('cp.expires_at ASC, cp.id ASC')
+            ->where('((cp.status = :active_status AND (cp.expires_at IS NULL OR cp.expires_at > :now)) OR cp.status = :restored_status)')
+            ->where('cp.remaining_credits > 0')
+            ->order('CASE WHEN cp.status = ' . $db->quote($restored) . ' THEN 0 ELSE 1 END, cp.expires_at ASC, cp.id ASC')
             ->bind(':user_id', $user)
-            ->bind(':status', $active)
+            ->bind(':active_status', $active)
+            ->bind(':restored_status', $restored)
             ->bind(':now', $now);
         $db->setQuery($query);
 

@@ -1,7 +1,9 @@
 # qr-scanner
 
-This directory contains the browser fallback decoder used by the kiosk when the
-native `BarcodeDetector` API is unavailable.
+The browser fallback decoder used by the kiosk is installed under
+`media/com_memipilates/js/vendor` so Joomla's Web Asset Manager can resolve it
+when the native `BarcodeDetector` API is unavailable. Licences and provenance
+remain documented in this directory.
 
 - Package: `qr-scanner` 1.4.2 by Nimiq
 - License: MIT (`LICENSE-qr-scanner.txt`)

@@ -36,6 +36,34 @@ final class ManagementController extends BaseController
         });
     }
 
+    public function regenerateQr(): void
+    {
+        $this->processPost('customers', ['qr.manage'], function (int $actorId): void {
+            $input = Factory::getApplication()->input;
+            $userId = $input->post->getInt('user_id');
+            $idempotencyKey = $input->post->getString('idempotency_key', '');
+            $this->assertActiveClient($userId);
+            ComponentServices::qrTokens()->regenerate($userId, $idempotencyKey, $actorId);
+        });
+    }
+
+    public function revokeQr(): void
+    {
+        $this->processPost('customers', ['qr.manage'], function (int $actorId): void {
+            $input = Factory::getApplication()->input;
+            $userId = $input->post->getInt('user_id');
+            $reason = trim(mb_substr($input->post->getString('reason', ''), 0, 255));
+            if ($userId <= 0) {
+                throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
+            }
+            ComponentServices::qrTokens()->revokeForUser(
+                $userId,
+                $actorId,
+                $reason !== '' ? $reason : 'administrative_revocation'
+            );
+        });
+    }
+
     public function reserveClient(): void
     {
         $this->processPost('bookings', ['bookings.manage', 'bookings.manual'], function (int $actorId): void {
@@ -47,6 +75,12 @@ final class ManagementController extends BaseController
 
             if ($userId <= 0 || $sessionId <= 0 || !in_array($mode, ['credit', 'complimentary'], true)) {
                 throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
+            }
+
+            $identity = Factory::getApplication()->getIdentity();
+            if (!(bool) $identity->authorise('core.admin', 'com_memipilates')
+                && !(bool) $identity->authorise('bookings.manage', 'com_memipilates')) {
+                ComponentServices::staffScope()->assertAssignedSession($actorId, $sessionId);
             }
 
             $clients = new ClientManagementService(
@@ -100,6 +134,16 @@ final class ManagementController extends BaseController
         }
 
         throw new \RuntimeException(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+    }
+
+    private function assertActiveClient(int $userId): void
+    {
+        $clients = new ClientManagementService(
+            ComponentServices::database(),
+            ComponentServices::databaseTools(),
+            ComponentServices::audit()
+        );
+        $clients->assertActiveClient($userId);
     }
 
     private function redirectTo(string $view): void

@@ -19,7 +19,7 @@ final class QrController extends BaseController
         try {
             $this->requirePostToken();
             $userId = $this->userId();
-            $result = ComponentServices::qrTokens()->regenerate($userId, $userId);
+            $result = ComponentServices::qrTokens()->regenerate($userId, $this->idempotencyKey(), $userId);
             $this->respond([
                 'success' => true,
                 'message' => \Joomla\CMS\Language\Text::_('COM_MEMIPILATES_QR_REGENERATED'),

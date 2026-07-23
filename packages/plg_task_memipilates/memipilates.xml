@@ -7,7 +7,7 @@
 	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
 	<authorEmail>info@memistudio.ca</authorEmail>
 	<authorUrl>https://memistudio.ca</authorUrl>
-	<version>1.3.1</version>
+	<version>1.5.0</version>
 	<description>PLG_TASK_MEMIPILATES_XML_DESCRIPTION</description>
 	<namespace path="src">Memi\Plugin\Task\Memipilates</namespace>
 	<files>

@@ -48,6 +48,10 @@ Ne pas utiliser cet alias dans cPanel tant que sa présence n’a pas été conf
 
 La commande peut orchestrer l’ensemble des sous-tâches avec des verrous de base de données. Si une version offre des options de tâche ciblée, les documenter dans les notes de livraison sans dédoubler les processus parallèles.
 
+Les notifications en échec sont reprises automatiquement avec un délai exponentiel configurable. Une réclamation d’envoi abandonnée par un processus interrompu redevient admissible après 15 minutes. À la dernière tentative, une offre de liste d’attente est annulée, sa place temporaire est libérée et le candidat suivant est promu; les autres notifications restent en état d’échec pour inspection.
+
+Chaque exécution rapproche également les commandes `payment_processing` âgées d’au moins deux minutes et les remboursements `processing`/`pending`. Un paiement est identifié par une référence immuable propre à la tentative (`memi-o-{commande}-{empreinte}`), son montant, sa devise et son emplacement; si Square n’a aucun paiement finalisé, l’essai est annulé par sa clé d’idempotence avant d’autoriser une nouvelle carte. Un remboursement sans réponse est rejoué avec exactement la même clé et les mêmes paramètres. Les remboursements en attente utilisent un recul progressif (5 minutes, 30 minutes, 6 heures, puis 24 heures); après 14 jours, chaque nouvelle vérification produit l’audit `refund.reconcile_prolonged` afin de déclencher un suivi avec Square. Les compteurs `payments_reconciled` et `refunds_reconciled` du résultat indiquent les transitions locales réalisées.
+
 ## Configuration dans cPanel
 
 1. Ouvrir **Cron Jobs** dans cPanel avec un compte habilité.

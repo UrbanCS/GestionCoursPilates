@@ -24,7 +24,7 @@ final class HtmlView extends AbstractAdminView
 
     public function display($tpl = null): void
     {
-        $this->initialise(['core.manage', 'reports.view']);
+        $this->initialise(['reports.view']);
         [$todayStart, $todayEnd, $now, $monthAgo] = $this->timeBoundaries();
         $this->metrics = $this->loadMetrics($todayStart, $todayEnd, $now, $monthAgo);
         $this->upcomingSessions = $this->loadUpcomingSessions($now);

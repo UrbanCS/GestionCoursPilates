@@ -107,6 +107,7 @@
       const button = root.querySelector('[data-memi-qr-generate]');
       const print = root.querySelector('[data-memi-qr-print]');
       const endpoint = root.dataset.qrEndpoint;
+      let regenerationKey = '';
       const show = (message, kind = 'status') => {
         if (result) {
           result.textContent = message;
@@ -128,26 +129,39 @@
           correctLevel: window.QRCode.CorrectLevel.M
         });
         target.dataset.tokenAvailable = 'true';
+        root.dataset.qrToken = token;
         show('Votre code QR est prêt à être présenté ou imprimé.', 'success');
         if (print) print.disabled = false;
       };
+
+      if (root.dataset.qrToken) {
+        render(root.dataset.qrToken);
+      }
+
       button?.addEventListener('click', async () => {
         if (!endpoint) return;
         button.disabled = true;
         show('Génération sécurisée du code QR…');
         const body = new FormData();
-        body.append('idempotency_key', createKey());
+        regenerationKey ||= createKey();
+        body.append('idempotency_key', regenerationKey);
         const csrf = tokenName();
         if (csrf) body.append(csrf, '1');
+        let receivedResponse = false;
         try {
           const response = await fetch(endpoint, { method: 'POST', body, credentials: 'same-origin', headers: { Accept: 'application/json' } });
+          receivedResponse = true;
           const payload = await response.json();
           const data = payload && typeof payload.data === 'object' ? { ...payload, ...payload.data } : payload;
           if (!response.ok || !data || !data.success || !data.token) {
             throw new Error((data && data.message) || 'QR generation failed');
           }
           render(data.token);
+          regenerationKey = '';
         } catch (error) {
+          // Keep the key only when the response was lost: retrying then returns
+          // the same token if the first request reached the server.
+          if (receivedResponse) regenerationKey = '';
           show('Le code QR n’a pas pu être généré. Réessayez.', 'error');
         } finally {
           button.disabled = false;

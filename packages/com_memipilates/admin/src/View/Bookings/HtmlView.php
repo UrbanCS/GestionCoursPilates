@@ -23,13 +23,15 @@ final class HtmlView extends AbstractAdminView
     public array $statuses = ['pending', 'confirmed', 'attended', 'waitlisted', 'cancelled_on_time', 'cancelled_late', 'administratively_cancelled', 'no_show', 'refunded'];
     public bool $canCancel = false;
     public bool $canManualBooking = false;
+    public bool $canViewContact = false;
 
     public function display($tpl = null): void
     {
-        $this->initialise(['core.manage', 'bookings.manage', 'bookings.manual', 'waitlist.manage'], ['core.edit', 'bookings.manage']);
+        $this->initialise(['bookings.manage', 'bookings.manual'], ['bookings.manage', 'bookings.manual']);
         $this->filterStatus = $this->normaliseStatus(Factory::getApplication()->input->getCmd('filter_status', ''), $this->statuses);
-        $this->canCancel = $this->can('core.edit') || $this->can('bookings.manage');
+        $this->canCancel = $this->can('bookings.manage');
         $this->canManualBooking = $this->can('bookings.manual') || $this->can('bookings.manage');
+        $this->canViewContact = $this->can('clients.manage');
         $this->loadItems();
         if ($this->canManualBooking) {
             $this->loadManualBookingData();
@@ -49,9 +51,12 @@ final class HtmlView extends AbstractAdminView
             ->select([
                 'b.id', 'b.status', 'b.source', 'b.booked_at', 'b.confirmed_at', 'b.cancelled_at',
                 's.id AS session_id', 's.starts_at', 'c.title AS course_title',
-                'u.id AS user_id', 'u.name AS customer_name', 'u.email AS customer_email',
-                'cp.phone AS customer_phone',
-            ])
+                'u.id AS user_id', 'u.name AS customer_name',
+            ]);
+        if ($this->canViewContact) {
+            $query->select(['u.email AS customer_email', 'cp.phone AS customer_phone']);
+        }
+        $query
             ->order('s.starts_at DESC, b.id DESC');
         $this->applyFilters($query);
         $this->db->setQuery($query, $this->limitStart, $this->limit);
@@ -60,12 +65,15 @@ final class HtmlView extends AbstractAdminView
 
     private function baseQuery(): mixed
     {
-        return $this->db->getQuery(true)
+        $query = $this->db->getQuery(true)
             ->from($this->db->quoteName('#__memi_bookings', 'b'))
             ->join('INNER', $this->db->quoteName('#__memi_sessions', 's') . ' ON s.id = b.session_id')
             ->join('INNER', $this->db->quoteName('#__memi_courses', 'c') . ' ON c.id = s.course_id')
             ->join('INNER', $this->db->quoteName('#__users', 'u') . ' ON u.id = b.user_id')
             ->join('LEFT', $this->db->quoteName('#__memi_client_profiles', 'cp') . ' ON cp.id = b.client_id');
+        $this->applyInstructorSessionScope($query, 's', ['bookings.manage']);
+
+        return $query;
     }
 
     private function applyFilters(mixed $query): void
@@ -82,7 +90,10 @@ final class HtmlView extends AbstractAdminView
         }
         if ($this->filterSearch !== '') {
             $term = '%' . $this->filterSearch . '%';
-            $query->where('(u.name LIKE :filter_search OR u.email LIKE :filter_search OR c.title LIKE :filter_search)')
+            $columns = $this->canViewContact
+                ? 'u.name LIKE :filter_search OR u.email LIKE :filter_search OR c.title LIKE :filter_search'
+                : 'u.name LIKE :filter_search OR c.title LIKE :filter_search';
+            $query->where('(' . $columns . ')')
                 ->bind(':filter_search', $term);
         }
     }
@@ -90,7 +101,7 @@ final class HtmlView extends AbstractAdminView
     private function loadManualBookingData(): void
     {
         $clientQuery = $this->db->getQuery(true)
-            ->select(['u.id', 'u.name', 'u.email', 'cp.phone'])
+            ->select($this->canViewContact ? ['u.id', 'u.name', 'u.email', 'cp.phone'] : ['u.id', 'u.name'])
             ->from($this->db->quoteName('#__memi_client_profiles', 'cp'))
             ->join('INNER', $this->db->quoteName('#__users', 'u') . ' ON u.id = cp.user_id')
             ->where('cp.archived_at IS NULL')
@@ -117,6 +128,7 @@ final class HtmlView extends AbstractAdminView
             ->where('(s.registration_closes_at IS NULL OR s.registration_closes_at > :now)')
             ->order('s.starts_at ASC')
             ->bind(':now', $now);
+        $this->applyInstructorSessionScope($sessionQuery, 's', ['bookings.manage']);
         $this->db->setQuery($sessionQuery, 0, 150);
         $this->manualSessions = $this->db->loadAssocList() ?: [];
     }

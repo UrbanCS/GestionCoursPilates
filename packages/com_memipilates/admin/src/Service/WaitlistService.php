@@ -19,7 +19,9 @@ final class WaitlistService
         private readonly SettingsService $settings,
         private readonly CreditLedgerService $credits,
         private readonly AuditLogger $audit,
-        private readonly NotificationService $notifications
+        private readonly NotificationService $notifications,
+        private readonly WaitlistOfferTokenService $offerTokens,
+        private readonly WaitlistOfferFailureService $offerFailures
     ) {
     }
 
@@ -101,7 +103,10 @@ final class WaitlistService
 
             return ['waitlist_id' => $waitlistId, 'position' => $position, 'status' => $this->waitingStatus()];
         });
-        $this->notifications->queue($userId, 'waitlist.joined', ['position' => $result['position']]);
+        $this->notifications->queue($userId, 'waitlist.joined', [
+            'session_id' => $sessionId,
+            'position' => $result['position'],
+        ]);
 
         return $result;
     }
@@ -148,10 +153,10 @@ final class WaitlistService
     }
 
     /**
-     * Offer the next person exactly once. The raw acceptance token is returned
-     * only to be embedded in a secure email link, never persisted or logged.
+     * Offer the next eligible person. If its notification cannot be queued,
+     * release the temporary hold and advance without blocking capacity.
      *
-     * @return array{waitlist_id:int,user_id:int,token:string,expires_at:string}|null
+     * @return array{waitlist_id:int,user_id:int,offered_at:string,expires_at:string}|null
      */
     public function offerNext(int $sessionId, ?int $actorId = null, bool $manual = false): ?array
     {
@@ -162,7 +167,37 @@ final class WaitlistService
             }
         }
 
-        $offer = $this->tools->transaction(function () use ($sessionId, $actorId): ?array {
+        for ($deliveryCandidate = 0; $deliveryCandidate < 100; ++$deliveryCandidate) {
+            $offer = $this->createOffer($sessionId, $actorId);
+            if ($offer === null) {
+                return null;
+            }
+
+            try {
+                $this->notifications->queue($offer['user_id'], 'waitlist.offer', [
+                    'waitlist_id' => $offer['waitlist_id'],
+                    'session_id' => $sessionId,
+                    'offered_at' => $offer['offered_at'],
+                    'expires_at' => $offer['expires_at'],
+                ], null, hash('sha256', 'waitlist-offer|' . $offer['waitlist_id'] . '|' . $offer['offered_at']));
+
+                return $offer;
+            } catch (\Throwable) {
+                $this->offerFailures->fail($offer['waitlist_id'], $offer['offered_at'], $actorId, 'queue_failed');
+            }
+        }
+
+        $this->audit->log($actorId, 'waitlist.offer.batch_deferred', 'session', $sessionId, null, [
+            'delivery_candidates_checked' => 100,
+        ]);
+
+        return null;
+    }
+
+    /** @return array{waitlist_id:int,user_id:int,offered_at:string,expires_at:string}|null */
+    private function createOffer(int $sessionId, ?int $actorId): ?array
+    {
+        return $this->tools->transaction(function () use ($sessionId, $actorId): ?array {
             $session = $this->tools->lockById('#__memi_sessions', $sessionId);
             if (!$session || (int) $session['reserved_count'] >= (int) $session['capacity'] || !in_array((string) $session['status'], ['published', 'open'], true) || !$this->isSessionRegistrationOpen($session)) {
                 return null;
@@ -181,20 +216,18 @@ final class WaitlistService
             $query->setLimit(1);
             $this->db->setQuery(DatabaseTools::forUpdate($query));
             $entry = $this->db->loadAssoc();
-            if (!$entry) {
-                return null;
-            }
-            if (!$this->claimCapacity($sessionId)) {
+            if (!$entry || !$this->claimCapacity($sessionId)) {
                 return null;
             }
 
-            $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
-            $hash = hash('sha256', $token);
-            $expires = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
-                ->modify('+' . max(5, $this->settings->getInt('waitlist_offer_minutes', 60)) . ' minutes');
-            $expiresAt = $expires->format('Y-m-d H:i:s');
-            $now = gmdate('Y-m-d H:i:s');
+            $offeredAt = gmdate('Y-m-d H:i:s');
+            $expiresAt = (new \DateTimeImmutable($offeredAt, new \DateTimeZone('UTC')))
+                ->modify('+' . max(5, $this->settings->getInt('waitlist_offer_minutes', 60)) . ' minutes')
+                ->format('Y-m-d H:i:s');
             $id = (int) $entry['id'];
+            $userId = (int) $entry['user_id'];
+            $token = $this->offerTokens->issue($id, $userId, $offeredAt, $expiresAt);
+            $hash = hash('sha256', $token);
             $offered = 'offered';
             $update = $this->db->getQuery(true)
                 ->update($this->db->quoteName('#__memi_waitlist'))
@@ -206,29 +239,24 @@ final class WaitlistService
                 ->where($this->db->quoteName('id') . ' = :id')
                 ->bind(':status', $offered)
                 ->bind(':offer_token_hash', $hash)
-                ->bind(':offered_at', $now)
+                ->bind(':offered_at', $offeredAt)
                 ->bind(':offer_expires_at', $expiresAt)
-                ->bind(':updated_at', $now)
+                ->bind(':updated_at', $offeredAt)
                 ->bind(':id', $id, ParameterType::INTEGER);
             $this->db->setQuery($update)->execute();
             $this->audit->log($actorId, 'waitlist.offer', 'waitlist', $id, $entry, [
-                'user_id' => (int) $entry['user_id'],
+                'user_id' => $userId,
                 'session_id' => $sessionId,
                 'expires_at' => $expiresAt,
             ]);
 
-            return ['waitlist_id' => $id, 'user_id' => (int) $entry['user_id'], 'token' => $token, 'expires_at' => $expiresAt];
+            return [
+                'waitlist_id' => $id,
+                'user_id' => $userId,
+                'offered_at' => $offeredAt,
+                'expires_at' => $expiresAt,
+            ];
         });
-
-        if ($offer !== null) {
-            $this->notifications->queue($offer['user_id'], 'waitlist.offer', [
-                'waitlist_id' => $offer['waitlist_id'],
-                'acceptance_token' => $offer['token'],
-                'expires_at' => $offer['expires_at'],
-            ]);
-        }
-
-        return $offer;
     }
 
     /** @return array{booking_id:int,status:string} */
@@ -334,6 +362,9 @@ final class WaitlistService
             $this->db->setQuery($updateWaitlist)->execute();
             $this->syncWaitlistCount($sessionId, $now);
             $this->audit->log($actorId, 'waitlist.accept', 'waitlist', $waitlistId, $entry, ['booking_id' => $bookingId]);
+            $this->notifications->queue($userId, 'booking.confirmed', [
+                'session_id' => $sessionId,
+            ], null, 'booking-confirmed:' . $bookingId . ':' . $bookingKey);
 
             return ['booking_id' => $bookingId, 'status' => 'confirmed'];
         });
@@ -388,6 +419,47 @@ final class WaitlistService
         }
 
         return count($ids);
+    }
+
+    /**
+     * Recovers automatic promotions that were deferred by a transient failure
+     * after a cancellation. Capacity is claimed transactionally by offerNext,
+     * so concurrent scheduler processes remain safe and idempotent.
+     */
+    public function promoteAvailableSessions(int $limit = 100): int
+    {
+        $now = gmdate('Y-m-d H:i:s');
+        $waiting = $this->waitingStatus();
+        $query = $this->db->getQuery(true)
+            ->select(['s.id', 'GREATEST(0, s.capacity - s.reserved_count) AS available_slots'])
+            ->from($this->db->quoteName('#__memi_sessions', 's'))
+            ->where('s.status IN (' . $this->db->quote('published') . ', ' . $this->db->quote('open') . ')')
+            ->where('s.starts_at > :starts_after')
+            ->where('(s.registration_opens_at IS NULL OR s.registration_opens_at <= :opens_before)')
+            ->where('(s.registration_closes_at IS NULL OR s.registration_closes_at > :closes_after)')
+            ->where('s.reserved_count < s.capacity')
+            ->where('EXISTS (SELECT 1 FROM #__memi_waitlist AS w'
+                . ' WHERE w.session_id = s.id AND w.status = :waiting_status)')
+            ->order('s.starts_at ASC, s.id ASC')
+            ->bind(':starts_after', $now)
+            ->bind(':opens_before', $now)
+            ->bind(':closes_after', $now)
+            ->bind(':waiting_status', $waiting);
+        $this->db->setQuery($query, 0, max(1, min($limit, 500)));
+        $sessions = $this->db->loadAssocList() ?: [];
+        $promoted = 0;
+
+        foreach ($sessions as $session) {
+            $slots = min(100, max(0, (int) $session['available_slots']));
+            for ($slot = 0; $slot < $slots; ++$slot) {
+                if ($this->offerNext((int) $session['id']) === null) {
+                    break;
+                }
+                ++$promoted;
+            }
+        }
+
+        return $promoted;
     }
 
     private function nextPosition(int $sessionId): int

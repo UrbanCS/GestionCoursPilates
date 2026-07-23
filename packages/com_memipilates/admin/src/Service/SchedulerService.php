@@ -20,6 +20,7 @@ final class SchedulerService
         private readonly CreditLedgerService $credits,
         private readonly WaitlistService $waitlist,
         private readonly NotificationService $notifications,
+        private readonly PaymentService $payments,
         private readonly AuditLogger $audit
     ) {
     }
@@ -36,10 +37,14 @@ final class SchedulerService
         $result = [
             'dry_run' => $dryRun,
             'sessions_generated' => $this->generateRecurringSessions($horizon, $dryRun),
+            'credit_expiry_notices_queued' => $dryRun ? 0 : $this->queueCreditExpiryNotices(),
             'credits_expired' => $dryRun ? 0 : $this->expireCredits(),
             'offers_expired' => $dryRun ? 0 : $this->waitlist->expireOffers(),
+            'offers_promoted' => $dryRun ? 0 : $this->waitlist->promoteAvailableSessions(),
             'reminders_queued' => $dryRun || !empty($options['skip_reminders']) ? 0 : $this->queueReminders(),
             'no_shows_marked' => $dryRun ? 0 : $this->markNoShows(),
+            'payments_reconciled' => $dryRun ? 0 : $this->payments->reconcileUncertainPayments(),
+            'refunds_reconciled' => $dryRun ? 0 : $this->payments->reconcileUncertainRefunds(),
             'notifications_sent' => $dryRun ? 0 : $this->notifications->sendDue($emailLimit),
         ];
         $this->audit->log(null, 'scheduler.run', 'scheduler', null, null, $result);
@@ -155,6 +160,53 @@ final class SchedulerService
         return $expired;
     }
 
+    /** Queue one useful, idempotent warning for each expiring allocation. */
+    public function queueCreditExpiryNotices(): int
+    {
+        $noticeDays = max(0, min($this->settings->getInt('credit_expiry_notice_days', 14), 365));
+        if ($noticeDays === 0) {
+            return 0;
+        }
+
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        $horizon = $now->modify('+' . $noticeDays . ' days');
+        $active = 'active';
+        $query = $this->db->getQuery(true)
+            ->select([
+                'cp.id AS customer_package_id', 'cp.user_id', 'cp.remaining_credits',
+                'cp.expires_at', 'p.title AS package_title',
+            ])
+            ->from($this->db->quoteName('#__memi_customer_packages', 'cp'))
+            ->join('INNER', $this->db->quoteName('#__memi_packages', 'p') . ' ON p.id = cp.package_id')
+            ->where('cp.status = :status')
+            ->where('cp.remaining_credits > 0')
+            ->where('cp.expires_at IS NOT NULL')
+            ->where('cp.expires_at > :now')
+            ->where('cp.expires_at <= :horizon')
+            ->where('cp.archived_at IS NULL')
+            ->bind(':status', $active)
+            ->bind(':now', $now->format('Y-m-d H:i:s'))
+            ->bind(':horizon', $horizon->format('Y-m-d H:i:s'));
+        $this->db->setQuery($query);
+        $allocations = $this->db->loadAssocList() ?: [];
+        $queued = 0;
+
+        foreach ($allocations as $allocation) {
+            $allocationId = (int) $allocation['customer_package_id'];
+            $expiry = (string) $allocation['expires_at'];
+            $idempotencyKey = 'credit-expiring:' . $allocationId . ':' . hash('sha256', $expiry . '|' . $noticeDays);
+            $notificationId = $this->notifications->queue((int) $allocation['user_id'], 'credit.expiring', [
+                'customer_package_id' => $allocationId,
+                'package_title' => (string) $allocation['package_title'],
+                'remaining_credits' => (int) $allocation['remaining_credits'],
+                'expires_at' => $expiry,
+            ], null, $idempotencyKey);
+            $queued += $notificationId > 0 ? 1 : 0;
+        }
+
+        return $queued;
+    }
+
     /** Queue reminder emails deterministically so rerunning cron does not duplicate them. */
     public function queueReminders(): int
     {
@@ -171,10 +223,17 @@ final class SchedulerService
             $windowEnd = $now->modify('+' . ($offset + 1) . ' hours')->format('Y-m-d H:i:s');
             $confirmed = 'confirmed';
             $query = $this->db->getQuery(true)
-                ->select(['b.user_id', 'b.id AS booking_id', 's.id AS session_id', 's.starts_at', 'c.title'])
+                ->select([
+                    'b.user_id', 'b.id AS booking_id', 's.id AS session_id', 's.starts_at',
+                    'c.title AS session_title', 'i.display_name AS instructor_name',
+                    'r.title AS room_title', 'l.title AS location_title',
+                ])
                 ->from($this->db->quoteName('#__memi_bookings', 'b'))
                 ->join('INNER', $this->db->quoteName('#__memi_sessions', 's') . ' ON s.id = b.session_id')
                 ->join('INNER', $this->db->quoteName('#__memi_courses', 'c') . ' ON c.id = s.course_id')
+                ->join('LEFT', $this->db->quoteName('#__memi_instructors', 'i') . ' ON i.id = s.instructor_id')
+                ->join('LEFT', $this->db->quoteName('#__memi_rooms', 'r') . ' ON r.id = s.room_id')
+                ->join('LEFT', $this->db->quoteName('#__memi_locations', 'l') . ' ON l.id = r.location_id')
                 ->where('b.status = :booking_status')
                 ->where('s.starts_at >= :window_start')
                 ->where('s.starts_at < :window_end')
@@ -186,8 +245,12 @@ final class SchedulerService
             foreach ($bookings as $booking) {
                 $idempotencyKey = 'reminder:' . (int) $booking['booking_id'] . ':' . $offset;
                 $notification = $this->notifications->queue((int) $booking['user_id'], 'booking.reminder', [
-                    'session_title' => (string) $booking['title'],
+                    'session_id' => (int) $booking['session_id'],
+                    'session_title' => (string) $booking['session_title'],
                     'starts_at' => (string) $booking['starts_at'],
+                    'instructor_name' => (string) ($booking['instructor_name'] ?? ''),
+                    'room_title' => (string) ($booking['room_title'] ?? ''),
+                    'location_title' => (string) ($booking['location_title'] ?? ''),
                 ], null, $idempotencyKey);
                 $queued += $notification > 0 ? 1 : 0;
             }

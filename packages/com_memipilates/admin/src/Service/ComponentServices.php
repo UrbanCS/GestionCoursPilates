@@ -55,6 +55,11 @@ final class ComponentServices
         return new DatabaseTools(self::database());
     }
 
+    public static function staffScope(): StaffScopeService
+    {
+        return new StaffScopeService(self::database());
+    }
+
     public static function credits(): CreditLedgerService
     {
         return new CreditLedgerService(self::database(), self::databaseTools(), self::audit());
@@ -84,7 +89,23 @@ final class ComponentServices
 
     public static function notifications(): NotificationService
     {
-        return new NotificationService(self::database(), self::settings(), self::audit());
+        return new NotificationService(
+            self::database(),
+            self::settings(),
+            self::audit(),
+            self::waitlistOfferTokens(),
+            self::waitlistOfferFailures()
+        );
+    }
+
+    public static function waitlistOfferTokens(): WaitlistOfferTokenService
+    {
+        return new WaitlistOfferTokenService();
+    }
+
+    public static function waitlistOfferFailures(): WaitlistOfferFailureService
+    {
+        return new WaitlistOfferFailureService(self::database(), self::databaseTools(), self::audit());
     }
 
     public static function bookings(): BookingService
@@ -107,7 +128,9 @@ final class ComponentServices
             self::settings(),
             self::credits(),
             self::audit(),
-            self::notifications()
+            self::notifications(),
+            self::waitlistOfferTokens(),
+            self::waitlistOfferFailures()
         );
     }
 
@@ -145,6 +168,7 @@ final class ComponentServices
             self::credits(),
             self::waitlist(),
             self::notifications(),
+            self::payments(),
             self::audit()
         );
     }

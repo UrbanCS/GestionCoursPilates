@@ -9,7 +9,7 @@ From the repository root, generate the installable archive with:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build-package.ps1
 ~~~
 
-The script creates dist/pkg_memipilates-1.3.1.zip, prints its SHA-256, and
+The script creates dist/pkg_memipilates-1.5.0.zip, prints its SHA-256, and
 builds all child extension archives in an isolated temporary directory.
 
 At release time, build these child archives from the source directories:

@@ -2,7 +2,6 @@
 <access component="com_memipilates">
 	<section name="component">
 		<action name="core.admin" title="JACTION_ADMIN" description="JACTION_ADMIN_COMPONENT_DESC"/>
-		<action name="core.options" title="JACTION_OPTIONS" description="JACTION_OPTIONS_COMPONENT_DESC"/>
 		<action name="core.manage" title="JACTION_MANAGE" description="JACTION_MANAGE_COMPONENT_DESC"/>
 		<action name="core.create" title="JACTION_CREATE" description="JACTION_CREATE_COMPONENT_DESC"/>
 		<action name="core.delete" title="JACTION_DELETE" description="JACTION_DELETE_COMPONENT_DESC"/>
@@ -25,13 +24,12 @@
 		<action name="payments.refund" title="COM_MEMIPILATES_ACTION_PAYMENTS_REFUND" description="COM_MEMIPILATES_ACTION_PAYMENTS_REFUND_DESC"/>
 		<action name="reports.view" title="COM_MEMIPILATES_ACTION_REPORTS_VIEW" description="COM_MEMIPILATES_ACTION_REPORTS_VIEW_DESC"/>
 		<action name="export.data" title="COM_MEMIPILATES_ACTION_EXPORT_DATA" description="COM_MEMIPILATES_ACTION_EXPORT_DATA_DESC"/>
-		<action name="settings.manage" title="COM_MEMIPILATES_ACTION_SETTINGS_MANAGE" description="COM_MEMIPILATES_ACTION_SETTINGS_MANAGE_DESC"/>
-		<action name="square.configure" title="COM_MEMIPILATES_ACTION_SQUARE_CONFIGURE" description="COM_MEMIPILATES_ACTION_SQUARE_CONFIGURE_DESC"/>
 		<action name="audit.view" title="COM_MEMIPILATES_ACTION_AUDIT_VIEW" description="COM_MEMIPILATES_ACTION_AUDIT_VIEW_DESC"/>
 		<action name="qr.manage" title="COM_MEMIPILATES_ACTION_QR_MANAGE" description="COM_MEMIPILATES_ACTION_QR_MANAGE_DESC"/>
 		<action name="loyalty.adjust" title="COM_MEMIPILATES_ACTION_LOYALTY_ADJUST" description="COM_MEMIPILATES_ACTION_LOYALTY_ADJUST_DESC"/>
 
 		<action name="attendance.kiosk" title="COM_MEMIPILATES_ACTION_ATTENDANCE_KIOSK" description="COM_MEMIPILATES_ACTION_ATTENDANCE_KIOSK_DESC"/>
+		<action name="attendance.all_sessions" title="COM_MEMIPILATES_ACTION_ATTENDANCE_ALL_SESSIONS" description="COM_MEMIPILATES_ACTION_ATTENDANCE_ALL_SESSIONS_DESC"/>
 		<action name="attendance.scan" title="COM_MEMIPILATES_ACTION_ATTENDANCE_SCAN" description="COM_MEMIPILATES_ACTION_ATTENDANCE_SCAN_DESC"/>
 		<action name="attendance.manual" title="COM_MEMIPILATES_ACTION_ATTENDANCE_MANUAL" description="COM_MEMIPILATES_ACTION_ATTENDANCE_MANUAL_DESC"/>
 		<action name="attendance.override" title="COM_MEMIPILATES_ACTION_ATTENDANCE_OVERRIDE" description="COM_MEMIPILATES_ACTION_ATTENDANCE_OVERRIDE_DESC"/>

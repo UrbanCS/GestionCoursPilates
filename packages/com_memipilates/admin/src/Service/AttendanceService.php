@@ -75,7 +75,13 @@ final class AttendanceService
                 if (!in_array((string) $booking['status'], ['confirmed', 'attended'], true) && !$allowOverride) {
                     throw new DomainException('COM_MEMIPILATES_ERROR_ATTENDANCE_BOOKING_INVALID');
                 }
-                $existingAttendance = $this->findAttendance($booking['id'] ?? 0, $idempotencyKey);
+                $existingAttendance = $this->findAttendance(
+                    (int) ($booking['id'] ?? 0),
+                    $userId,
+                    $clientId,
+                    $sessionId,
+                    $idempotencyKey
+                );
                 if ($existingAttendance) {
                     return $this->resultForExistingAttendance($existingAttendance, $userId, $sessionId);
                 }
@@ -189,7 +195,13 @@ final class AttendanceService
             if (!in_array((string) $booking['status'], ['confirmed', 'attended'], true) && !$allowOverride) {
                 throw new DomainException('COM_MEMIPILATES_ERROR_ATTENDANCE_BOOKING_INVALID');
             }
-            $existing = $this->findAttendance((int) $booking['id'], $idempotencyKey);
+            $existing = $this->findAttendance(
+                (int) $booking['id'],
+                $userId,
+                $clientId,
+                $sessionId,
+                $idempotencyKey
+            );
             if ($existing) {
                 return $this->resultForExistingAttendance($existing, $userId, $sessionId);
             }
@@ -397,7 +409,7 @@ final class AttendanceService
     }
 
     /** @return array<string,mixed>|null */
-    private function findAttendance(int $bookingId, string $idempotencyKey): ?array
+    private function findAttendance(int $bookingId, int $userId, int $clientId, int $sessionId, string $idempotencyKey): ?array
     {
         $booking = $bookingId;
         $key = $idempotencyKey;
@@ -405,14 +417,48 @@ final class AttendanceService
         $query = $this->db->getQuery(true)
             ->select('*')
             ->from($this->db->quoteName('#__memi_attendance'))
-            ->where('(' . $this->db->quoteName('booking_id') . ' = :booking_id OR ' . $this->db->quoteName('idempotency_key') . ' = :idempotency_key)')
+            ->where($this->db->quoteName('booking_id') . ' = :booking_id')
             ->where($this->db->quoteName('status') . ' = :status')
             ->bind(':booking_id', $booking, ParameterType::INTEGER)
-            ->bind(':idempotency_key', $key)
             ->bind(':status', $confirmedStatus);
-        $this->db->setQuery($query, 0, 1);
+        $this->db->setQuery(DatabaseTools::forUpdate($query), 0, 1);
+        $attendance = $this->db->loadAssoc() ?: null;
 
-        return $this->db->loadAssoc() ?: null;
+        if ($attendance !== null) {
+            if (!$this->attendanceMatches($attendance, $bookingId, $userId, $clientId, $sessionId)) {
+                throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST', [], 409);
+            }
+
+            return $attendance;
+        }
+
+        $query = $this->db->getQuery(true)
+            ->select('*')
+            ->from($this->db->quoteName('#__memi_attendance'))
+            ->where($this->db->quoteName('idempotency_key') . ' = :idempotency_key')
+            ->bind(':idempotency_key', $key);
+        $this->db->setQuery(DatabaseTools::forUpdate($query), 0, 1);
+        $attendance = $this->db->loadAssoc() ?: null;
+
+        if ($attendance === null) {
+            return null;
+        }
+
+        if ((string) ($attendance['status'] ?? '') !== $confirmedStatus
+            || !$this->attendanceMatches($attendance, $bookingId, $userId, $clientId, $sessionId)) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST', [], 409);
+        }
+
+        return $attendance;
+    }
+
+    /** @param array<string,mixed> $attendance */
+    private function attendanceMatches(array $attendance, int $bookingId, int $userId, int $clientId, int $sessionId): bool
+    {
+        return (int) ($attendance['booking_id'] ?? 0) === $bookingId
+            && (int) ($attendance['user_id'] ?? 0) === $userId
+            && (int) ($attendance['client_id'] ?? 0) === $clientId
+            && (int) ($attendance['session_id'] ?? 0) === $sessionId;
     }
 
     /** @return array<string,mixed> */

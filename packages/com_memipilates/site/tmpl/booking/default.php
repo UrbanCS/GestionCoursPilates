@@ -5,17 +5,26 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\HTML\HTMLHelper;
 $remaining = max(0, (int) $this->session['capacity'] - (int) $this->session['reserved_count']);
+$nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+$startsUtc = new DateTimeImmutable((string) $this->session['starts_at'], new DateTimeZone('UTC'));
+$registrationNotOpen = !empty($this->session['registration_opens_at'])
+    && $nowUtc < new DateTimeImmutable((string) $this->session['registration_opens_at'], new DateTimeZone('UTC'));
+$registrationClosed = $nowUtc >= $startsUtc
+    || (!empty($this->session['registration_closes_at'])
+        && $nowUtc >= new DateTimeImmutable((string) $this->session['registration_closes_at'], new DateTimeZone('UTC')));
 ?>
 <section class="memi-booking">
     <a href="<?= Route::_('index.php?option=com_memipilates&view=schedule'); ?>"><?= Text::_('COM_MEMIPILATES_SCHEDULE'); ?></a>
     <h1><?= htmlspecialchars($this->session['course_title'], ENT_QUOTES, 'UTF-8'); ?></h1>
-    <p><?= htmlspecialchars($this->session['starts_at'], ENT_QUOTES, 'UTF-8'); ?> · <?= htmlspecialchars($this->session['instructor_name'] ?: '', ENT_QUOTES, 'UTF-8'); ?> · <?= htmlspecialchars($this->session['room_title'] ?: '', ENT_QUOTES, 'UTF-8'); ?></p>
+    <p><?= htmlspecialchars($this->formatDate((string) $this->session['starts_at']), ENT_QUOTES, 'UTF-8'); ?> · <?= htmlspecialchars($this->session['instructor_name'] ?: '', ENT_QUOTES, 'UTF-8'); ?> · <?= htmlspecialchars($this->session['room_title'] ?: '', ENT_QUOTES, 'UTF-8'); ?></p>
     <p><?= htmlspecialchars($this->session['description'] ?: '', ENT_QUOTES, 'UTF-8'); ?></p>
     <?php if ($this->userId <= 0) : ?>
         <p><?= Text::_('COM_MEMIPILATES_BOOKING_LOGIN_REQUIRED'); ?></p>
         <a class="btn btn-primary" href="<?= Route::_('index.php?option=com_users&view=login'); ?>"><?= Text::_('JLOGIN'); ?></a>
     <?php elseif ($this->session['status'] === 'cancelled') : ?>
         <p><?= Text::_('COM_MEMIPILATES_SCHEDULE_CANCELLED'); ?></p>
+    <?php elseif ($registrationNotOpen || $registrationClosed) : ?>
+        <p><?= Text::_($registrationNotOpen ? 'COM_MEMIPILATES_SCHEDULE_REGISTRATION_NOT_OPEN' : 'COM_MEMIPILATES_SCHEDULE_REGISTRATION_CLOSED'); ?></p>
     <?php elseif ($remaining <= 0) : ?>
         <form action="<?= htmlspecialchars($this->waitlistEndpoint, ENT_QUOTES, 'UTF-8'); ?>" method="post" data-memi-booking-form>
             <input type="hidden" name="session_id" value="<?= (int) $this->session['id']; ?>">

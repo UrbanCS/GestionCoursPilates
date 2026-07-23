@@ -109,6 +109,28 @@
 			description="COM_MEMIPILATES_CONFIG_EMAIL_FROM_NAME_DESC"
 			filter="string"
 		/>
+		<field
+			name="notification_max_attempts"
+			type="number"
+			default="5"
+			min="1"
+			max="20"
+			step="1"
+			label="COM_MEMIPILATES_CONFIG_NOTIFICATION_MAX_ATTEMPTS_LABEL"
+			description="COM_MEMIPILATES_CONFIG_NOTIFICATION_MAX_ATTEMPTS_DESC"
+			filter="uint"
+		/>
+		<field
+			name="notification_retry_base_minutes"
+			type="number"
+			default="5"
+			min="1"
+			max="1440"
+			step="1"
+			label="COM_MEMIPILATES_CONFIG_NOTIFICATION_RETRY_BASE_LABEL"
+			description="COM_MEMIPILATES_CONFIG_NOTIFICATION_RETRY_BASE_DESC"
+			filter="uint"
+		/>
 	</fieldset>
 
 	<fieldset name="loyalty" label="COM_MEMIPILATES_CONFIG_FIELDSET_LOYALTY">
@@ -138,7 +160,7 @@
 		<field
 			name="points_per_dollar"
 			type="number"
-			default="0"
+			default="1"
 			min="0"
 			max="1000"
 			step="1"
@@ -243,6 +265,16 @@
 			description="COM_MEMIPILATES_CONFIG_SQUARE_WEBHOOK_KEY_DESC"
 			filter="raw"
 			autocomplete="new-password"
+		/>
+		<field
+			name="square_webhook_url"
+			type="url"
+			default=""
+			label="COM_MEMIPILATES_CONFIG_SQUARE_WEBHOOK_URL_LABEL"
+			description="COM_MEMIPILATES_CONFIG_SQUARE_WEBHOOK_URL_DESC"
+			filter="url"
+			validate="url"
+			relative="false"
 		/>
 	</fieldset>
 </config>

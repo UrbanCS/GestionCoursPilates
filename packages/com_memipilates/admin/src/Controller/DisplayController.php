@@ -24,16 +24,16 @@ final class DisplayController extends BaseController
 {
     /** @var array<string, list<string>> */
     private const VIEW_PERMISSIONS = [
-        'dashboard' => ['core.manage', 'reports.view'],
-        'setup' => ['core.manage', 'courses.manage', 'schedules.manage', 'instructors.manage', 'rooms.manage', 'packages.manage'],
-        'catalog' => ['core.manage', 'courses.manage', 'schedules.manage', 'instructors.manage', 'rooms.manage', 'packages.manage'],
-        'sessions' => ['core.manage', 'schedules.manage', 'courses.manage'],
-        'bookings' => ['core.manage', 'bookings.manage', 'bookings.manual', 'waitlist.manage'],
-        'customers' => ['core.manage', 'clients.manage'],
-        'packages' => ['core.manage', 'packages.manage'],
-        'offers' => ['core.manage', 'promotions.manage', 'loyalty.adjust'],
-        'payments' => ['core.manage', 'payments.view'],
-        'attendance' => ['core.manage', 'attendance.scan', 'attendance.manual', 'attendance.undo'],
+        'dashboard' => ['reports.view'],
+        'setup' => ['core.admin'],
+        'catalog' => ['courses.manage', 'schedules.manage', 'instructors.manage', 'rooms.manage', 'packages.manage'],
+        'sessions' => ['schedules.manage', 'courses.manage', 'waitlist.manage'],
+        'bookings' => ['bookings.manage', 'bookings.manual'],
+        'customers' => ['clients.manage', 'qr.manage'],
+        'packages' => ['packages.manage'],
+        'offers' => ['promotions.manage', 'loyalty.adjust'],
+        'payments' => ['payments.view'],
+        'attendance' => ['attendance.manual', 'attendance.undo'],
     ];
 
     public function display($cachable = false, $urlparams = []): BaseController
@@ -53,7 +53,7 @@ final class DisplayController extends BaseController
 
     public function cancelSession(): void
     {
-        $this->processPost('sessions', ['core.edit', 'schedules.manage'], function (int $actorId): void {
+        $this->processPost('sessions', ['schedules.manage'], function (int $actorId): void {
             $id = Factory::getApplication()->input->post->getInt('id');
             if ($id <= 0) {
                 throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
@@ -70,17 +70,17 @@ final class DisplayController extends BaseController
         $input = Factory::getApplication()->input;
         $entity = $input->post->getCmd('entity');
         $permissions = [
-            'location' => ['core.manage', 'core.create', 'rooms.manage'],
-            'room' => ['core.manage', 'core.create', 'rooms.manage'],
-            'instructor' => ['core.manage', 'core.create', 'instructors.manage'],
-            'course_type' => ['core.manage', 'core.create', 'courses.manage'],
-            'course' => ['core.manage', 'core.create', 'courses.manage'],
-            'session' => ['core.manage', 'core.create', 'schedules.manage'],
-            'session_rule' => ['core.manage', 'core.create', 'schedules.manage'],
-            'package' => ['core.manage', 'core.create', 'packages.manage'],
+            'location' => ['rooms.manage'],
+            'room' => ['rooms.manage'],
+            'instructor' => ['instructors.manage'],
+            'course_type' => ['courses.manage'],
+            'course' => ['courses.manage'],
+            'session' => ['schedules.manage'],
+            'session_rule' => ['schedules.manage'],
+            'package' => ['packages.manage'],
         ];
         if (!isset($permissions[$entity])) {
-            $this->processPost('setup', ['core.manage'], static function (): void {
+            $this->processPost('setup', [], static function (): void {
                 throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
             });
 
@@ -108,7 +108,7 @@ final class DisplayController extends BaseController
 
     public function cancelBooking(): void
     {
-        $this->processPost('bookings', ['core.edit', 'bookings.manage'], function (int $actorId): void {
+        $this->processPost('bookings', ['bookings.manage'], function (int $actorId): void {
             $bookingId = Factory::getApplication()->input->post->getInt('id');
             if ($bookingId <= 0) {
                 throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
@@ -135,10 +135,14 @@ final class DisplayController extends BaseController
 
     public function offerWaitlist(): void
     {
-        $this->processPost('sessions', ['core.edit', 'waitlist.manage'], function (int $actorId): void {
+        $this->processPost('sessions', ['waitlist.manage'], function (int $actorId): void {
             $sessionId = Factory::getApplication()->input->post->getInt('id');
             if ($sessionId <= 0) {
                 throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
+            }
+
+            if (!$this->hasAnyPermission(['schedules.manage', 'courses.manage'])) {
+                ComponentServices::staffScope()->assertAssignedSession($actorId, $sessionId);
             }
 
             $offer = ComponentServices::waitlist()->offerNext($sessionId, $actorId, true);
@@ -150,7 +154,7 @@ final class DisplayController extends BaseController
 
     public function manualCheckIn(): void
     {
-        $this->processPost('attendance', ['core.edit', 'attendance.manual'], function (int $actorId): void {
+        $this->processPost('attendance', ['attendance.manual'], function (int $actorId): void {
             $bookingId = Factory::getApplication()->input->post->getInt('booking_id');
             if ($bookingId <= 0) {
                 throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
@@ -173,6 +177,10 @@ final class DisplayController extends BaseController
                 throw new DomainException('COM_MEMIPILATES_ERROR_NOT_FOUND', [], 404);
             }
 
+            if (!$this->hasAnyPermission(['bookings.manage', 'attendance.all_sessions'])) {
+                ComponentServices::staffScope()->assertAssignedSession($actorId, (int) $booking['session_id']);
+            }
+
             ComponentServices::attendance()->manualCheckIn(
                 $actorId,
                 (int) $booking['session_id'],
@@ -184,10 +192,22 @@ final class DisplayController extends BaseController
 
     public function undoAttendance(): void
     {
-        $this->processPost('attendance', ['core.edit', 'attendance.undo'], function (int $actorId): void {
+        $this->processPost('attendance', ['attendance.undo'], function (int $actorId): void {
             $id = Factory::getApplication()->input->post->getInt('id');
             if ($id <= 0) {
                 throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
+            }
+            if (!$this->hasAnyPermission(['bookings.manage', 'attendance.all_sessions'])) {
+                $db = ComponentServices::database();
+                $identifier = $id;
+                $query = $db->getQuery(true)
+                    ->select($db->quoteName('session_id'))
+                    ->from($db->quoteName('#__memi_attendance'))
+                    ->where($db->quoteName('id') . ' = :id')
+                    ->bind(':id', $identifier, ParameterType::INTEGER);
+                $db->setQuery($query);
+                $sessionId = (int) $db->loadResult();
+                ComponentServices::staffScope()->assertAssignedSession($actorId, $sessionId);
             }
 
             $reason = trim(substr(Factory::getApplication()->input->post->getString('reason', ''), 0, 500));
@@ -233,6 +253,19 @@ final class DisplayController extends BaseController
         }
 
         throw new \RuntimeException(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+    }
+
+    /** @param list<string> $permissions */
+    private function hasAnyPermission(array $permissions): bool
+    {
+        $identity = Factory::getApplication()->getIdentity();
+        foreach (array_unique(array_merge(['core.admin'], $permissions)) as $permission) {
+            if ((bool) $identity->authorise($permission, 'com_memipilates')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function safeDomainMessage(DomainException $error): string

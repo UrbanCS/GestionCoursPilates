@@ -51,7 +51,7 @@ final class CatalogManagementService
             $values = match ($entity) {
                 'location' => $this->locationValues($input),
                 'room' => $this->roomValues($input),
-                'instructor' => $this->instructorValues($input),
+                'instructor' => $this->instructorValues($input, $id),
                 'course_type' => $this->courseTypeValues($input),
                 'course' => $this->courseValues($input),
                 'session_rule' => $this->sessionRuleValues($input),
@@ -124,7 +124,7 @@ final class CatalogManagementService
     }
 
     /** @return array<string,mixed> */
-    private function instructorValues(Input $input): array
+    private function instructorValues(Input $input, int $instructorId): array
     {
         $email = $this->text($input, 'email', 320);
         if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
@@ -132,12 +132,49 @@ final class CatalogManagementService
         }
 
         return [
+            'user_id' => $this->validatedInstructorUserId($input, $instructorId),
             'display_name' => $this->requiredText($input, 'display_name', 255),
             'bio' => $this->text($input, 'bio', 20000),
             'phone' => $this->text($input, 'phone', 64),
             'email' => $email,
             'published' => $this->published($input),
         ];
+    }
+
+    private function validatedInstructorUserId(Input $input, int $instructorId): ?int
+    {
+        $userId = $this->optionalId($input, 'user_id');
+        if ($userId === null) {
+            return null;
+        }
+
+        $identifier = $userId;
+        $query = $this->db->getQuery(true)
+            ->select('COUNT(*)')
+            ->from($this->db->quoteName('#__users'))
+            ->where($this->db->quoteName('id') . ' = :user_id')
+            ->where($this->db->quoteName('block') . ' = 0')
+            ->bind(':user_id', $identifier, ParameterType::INTEGER);
+        $this->db->setQuery($query);
+        if ((int) $this->db->loadResult() !== 1) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_NOT_FOUND', [], 404);
+        }
+
+        $linkedUser = $userId;
+        $currentInstructor = $instructorId;
+        $query = $this->db->getQuery(true)
+            ->select('COUNT(*)')
+            ->from($this->db->quoteName('#__memi_instructors'))
+            ->where($this->db->quoteName('user_id') . ' = :linked_user_id')
+            ->where($this->db->quoteName('id') . ' <> :instructor_id')
+            ->bind(':linked_user_id', $linkedUser, ParameterType::INTEGER)
+            ->bind(':instructor_id', $currentInstructor, ParameterType::INTEGER);
+        $this->db->setQuery($query);
+        if ((int) $this->db->loadResult() > 0) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_SETUP_DUPLICATE', [], 409);
+        }
+
+        return $userId;
     }
 
     /** @return array<string,mixed> */

@@ -7,7 +7,7 @@
 	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
 	<authorEmail>info@memistudio.ca</authorEmail>
 	<authorUrl>https://memistudio.ca</authorUrl>
-	<version>1.3.1</version>
+	<version>1.5.0</version>
 	<description>Installs the Memi Pilates cPanel-safe scheduled-work runner in Joomla's cli directory.</description>
 	<fileset>
 		<files target="cli">

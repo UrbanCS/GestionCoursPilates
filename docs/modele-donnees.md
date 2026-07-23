@@ -73,7 +73,7 @@ Les migrations doivent préserver au minimum les propriétés suivantes :
 | Une utilisation promo est comptée une fois | Référence de redemption unique et compteur mis à jour atomiquement. |
 | Un paiement Square n’est rapproché qu’une fois | Identifiant Square unique, clé d’idempotence locale et statut de commande contrôlé côté serveur. |
 | Un webhook répété n’a aucun second effet | square_event_id unique, signature validée avant traitement, résultat rejouable. |
-| Un QR ne révèle pas l’identité | Jeton aléatoire, opaque, longueur limitée; empreinte à sens unique indexée au lieu du jeton brut. |
+| Un QR ne révèle pas l’identité et un seul reste actif | Jeton opaque signé et versionné, empreinte à sens unique au lieu du jeton brut, active_token_key unique lorsqu'elle est non nulle et régénération protégée par idempotency_key. |
 | Une présence n’est créée qu’une fois | Unicité de la paire session_id/client_id et clé d’idempotence; présence et points dans une seule transaction. |
 | Les points ne sont pas doublés | Clé d’idempotence unique par événement déclencheur (scan, paiement, promotion ou ajustement). |
 | Les limites de scan résistent à plusieurs requêtes | État de limite et tentative mis à jour de façon atomique, sans journaliser le QR complet. |

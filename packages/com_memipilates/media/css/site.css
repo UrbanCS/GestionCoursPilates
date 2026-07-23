@@ -61,92 +61,496 @@
 }
 
 /* Schedule */
+.memi-schedule {
+  --memi-accent: #67675d;
+  --memi-schedule-page: #f6f7f8;
+  --memi-schedule-panel: #fff;
+  --memi-schedule-ink: #121212;
+  --memi-schedule-muted: #5f5d5c;
+  --memi-schedule-border: #dedddb;
+  --memi-schedule-selected: #9a9a8b;
+  --memi-schedule-selected-dark: #67675d;
+  --memi-schedule-action: #9a9a8b;
+  --memi-schedule-action-hover: #858578;
+  --memi-schedule-action-ink: #121212;
+  --memi-schedule-soft: #f1f1ed;
+  box-sizing: border-box;
+  color: var(--memi-schedule-ink);
+  font-family: Roboto, Arial, sans-serif !important;
+  inline-size: min(90rem, calc(100vw - 2rem));
+  margin-inline: 50%;
+  max-inline-size: none;
+  padding-block: clamp(2rem, 5vw, 4.5rem);
+  position: relative;
+  transform: translateX(-50%);
+  width: min(90rem, calc(100vw - 2rem));
+  z-index: 0;
+}
+
+.memi-schedule::before {
+  background: var(--memi-schedule-page);
+  content: '';
+  inset: 0 calc(50% - 50vw);
+  position: absolute;
+  z-index: -1;
+}
+
+.memi-schedule *,
+.memi-schedule *::before,
+.memi-schedule *::after {
+  box-sizing: inherit;
+}
+
 .memi-schedule__header {
-  align-items: flex-end;
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 1rem 1.5rem;
   justify-content: space-between;
-  margin-block-end: 1.5rem;
+  margin-block-end: clamp(1.75rem, 3vw, 3rem);
+  padding-inline: clamp(0.25rem, 1vw, 0.75rem);
 }
 
-.memi-schedule__header :is(h1, p) {
-  margin-block: 0;
-}
-
-.memi-schedule__header p {
-  color: var(--memi-muted);
-  margin-block-start: 0.3rem;
-}
-
-.memi-schedule__nav {
+.memi-schedule__header-actions,
+.memi-dashboard__header-actions,
+.memi-checkout__header-actions {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.65rem;
+}
+
+.memi-schedule__header-actions .btn {
+  padding-inline: 1.2rem !important;
+  text-decoration: none !important;
+}
+
+.memi-schedule .memi-schedule__title {
+  color: #1d2b41 !important;
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: clamp(2.4rem, 5vw, 3.7rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.035em !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  text-transform: uppercase;
+}
+
+.memi-schedule__panel {
+  background: var(--memi-schedule-panel);
+  border-radius: clamp(1.25rem, 2vw, 1.8rem);
+  box-shadow: 0 0.35rem 1.75rem rgb(31 38 45 / 4%);
+  padding: clamp(1.4rem, 3.2vw, 2.75rem);
+}
+
+.memi-schedule__panel-top {
+  align-items: center;
+  display: grid;
+  gap: 1.5rem 2rem;
+  grid-template-columns: minmax(14rem, 1fr) auto;
+}
+
+.memi-schedule .memi-schedule__panel-top h2 {
+  color: var(--memi-schedule-ink) !important;
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: clamp(1.75rem, 3vw, 2.25rem) !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.15 !important;
+  margin: 0 !important;
 }
 
 .memi-schedule__filters {
-  align-items: end;
-  background: var(--memi-surface);
-  background: color-mix(in srgb, var(--memi-surface) 94%, var(--memi-ink));
-  border: 1px solid var(--memi-border);
-  border-radius: var(--memi-radius);
-  display: grid;
-  gap: 0.85rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-  margin-block-end: 1rem;
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  margin: 0;
+}
+
+.memi-schedule__filters label {
+  display: block;
+  margin: 0;
+}
+
+.memi-schedule__filters select {
+  appearance: auto;
+  background: #fff !important;
+  border: 1px solid var(--memi-schedule-border) !important;
+  border-radius: 0.7rem !important;
+  color: var(--memi-schedule-ink) !important;
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: 0.95rem !important;
+  font-weight: 450 !important;
+  inline-size: 11.6rem;
+  min-block-size: 3.35rem !important;
+  padding: 0.7rem 2.25rem 0.7rem 0.9rem !important;
+}
+
+.memi-schedule__clear {
+  background: transparent !important;
+  border: 0 !important;
+  color: var(--memi-schedule-selected-dark) !important;
+  cursor: pointer;
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: 0.78rem !important;
+  font-weight: 650 !important;
+  min-block-size: auto !important;
+  padding: 0.45rem !important;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.memi-schedule__calendar-toolbar {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-block-start: clamp(2.25rem, 4vw, 3.5rem);
+}
+
+.memi-schedule .memi-schedule__calendar-toolbar h3 {
+  color: var(--memi-schedule-ink) !important;
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: 1.15rem !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  text-transform: lowercase;
+}
+
+.memi-schedule__calendar-picker {
+  align-items: center;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0.35rem !important;
+  color: var(--memi-schedule-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.95rem !important;
+  font-weight: 500;
+  gap: 0.55rem;
+  min-block-size: 2.75rem;
+  padding: 0.4rem 0;
+  text-align: start;
+}
+
+.memi-schedule__calendar-wrap {
+  position: relative;
+}
+
+.memi-schedule .memi-schedule__calendar-picker:focus-visible,
+.memi-schedule .memi-schedule__calendar-month-arrow:focus-visible,
+.memi-schedule .memi-schedule__calendar-day:focus-visible,
+.memi-schedule .memi-schedule__calendar-footer button:focus-visible {
+  outline: 3px solid var(--memi-schedule-selected-dark) !important;
+  outline-offset: 3px;
+}
+
+.memi-schedule__calendar-popover {
+  background: #fff;
+  border: 1px solid var(--memi-schedule-border);
+  border-radius: 1rem;
+  box-shadow: 0 1rem 2.5rem rgb(31 38 45 / 16%);
+  inline-size: min(22rem, calc(100vw - 3rem));
+  inset: calc(100% + 0.65rem) 0 auto auto;
   padding: 1rem;
+  position: absolute;
+  z-index: 30;
 }
 
-.memi-schedule__filters label,
-.memi-checkout label {
+.memi-schedule__calendar-popover[hidden] {
+  display: none !important;
+}
+
+.memi-schedule__calendar-header {
+  align-items: center;
   display: grid;
-  font-weight: 600;
   gap: 0.4rem;
+  grid-template-columns: 2.4rem minmax(0, 1fr) 2.4rem;
+  margin-block-end: 0.75rem;
 }
 
-.memi-schedule__filters select,
-.memi-checkout :is(select, input[type='text']) {
-  background: var(--memi-surface);
-  border: 1px solid var(--memi-border);
-  border-radius: 0.5rem;
-  color: inherit;
-  min-block-size: 2.65rem;
-  padding-inline: 0.7rem;
+.memi-schedule .memi-schedule__calendar-header h4 {
+  color: var(--memi-schedule-ink) !important;
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: 1rem !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.memi-schedule__calendar-month-arrow {
+  align-items: center;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  color: var(--memi-schedule-ink) !important;
+  display: inline-flex;
+  font-family: Arial, sans-serif !important;
+  font-size: 1.6rem !important;
+  height: 2.4rem;
+  justify-content: center;
+  line-height: 1 !important;
+  min-block-size: 2.4rem !important;
+  padding: 0 !important;
+  width: 2.4rem;
+}
+
+.memi-schedule__calendar-month-arrow:hover {
+  background: var(--memi-schedule-soft) !important;
+}
+
+.memi-schedule__calendar-weekdays,
+.memi-schedule__calendar-grid {
+  display: grid;
+  gap: 0.25rem;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.memi-schedule__calendar-weekdays {
+  margin-block-end: 0.35rem;
+}
+
+.memi-schedule__calendar-weekdays span {
+  color: var(--memi-schedule-muted);
+  font-size: 0.7rem !important;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: lowercase;
+}
+
+.memi-schedule__calendar-day {
+  align-items: center;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 50% !important;
+  color: var(--memi-schedule-ink) !important;
+  display: inline-flex;
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: 0.84rem !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550 !important;
+  height: 2.45rem;
+  justify-content: center;
+  line-height: 1 !important;
+  min-block-size: 2.45rem !important;
+  padding: 0 !important;
   width: 100%;
 }
 
-.memi-schedule__filters [data-memi-clear-filters] {
-  align-self: end;
-  min-inline-size: max-content;
+.memi-schedule__calendar-day:hover {
+  background: var(--memi-schedule-soft) !important;
 }
 
-.memi-schedule [data-memi-schedule-count] {
-  color: var(--memi-muted);
-  font-size: 0.95rem;
-  margin-block: 0 0.85rem;
-  min-block-size: 1.25rem;
+.memi-schedule__calendar-day.is-outside {
+  color: #989895 !important;
+  color: color-mix(in srgb, var(--memi-schedule-muted) 48%, white) !important;
 }
 
-.memi-schedule__grid,
+.memi-schedule__calendar-day.is-today:not(.is-selected) {
+  border-color: var(--memi-schedule-selected-dark) !important;
+}
+
+.memi-schedule__calendar-day.is-selected {
+  background: var(--memi-schedule-selected) !important;
+  border-color: var(--memi-schedule-selected) !important;
+  color: var(--memi-schedule-action-ink) !important;
+  font-weight: 750 !important;
+}
+
+.memi-schedule__calendar-footer {
+  align-items: center;
+  border-block-start: 1px solid var(--memi-schedule-border);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  margin-block-start: 0.75rem;
+  padding-block-start: 0.65rem;
+}
+
+.memi-schedule__calendar-footer button {
+  background: transparent !important;
+  border: 0 !important;
+  color: var(--memi-schedule-selected-dark) !important;
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  min-block-size: 2.2rem !important;
+  padding: 0.35rem 0.45rem !important;
+}
+
+.memi-schedule__calendar-icon {
+  border: 2px solid currentColor;
+  border-radius: 0.12rem;
+  block-size: 1.1rem;
+  display: inline-block;
+  inline-size: 1.1rem;
+  position: relative;
+}
+
+.memi-schedule__calendar-icon::before {
+  border-block-start: 2px solid currentColor;
+  content: '';
+  inset: 0.24rem 0 auto;
+  position: absolute;
+}
+
+.memi-schedule__week {
+  align-items: center;
+  display: grid;
+  gap: clamp(0.35rem, 1vw, 0.9rem);
+  grid-template-columns: 2.8rem minmax(0, 1fr) 2.8rem;
+  padding-block: 2rem 1.75rem;
+}
+
+.memi-schedule__week-arrow {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--memi-schedule-ink) !important;
+  display: inline-flex;
+  font-family: Arial, sans-serif !important;
+  font-size: 2rem !important;
+  font-weight: 300 !important;
+  height: 2.7rem;
+  justify-content: center;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  transition: background-color 160ms ease;
+  width: 2.7rem;
+}
+
+.memi-schedule__week-arrow:hover {
+  background: var(--memi-schedule-soft);
+}
+
+.memi-schedule__dates {
+  display: grid;
+  gap: clamp(0.35rem, 1.4vw, 1.4rem);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.memi-schedule__date {
+  align-items: center;
+  color: var(--memi-schedule-ink) !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-inline-size: 0;
+  text-align: center;
+  text-decoration: none !important;
+}
+
+.memi-schedule__date-weekday {
+  color: var(--memi-schedule-ink);
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: clamp(0.77rem, 1.1vw, 0.93rem) !important;
+  font-weight: 500;
+  line-height: 1.2 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: lowercase;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.memi-schedule__date-number {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--memi-schedule-border);
+  border-radius: 50%;
+  color: var(--memi-schedule-ink);
+  display: inline-flex;
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: 1rem !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  height: clamp(3.7rem, 5vw, 4.8rem);
+  justify-content: center;
+  line-height: 1 !important;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+  width: clamp(3.7rem, 5vw, 4.8rem);
+}
+
+.memi-schedule__date:hover .memi-schedule__date-number,
+.memi-schedule__date:focus-visible .memi-schedule__date-number {
+  border-color: var(--memi-schedule-selected);
+  transform: translateY(-2px);
+}
+
+.memi-schedule__date.is-active .memi-schedule__date-number {
+  background: var(--memi-schedule-selected);
+  border-color: var(--memi-schedule-selected);
+  color: #201d1c;
+}
+
+.memi-schedule__selected-date {
+  align-items: baseline;
+  border-block-end: 1px solid #bdbbb9;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 2rem;
+  padding-block: 1.45rem 1.6rem;
+}
+
+.memi-schedule .memi-schedule__selected-date h3 {
+  color: var(--memi-schedule-ink) !important;
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: 1.1rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.25 !important;
+  margin: 0 !important;
+  text-transform: lowercase;
+}
+
+.memi-schedule__selected-date p {
+  color: var(--memi-schedule-muted) !important;
+  font-size: 0.9rem !important;
+  line-height: 1.45 !important;
+  margin: 0 !important;
+}
+
+.memi-visually-hidden {
+  border: 0 !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  height: 1px !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  position: absolute !important;
+  white-space: nowrap !important;
+  width: 1px !important;
+}
+
+.memi-schedule__list,
 .memi-schedule [data-memi-schedule-list] {
   display: grid;
-  gap: 0.9rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: 0;
+  grid-template-columns: 1fr;
 }
 
 .memi-class-card,
 .memi-schedule [data-memi-schedule-card] {
-  background: var(--memi-surface);
-  border: 1px solid var(--memi-border);
-  border-inline-start: 0.35rem solid var(--memi-accent);
-  border-radius: var(--memi-radius);
-  box-shadow: 0 0.3rem 1.25rem rgb(0 0 0 / 6%);
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-block-end: 1px solid #e3e2e0;
+  border-radius: 0;
+  box-shadow: none;
   display: grid;
-  gap: 0.55rem 0.9rem;
-  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.8rem 1.4rem;
+  grid-template-columns: minmax(5.5rem, 0.65fr) minmax(13rem, 2fr) minmax(10rem, 1fr) minmax(8rem, 0.85fr) auto;
   min-inline-size: 0;
-  padding: 1rem;
+  padding-block: 1.65rem;
 }
 
 .memi-class-card[hidden],
@@ -155,66 +559,164 @@
 }
 
 .memi-class-card__time {
-  color: var(--memi-accent);
-  font-size: 1.1rem;
+  align-self: start;
+  color: var(--memi-schedule-ink);
+  display: grid;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  gap: 0.25rem;
   white-space: nowrap;
 }
 
-.memi-class-card__main :is(h2, p) {
-  margin-block: 0;
+.memi-class-card__time time {
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: 1.05rem !important;
+  font-weight: 800;
+  line-height: 1.15 !important;
 }
 
-.memi-class-card__main h2 {
-  font-size: 1.1rem;
+.memi-class-card__time span {
+  color: var(--memi-schedule-muted);
+  font-size: 0.88rem !important;
 }
 
-.memi-class-card__main p {
-  color: var(--memi-muted);
-  font-size: 0.94rem;
-  margin-block-start: 0.35rem;
+.memi-class-card__main :is(h3, p),
+.memi-class-card__availability :is(span, p),
+.memi-class-card__location :is(span, p) {
+  margin: 0 !important;
+}
+
+.memi-schedule .memi-class-card__main h3 {
+  color: var(--memi-schedule-ink) !important;
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.3 !important;
+}
+
+.memi-class-card__instructor {
+  color: var(--memi-schedule-selected-dark) !important;
+  font-size: 0.9rem !important;
+  font-weight: 700;
+  line-height: 1.35 !important;
+  margin-block-start: 0.25rem !important;
+}
+
+.memi-class-card__details {
+  margin-block-start: 0.4rem;
+}
+
+.memi-class-card__details summary {
+  color: var(--memi-schedule-selected-dark);
+  cursor: pointer;
+  font-size: 0.82rem !important;
+  font-weight: 650;
+}
+
+.memi-class-card__details p {
+  color: var(--memi-schedule-muted);
+  font-size: 0.84rem !important;
+  line-height: 1.5 !important;
+  margin-block-start: 0.45rem !important;
+}
+
+.memi-class-card__location,
+.memi-class-card__availability {
+  color: var(--memi-schedule-muted);
+  display: grid;
+  font-size: 0.88rem !important;
+  gap: 0.25rem;
+  line-height: 1.35 !important;
+}
+
+.memi-class-card__availability {
+  justify-items: start;
 }
 
 .memi-class-card__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  grid-column: 2;
-  margin-block-start: 0.15rem;
+  justify-self: end;
+}
+
+.memi-class-card__actions .btn {
+  align-items: center;
+  background: var(--memi-schedule-action) !important;
+  border: 1px solid var(--memi-schedule-action) !important;
+  border-radius: 0.7rem !important;
+  color: var(--memi-schedule-action-ink) !important;
+  display: inline-flex;
+  font-family: Roboto, Arial, sans-serif !important;
+  font-size: 0.88rem !important;
+  font-weight: 650 !important;
+  justify-content: center;
+  line-height: 1.2 !important;
+  min-block-size: 3.4rem !important;
+  min-inline-size: 10.5rem;
+  padding: 0.75rem 1.1rem !important;
+  text-align: center;
+  text-decoration: none !important;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.memi-class-card__actions .btn:hover {
+  background: var(--memi-schedule-action-hover) !important;
+  border-color: var(--memi-schedule-action-hover) !important;
+}
+
+.memi-class-card__actions .btn-outline-primary {
+  background: transparent !important;
+  border-color: var(--memi-schedule-selected-dark) !important;
+  color: var(--memi-schedule-selected-dark) !important;
+}
+
+.memi-class-card__actions .btn-outline-primary:hover {
+  background: var(--memi-schedule-soft) !important;
 }
 
 .memi-status {
   align-items: center;
-  background: var(--memi-success-bg);
-  border-radius: 99rem;
+  background: transparent;
+  border-radius: 0;
   color: var(--memi-success-ink);
   display: inline-flex;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.78rem !important;
+  font-weight: 750;
   line-height: 1.25;
-  padding: 0.24rem 0.55rem;
+  padding: 0;
 }
 
 .memi-status--almost-full {
-  background: var(--memi-warning-bg);
   color: var(--memi-warning-ink);
 }
 
 .memi-status--full,
 .memi-status--cancelled {
-  background: var(--memi-danger-bg);
   color: var(--memi-danger-ink);
 }
 
 .memi-empty-state,
 .memi-schedule [data-memi-schedule-empty] {
-  border: 1px dashed var(--memi-border);
-  border-radius: var(--memi-radius);
-  color: var(--memi-muted);
-  margin-block: 1rem 0;
-  padding: 1.25rem;
+  color: var(--memi-schedule-muted);
+  font-size: 0.96rem !important;
+  margin: 0;
+  padding: 2.4rem 0 1rem;
   text-align: center;
+}
+
+.memi-checkout label {
+  display: grid;
+  font-weight: 500;
+  gap: 0.4rem;
+}
+
+.memi-checkout :is(select, input[type='text']) {
+  background: var(--memi-surface);
+  border: 1px solid var(--memi-border);
+  border-radius: 0.35rem;
+  color: inherit;
+  font-size: 0.9rem !important;
+  min-block-size: 2.55rem;
+  padding-inline: 0.7rem;
+  width: 100%;
 }
 
 /* Booking, waitlist offer and checkout */
@@ -240,9 +742,17 @@
 }
 
 .memi-booking > h1,
-.memi-checkout > h1 {
+.memi-checkout__header h1 {
   font-size: clamp(1.5rem, 3vw, 2rem);
-  margin-block: 0 0.75rem;
+  margin: 0;
+}
+
+.memi-checkout__header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  justify-content: space-between;
 }
 
 .memi-booking > p {
@@ -376,6 +886,10 @@
   width: auto !important;
 }
 
+.memi-qr-print-only {
+  display: none;
+}
+
 /* Kiosk markup has its own stylesheet; these selectors bridge the public
  * template classes that are intentionally kept separate from its JS hooks. */
 [data-memi-kiosk] .memi-kiosk__header {
@@ -452,13 +966,54 @@
   font-weight: 600;
 }
 
+@media (max-width: 68rem) {
+  .memi-schedule__panel-top {
+    grid-template-columns: 1fr;
+  }
+
+  .memi-schedule__filters {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 52rem) {
   .memi-schedule__filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .memi-schedule__filters label,
+  .memi-schedule__filters select {
+    inline-size: 100%;
   }
 
   .memi-schedule__filters [data-memi-clear-filters] {
+    grid-column: 1 / -1;
     justify-self: start;
+  }
+
+  .memi-class-card,
+  .memi-schedule [data-memi-schedule-card] {
+    align-items: start;
+    grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+  }
+
+  .memi-class-card__time {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+
+  .memi-class-card__main,
+  .memi-class-card__location,
+  .memi-class-card__availability {
+    grid-column: 2;
+  }
+
+  .memi-class-card__actions {
+    align-self: center;
+    grid-column: 3;
+    grid-row: 1 / span 3;
   }
 
   [data-memi-kiosk] .memi-kiosk__modes {
@@ -467,32 +1022,142 @@
 }
 
 @media (max-width: 40rem) {
-  .memi-schedule__header,
   .memi-dashboard__header {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .memi-schedule__nav {
+  .memi-dashboard__header-actions,
+  .memi-checkout__header-actions,
+  .memi-schedule__header-actions {
+    align-items: stretch;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: 1fr;
+    width: 100%;
   }
 
-  .memi-schedule__nav .btn {
-    padding-inline: 0.4rem;
+  .memi-dashboard__header-actions .btn,
+  .memi-checkout__header-actions .btn,
+  .memi-schedule__header-actions .btn {
+    text-align: center;
+    width: 100%;
   }
 
-  .memi-schedule__filters,
+  .memi-schedule {
+    inline-size: calc(100vw - 1rem);
+    padding-block: 1.5rem 2.5rem;
+    width: calc(100vw - 1rem);
+  }
+
+  .memi-schedule__header {
+    align-items: stretch;
+    flex-direction: column;
+    margin-block-end: 1.35rem;
+    padding-inline: 0.25rem;
+  }
+
+  .memi-schedule .memi-schedule__title {
+    font-size: clamp(2rem, 12vw, 2.8rem) !important;
+  }
+
+  .memi-schedule__panel {
+    border-radius: 1rem;
+    padding: 1.15rem;
+  }
+
+  .memi-schedule__panel-top {
+    gap: 1.2rem;
+  }
+
+  .memi-schedule__filters {
+    grid-template-columns: 1fr;
+  }
+
+  .memi-schedule__filters [data-memi-clear-filters] {
+    grid-column: auto;
+  }
+
+  .memi-schedule__calendar-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-block-start: 2rem;
+  }
+
+  .memi-schedule__calendar-wrap {
+    align-self: stretch;
+  }
+
+  .memi-schedule__calendar-popover {
+    inline-size: min(22rem, calc(100vw - 4.3rem));
+    inset-inline: 0 auto;
+  }
+
+  .memi-schedule__week {
+    gap: 0.25rem;
+    grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem;
+  }
+
+  .memi-schedule__week-arrow {
+    height: 2.35rem;
+    width: 2.35rem;
+  }
+
+  .memi-schedule__dates {
+    grid-auto-columns: minmax(3.9rem, 1fr);
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding-block-end: 0.35rem;
+    scrollbar-width: thin;
+    scroll-snap-type: inline mandatory;
+  }
+
+  .memi-schedule__date {
+    scroll-snap-align: start;
+  }
+
+  .memi-schedule__date-number {
+    height: 3.6rem;
+    width: 3.6rem;
+  }
+
+  .memi-schedule__selected-date {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .memi-dashboard__metrics {
     grid-template-columns: 1fr;
   }
 
   .memi-class-card {
-    grid-template-columns: 1fr;
+    gap: 0.65rem 0.85rem;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    padding-block: 1.1rem;
+  }
+
+  .memi-class-card__time {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+
+  .memi-class-card__main,
+  .memi-class-card__location,
+  .memi-class-card__availability {
+    grid-column: 2;
   }
 
   .memi-class-card__actions {
-    grid-column: 1;
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-self: stretch;
+    margin-block-start: 0.35rem;
+  }
+
+  .memi-class-card__actions .btn {
+    width: 100%;
   }
 
   .memi-qr {
@@ -523,5 +1188,75 @@
   [data-memi-kiosk] * {
     scroll-behavior: auto;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  @page {
+    margin: 18mm;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  [data-memi-qr-dashboard],
+  [data-memi-qr-dashboard] * {
+    visibility: visible !important;
+  }
+
+  [data-memi-qr-dashboard] {
+    background: #fff !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: #111 !important;
+    inset: 0 auto auto 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: absolute;
+    text-align: center;
+    width: 100%;
+  }
+
+  [data-memi-qr-dashboard] > h2,
+  [data-memi-qr-dashboard] > p,
+  [data-memi-qr-controls] {
+    display: none !important;
+  }
+
+  .memi-qr-print-only {
+    display: block !important;
+    margin-block-end: 1rem;
+  }
+
+  .memi-qr-print-only h2 {
+    color: #111 !important;
+    font-size: 1.8rem !important;
+    margin: 0 0 0.6rem !important;
+  }
+
+  .memi-qr-print-only p {
+    color: #333 !important;
+    margin: 0 auto 0.5rem !important;
+    max-width: 32rem;
+  }
+
+  .memi-qr-print-brand {
+    font-size: 1.1rem !important;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  [data-memi-qr-dashboard] .memi-qr {
+    border: 0 !important;
+    margin: 1.25rem auto 0 !important;
+    min-block-size: 0;
+    padding: 0 !important;
+    width: fit-content !important;
+  }
+
+  [data-memi-qr-dashboard] .memi-qr :is(canvas, img) {
+    max-inline-size: 75mm !important;
   }
 }

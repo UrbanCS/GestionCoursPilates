@@ -10,6 +10,8 @@ Configurer les options dans **Composants → Memi Pilates → Options** après l
 | Promotion automatique de l’attente | Activée | Désactiver pour imposer la promotion manuelle. |
 | Durée d’une offre d’attente | `60` minutes | La place est retenue jusqu’à l’acceptation, au retrait ou à l’expiration. |
 | Rappels | `24,2` | Heures avant la séance. |
+| Tentatives de notification | `5` | Après la dernière tentative, la notification passe en échec définitif. |
+| Délai initial de reprise | `5` minutes | Reprise exponentielle, plafonnée à 24 heures. |
 | Environnement Square | `sandbox` | Passer en production seulement après la campagne de préproduction. |
 | Application ID Square | Identifiant public Sandbox | Peut être enregistré dans l’option Joomla. |
 | Location ID Square | Identifiant public Sandbox | Peut être enregistré dans l’option Joomla. |
@@ -22,3 +24,5 @@ MEMI_SQUARE_WEBHOOK_SIGNATURE_KEY=<valeur-protégée-non-versionnée>
 ~~~
 
 Configurer également l’URL HTTPS exacte du webhook dans Square et dans l’option du composant. Ne jamais mettre une valeur réelle dans les captures, les tickets, les tests versionnés ou les journaux.
+
+Une annulation admissible restaure réellement le crédit utilisé. Si le forfait d’origine a expiré entre la réservation et l’annulation, ses crédits inutilisés sont d’abord soldés, puis seuls les crédits rendus par l’annulation passent dans l’état spécial `restored` et demeurent consommables. Les autres crédits expirés ne sont pas réactivés.

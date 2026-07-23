@@ -22,10 +22,10 @@ final class HtmlView extends AbstractAdminView
 
     public function display($tpl = null): void
     {
-        $this->initialise(['core.manage', 'schedules.manage', 'courses.manage'], ['core.edit', 'schedules.manage']);
+        $this->initialise(['schedules.manage', 'courses.manage', 'waitlist.manage'], ['schedules.manage', 'waitlist.manage']);
         $this->filterStatus = $this->normaliseStatus(Factory::getApplication()->input->getCmd('filter_status', ''), $this->statuses);
-        $this->canCancel = $this->can('core.edit') || $this->can('schedules.manage');
-        $this->canOfferWaitlist = $this->can('core.edit') || $this->can('waitlist.manage');
+        $this->canCancel = $this->can('schedules.manage');
+        $this->canOfferWaitlist = $this->can('waitlist.manage');
         $this->loadItems();
         Factory::getApplication()->getDocument()->setTitle($this->label('COM_MEMIPILATES_SUBMENU_SESSIONS', 'Sessions'));
         parent::display($tpl);
@@ -54,12 +54,15 @@ final class HtmlView extends AbstractAdminView
 
     private function baseQuery(): mixed
     {
-        return $this->db->getQuery(true)
+        $query = $this->db->getQuery(true)
             ->from($this->db->quoteName('#__memi_sessions', 's'))
             ->join('INNER', $this->db->quoteName('#__memi_courses', 'c') . ' ON c.id = s.course_id')
             ->join('LEFT', $this->db->quoteName('#__memi_instructors', 'i') . ' ON i.id = s.instructor_id')
             ->join('LEFT', $this->db->quoteName('#__memi_rooms', 'r') . ' ON r.id = s.room_id')
             ->where('s.archived_at IS NULL');
+        $this->applyInstructorSessionScope($query, 's', ['schedules.manage', 'courses.manage']);
+
+        return $query;
     }
 
     private function applyFilters(mixed $query): void

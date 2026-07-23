@@ -17,6 +17,7 @@ $tokenName = \Joomla\CMS\Session\Session::getFormToken();
     data-manual-url="<?= htmlspecialchars($this->manualUrl, ENT_QUOTES, 'UTF-8'); ?>"
     data-manual-search-url="<?= htmlspecialchars(\Joomla\CMS\Router\Route::_('index.php?option=com_memipilates&task=kiosk.search&format=json', false), ENT_QUOTES, 'UTF-8'); ?>"
     data-csrf-token="<?= htmlspecialchars($tokenName, ENT_QUOTES, 'UTF-8'); ?>"
+    data-time-zone="<?= htmlspecialchars((string) $this->settings['timezone'], ENT_QUOTES, 'UTF-8'); ?>"
 >
     <header class="memi-kiosk__header">
         <div><h1><?= Text::_('COM_MEMIPILATES_KIOSK_TITLE'); ?></h1><p data-memi-kiosk-clock></p></div>
@@ -27,7 +28,7 @@ $tokenName = \Joomla\CMS\Session\Session::getFormToken();
         <select data-memi-kiosk-session aria-label="<?= Text::_('COM_MEMIPILATES_KIOSK_SELECT_SESSION'); ?>">
             <option value=""><?= Text::_('COM_MEMIPILATES_KIOSK_SELECT_SESSION'); ?></option>
             <?php foreach ($this->sessions as $session) : ?>
-                <option value="<?= (int) $session['id']; ?>"><?= htmlspecialchars($session['course_title'] . ' · ' . $session['starts_at'], ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="<?= (int) $session['id']; ?>"><?= htmlspecialchars($session['course_title'] . ' · ' . $this->formatDate((string) $session['starts_at']), ENT_QUOTES, 'UTF-8'); ?></option>
             <?php endforeach; ?>
         </select>
     </label>
