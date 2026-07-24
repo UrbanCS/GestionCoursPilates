@@ -12,6 +12,9 @@ $registrationNotOpen = !empty($this->session['registration_opens_at'])
 $registrationClosed = $nowUtc >= $startsUtc
     || (!empty($this->session['registration_closes_at'])
         && $nowUtc >= new DateTimeImmutable((string) $this->session['registration_closes_at'], new DateTimeZone('UTC')));
+$directPaymentAvailable = (int) $this->session['price_cents'] > 0;
+$directPaymentTotal = (int) $this->session['price_cents']
+    + (int) round((int) $this->session['price_cents'] * (int) $this->session['tax_rate_basis_points'] / 10000);
 ?>
 <section class="memi-booking">
     <a href="<?= Route::_('index.php?option=com_memipilates&view=schedule'); ?>"><?= Text::_('COM_MEMIPILATES_SCHEDULE'); ?></a>
@@ -39,10 +42,18 @@ $registrationClosed = $nowUtc >= $startsUtc
             <?= HTMLHelper::_('form.token'); ?>
             <p><?= Text::sprintf('COM_MEMIPILATES_BOOKING_CREDIT_BALANCE', $this->creditBalance); ?></p>
             <button class="btn btn-primary" type="submit"><?= Text::_('COM_MEMIPILATES_BOOKING_CONFIRM'); ?></button>
+            <?php if ($directPaymentAvailable) : ?>
+                <a class="btn btn-outline-primary" href="<?= htmlspecialchars($this->checkoutUrl, ENT_QUOTES, 'UTF-8'); ?>"><?= Text::sprintf('COM_MEMIPILATES_BOOKING_PAY_DIRECT', number_format($directPaymentTotal / 100, 2), $this->currency); ?></a>
+            <?php endif; ?>
             <p data-memi-booking-result role="status"></p>
         </form>
     <?php else : ?>
         <p><?= Text::_('COM_MEMIPILATES_ERROR_INSUFFICIENT_CREDITS'); ?></p>
-        <a class="btn btn-primary" href="<?= Route::_('index.php?option=com_memipilates&view=checkout'); ?>"><?= Text::_('COM_MEMIPILATES_BOOKING_BUY_PACKAGE'); ?></a>
+        <?php if ($directPaymentAvailable) : ?>
+            <a class="btn btn-primary" href="<?= htmlspecialchars($this->checkoutUrl, ENT_QUOTES, 'UTF-8'); ?>"><?= Text::sprintf('COM_MEMIPILATES_BOOKING_PAY_DIRECT', number_format($directPaymentTotal / 100, 2), $this->currency); ?></a>
+            <a class="btn btn-outline-primary" href="<?= Route::_('index.php?option=com_memipilates&view=checkout'); ?>"><?= Text::_('COM_MEMIPILATES_BOOKING_BUY_PACKAGE'); ?></a>
+        <?php else : ?>
+            <a class="btn btn-primary" href="<?= Route::_('index.php?option=com_memipilates&view=checkout'); ?>"><?= Text::_('COM_MEMIPILATES_BOOKING_BUY_PACKAGE'); ?></a>
+        <?php endif; ?>
     <?php endif; ?>
 </section>

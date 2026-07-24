@@ -11,7 +11,7 @@ use Joomla\CMS\Factory;
 use Memi\Component\Memipilates\Administrator\View\AbstractAdminView;
 
 /** Read and cancellation screen for generated class sessions. */
-final class HtmlView extends AbstractAdminView
+class HtmlView extends AbstractAdminView
 {
     /** @var list<array<string, mixed>> */
     public array $items = [];

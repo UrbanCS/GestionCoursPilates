@@ -83,6 +83,11 @@ foreach ($this->sessions as $session) {
     <header class="memi-schedule__header">
         <h1 class="memi-schedule__title"><?= Text::_('COM_MEMIPILATES_SCHEDULE_PAGE_TITLE'); ?></h1>
         <nav class="memi-schedule__header-actions" aria-label="<?= $escape(Text::_('COM_MEMIPILATES_ACCOUNT')); ?>">
+            <?php if ($this->canManageStudio) : ?>
+                <a class="btn btn-outline-secondary" href="<?= Route::_('index.php?option=com_memipilates&view=' . rawurlencode($this->managementLandingView)); ?>">
+                    <?= Text::_('COM_MEMIPILATES_PORTAL_OPEN'); ?>
+                </a>
+            <?php endif; ?>
             <a class="btn btn-outline-primary" href="<?= Route::_('index.php?option=com_memipilates&view=dashboard'); ?>">
                 <?= Text::_('COM_MEMIPILATES_ACCOUNT'); ?>
             </a>

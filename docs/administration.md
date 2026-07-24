@@ -13,7 +13,13 @@ Un gestionnaire configure les données dans cet ordre afin d’éviter les séan
 7. Modèles courriel, règles de rappel, délai d’annulation, liste d’attente et fidélité.
 8. Menus publics, niveaux d’accès et groupes ACL.
 
-Chaque réglage doit être testé avec un compte client fictif avant publication. La page Options regroupe les réglages et les secrets Square : elle est donc réservée aux Super administrateurs disposant de core.admin.
+Chaque réglage doit être testé avec un compte client fictif avant publication. La page Options de l’administration et l’écran **Paramètres** du portail frontal regroupent les réglages et les secrets Square : ils sont donc réservés aux Super administrateurs disposant de core.admin.
+
+## Portail de gestion frontal
+
+La version 1.6.0 ajoute la vue **Gestion du studio** (`view=manage`) dans le site public. Un Super User connecté y retrouve le tableau de bord, la mise en route, le catalogue, les séances, les réservations, les clients, les forfaits, les promotions et la fidélité, les paiements, les présences et les paramètres. Le portail utilise les mêmes services métier et actions sécurisées que l’administration.
+
+Créer un élément de menu Joomla Memi Pilates de type **Gestion du studio**, avec un niveau d’accès réservé au personnel. Le niveau de menu améliore la navigation, mais les contrôleurs vérifient quand même l’ACL de chaque écran. Un compte disposant seulement de certaines actions voit uniquement les sections correspondantes. Les paramètres et secrets Square restent limités à `core.admin`.
 
 ## Mise en route initiale
 

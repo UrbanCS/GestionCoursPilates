@@ -11,9 +11,10 @@ Ce dossier fournit un squelette PHPUnit pour les règles d’acceptation de com_
 | Support/AcceptanceDriver.php | Contrat d’un adaptateur qui pilote Joomla isolé, HTTP ou navigateur. |
 | Support/AcceptanceResult.php | Résultat structuré d’un scénario avec résumé et éléments de preuve nettoyés. |
 | Support/AcceptanceTestCase.php | Chargement sécurisé de l’adaptateur depuis une variable d’environnement. |
-| Acceptance/CriticalAcceptanceTest.php | Un test par scénario AT-01 à AT-26. |
+| Acceptance/CriticalAcceptanceTest.php | Un test par scénario AT-01 à AT-32. |
 | Contract/AcceptanceCatalogTest.php | Vérifie que le catalogue de scénarios reste complet et sans doublon. |
-| Fixtures/acceptance-scenarios.php | Métadonnées versionnées des 26 scénarios obligatoires. |
+| Contract/FrontendPortalContractTest.php | Vérifie la présence des onze vues frontales, l’ACL centrale, le CSRF et la conservation des secrets Square. |
+| Fixtures/acceptance-scenarios.php | Métadonnées versionnées des 32 scénarios obligatoires. |
 
 ## Installer le runner
 

@@ -11,7 +11,7 @@ use Joomla\CMS\Factory;
 use Memi\Component\Memipilates\Administrator\View\AbstractAdminView;
 
 /** Administration of promotion codes and client loyalty rewards. */
-final class HtmlView extends AbstractAdminView
+class HtmlView extends AbstractAdminView
 {
     /** @var list<array<string,mixed>> */
     public array $promotions = [];

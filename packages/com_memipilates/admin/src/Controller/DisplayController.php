@@ -20,7 +20,7 @@ use Memi\Component\Memipilates\Administrator\Service\DomainException;
  * Dispatches the component's protected administrator views and the few
  * state-changing operations exposed by their list screens.
  */
-final class DisplayController extends BaseController
+class DisplayController extends BaseController
 {
     /** @var array<string, list<string>> */
     private const VIEW_PERMISSIONS = [
@@ -48,6 +48,12 @@ final class DisplayController extends BaseController
 
         $this->requireAnyPermission(self::VIEW_PERMISSIONS[$view]);
 
+        return $this->renderView($cachable, $urlparams);
+    }
+
+    /** Lets the site controller reuse all protected actions without invoking the administrator view whitelist. */
+    protected function renderView($cachable = false, $urlparams = []): BaseController
+    {
         return parent::display($cachable, $urlparams);
     }
 

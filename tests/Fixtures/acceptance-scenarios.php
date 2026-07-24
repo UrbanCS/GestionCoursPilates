@@ -29,4 +29,34 @@ return [
     'AT-24' => ['title' => 'Relance cron', 'layers' => ['integration', 'cli'], 'expected' => 'Aucune séance, offre ou notification dupliquée.'],
     'AT-25' => ['title' => 'Installation non destructive', 'layers' => ['manual', 'preproduction'], 'expected' => 'Le site Joomla existant reste fonctionnel.'],
     'AT-26' => ['title' => 'Politique de désinstallation', 'layers' => ['manual', 'preproduction'], 'expected' => 'Les données sont traitées selon la politique documentée.'],
+    'AT-27' => [
+        'title' => 'Nouveau cycle de liste d’attente après annulation',
+        'layers' => ['integration', 'e2e'],
+        'expected' => 'La nouvelle offre débite un nouveau crédit, réinitialise les métadonnées et conserve l’idempotence du cycle courant.',
+    ],
+    'AT-28' => [
+        'title' => 'Paiement direct d’une séance',
+        'layers' => ['sandbox', 'integration', 'e2e'],
+        'expected' => 'La place est retenue pendant le paiement et la réservation est confirmée une seule fois après un paiement Square COMPLETED.',
+    ],
+    'AT-29' => [
+        'title' => 'Libération d’une retenue de paiement',
+        'layers' => ['integration', 'cli'],
+        'expected' => 'Un paiement définitivement échoué ou une commande abandonnée libère la capacité sans confirmer la réservation.',
+    ],
+    'AT-30' => [
+        'title' => 'Portail frontal complet pour Super User',
+        'layers' => ['acl', 'browser', 'e2e'],
+        'expected' => 'Le Super User connecté accède aux onze écrans de gestion et peut exécuter les mêmes opérations autorisées que dans l’administration.',
+    ],
+    'AT-31' => [
+        'title' => 'Refus du portail frontal sans permission',
+        'layers' => ['acl', 'http'],
+        'expected' => 'Un visiteur est dirigé vers la connexion et un utilisateur sans permission reçoit un refus sans donnée métier.',
+    ],
+    'AT-32' => [
+        'title' => 'Conservation des secrets Square au frontal',
+        'layers' => ['acl', 'integration', 'e2e'],
+        'expected' => 'Les secrets Square ne sont jamais réaffichés et restent inchangés lorsque leurs champs sont enregistrés vides.',
+    ],
 ];

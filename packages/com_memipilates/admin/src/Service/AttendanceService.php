@@ -421,7 +421,8 @@ final class AttendanceService
             ->where($this->db->quoteName('status') . ' = :status')
             ->bind(':booking_id', $booking, ParameterType::INTEGER)
             ->bind(':status', $confirmedStatus);
-        $this->db->setQuery(DatabaseTools::forUpdate($query), 0, 1);
+        $query->setLimit(1);
+        $this->db->setQuery(DatabaseTools::forUpdate($query));
         $attendance = $this->db->loadAssoc() ?: null;
 
         if ($attendance !== null) {
@@ -437,7 +438,8 @@ final class AttendanceService
             ->from($this->db->quoteName('#__memi_attendance'))
             ->where($this->db->quoteName('idempotency_key') . ' = :idempotency_key')
             ->bind(':idempotency_key', $key);
-        $this->db->setQuery(DatabaseTools::forUpdate($query), 0, 1);
+        $query->setLimit(1);
+        $this->db->setQuery(DatabaseTools::forUpdate($query));
         $attendance = $this->db->loadAssoc() ?: null;
 
         if ($attendance === null) {

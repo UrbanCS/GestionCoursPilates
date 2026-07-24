@@ -19,11 +19,15 @@ final class CheckoutController extends BaseController
     {
         try {
             $this->requirePostToken();
-            $result = ComponentServices::payments()->createPackageOrder(
-                $this->userId(),
-                Factory::getApplication()->input->post->getInt('package_id'),
-                Factory::getApplication()->input->post->getString('promotion_code', '') ?: null
-            );
+            $input = Factory::getApplication()->input->post;
+            $sessionId = $input->getInt('session_id');
+            $result = $sessionId > 0
+                ? ComponentServices::payments()->createSessionOrder($this->userId(), $sessionId)
+                : ComponentServices::payments()->createPackageOrder(
+                    $this->userId(),
+                    $input->getInt('package_id'),
+                    $input->getString('promotion_code', '') ?: null
+                );
             $this->respond(['success' => true, 'data' => $result] + $result);
         } catch (\Throwable $error) {
             $this->respondError($error);

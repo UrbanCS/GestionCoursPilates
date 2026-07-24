@@ -11,12 +11,12 @@ use Joomla\CMS\Factory;
 use Memi\Component\Memipilates\Administrator\View\AbstractAdminView;
 
 /** Read-only, privacy-aware list of online orders and Square payment states. */
-final class HtmlView extends AbstractAdminView
+class HtmlView extends AbstractAdminView
 {
     /** @var list<array<string,mixed>> */
     public array $items = [];
     /** @var list<string> */
-    public array $statuses = ['pending', 'payment_processing', 'payment_failed', 'paid'];
+    public array $statuses = ['pending', 'payment_processing', 'payment_failed', 'expired', 'cancelled', 'paid'];
     public bool $canRefund = false;
 
     public function display($tpl = null): void

@@ -11,7 +11,7 @@ use Joomla\CMS\Factory;
 use Memi\Component\Memipilates\Administrator\View\AbstractAdminView;
 
 /** Operational editor for the live studio catalogue. */
-final class HtmlView extends AbstractAdminView
+class HtmlView extends AbstractAdminView
 {
     /** @var array<string,string> */
     public array $entities = [

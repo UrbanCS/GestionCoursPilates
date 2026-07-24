@@ -74,17 +74,21 @@ final class BookingService
                     ->set($this->db->quoteName('status') . ' = :status')
                     ->set($this->db->quoteName('booking_key') . ' = :booking_key')
                     ->set($this->db->quoteName('active_booking_key') . ' = :active_booking_key')
-                    ->set($this->db->quoteName('cancelled_at') . ' = NULL')
-                    ->set($this->db->quoteName('cancellation_reason') . ' = NULL')
-                    ->set($this->db->quoteName('source') . ' = :source')
+                    ->set($this->db->quoteName('booked_at') . ' = :booked_at')
                     ->set($this->db->quoteName('confirmed_at') . ' = :confirmed_at')
+                    ->set($this->db->quoteName('cancelled_at') . ' = NULL')
+                    ->set($this->db->quoteName('cancelled_by') . ' = 0')
+                    ->set($this->db->quoteName('cancellation_reason') . ' = NULL')
+                    ->set($this->db->quoteName('credit_restored_at') . ' = NULL')
+                    ->set($this->db->quoteName('source') . ' = :source')
                     ->set($this->db->quoteName('updated_at') . ' = :updated_at')
                     ->where($this->db->quoteName('id') . ' = :id')
                     ->bind(':status', $status)
                     ->bind(':booking_key', $bookingKey)
                     ->bind(':active_booking_key', $activeBookingKey)
-                    ->bind(':source', $source)
+                    ->bind(':booked_at', $now)
                     ->bind(':confirmed_at', $now)
+                    ->bind(':source', $source)
                     ->bind(':updated_at', $now)
                     ->bind(':id', $id, ParameterType::INTEGER);
                 $this->db->setQuery($query)->execute();
@@ -260,6 +264,24 @@ final class BookingService
     {
         return $this->tools->transaction(function () use ($sessionId, $actorId, $reason): int {
             $session = $this->lockSession($sessionId);
+            $sessionIdentifier = $sessionId;
+            $processing = 'payment_processing';
+            $directSource = 'square_direct';
+            $processingQuery = $this->db->getQuery(true)
+                ->select('COUNT(*)')
+                ->from($this->db->quoteName('#__memi_bookings', 'b'))
+                ->join('INNER', $this->db->quoteName('#__memi_orders', 'o') . ' ON o.id = b.order_id')
+                ->where('b.session_id = :session_id')
+                ->where('b.source = :source')
+                ->where('o.status = :order_status')
+                ->bind(':session_id', $sessionIdentifier, ParameterType::INTEGER)
+                ->bind(':source', $directSource)
+                ->bind(':order_status', $processing);
+            $this->db->setQuery($processingQuery);
+            if ((int) $this->db->loadResult() > 0) {
+                throw new DomainException('COM_MEMIPILATES_ERROR_SESSION_PAYMENT_PROCESSING', [], 409);
+            }
+
             $now = gmdate('Y-m-d H:i:s');
             $id = $sessionId;
             $cancelledStatus = $this->cancelledStatus();
@@ -281,12 +303,14 @@ final class BookingService
                 ->bind(':id', $id, ParameterType::INTEGER);
             $this->db->setQuery($cancel)->execute();
 
-            $sessionIdentifier = $sessionId;
             $bookingsQuery = $this->db->getQuery(true)
                 ->select('*')
                 ->from($this->db->quoteName('#__memi_bookings'))
                 ->where($this->db->quoteName('session_id') . ' = :session_id')
-                ->where($this->db->quoteName('status') . ' IN (' . $this->db->quote('confirmed') . ', ' . $this->db->quote('pending') . ')')
+                ->where($this->db->quoteName('status') . ' IN ('
+                    . $this->db->quote('confirmed') . ', '
+                    . $this->db->quote('pending') . ', '
+                    . $this->db->quote('payment_pending') . ')')
                 ->bind(':session_id', $sessionIdentifier, ParameterType::INTEGER);
             $this->db->setQuery($bookingsQuery);
             $bookings = $this->db->loadAssocList() ?: [];
@@ -294,6 +318,27 @@ final class BookingService
             foreach ($bookings as $booking) {
                 $bookingId = (int) $booking['id'];
                 $userId = (int) $booking['user_id'];
+                $orderId = (int) ($booking['order_id'] ?? 0);
+                if ((string) $booking['status'] === 'payment_pending' && $orderId > 0) {
+                    $order = $this->tools->lockById('#__memi_orders', $orderId);
+                    if ($order && in_array((string) $order['status'], ['pending', 'payment_failed'], true)) {
+                        $cancelledOrder = 'cancelled';
+                        $orderReason = 'session_cancelled';
+                        $orderUpdate = $this->db->getQuery(true)
+                            ->update($this->db->quoteName('#__memi_orders'))
+                            ->set($this->db->quoteName('status') . ' = :status')
+                            ->set($this->db->quoteName('failed_at') . ' = :failed_at')
+                            ->set($this->db->quoteName('failure_reason') . ' = :failure_reason')
+                            ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+                            ->where($this->db->quoteName('id') . ' = :id')
+                            ->bind(':status', $cancelledOrder)
+                            ->bind(':failed_at', $now)
+                            ->bind(':failure_reason', $orderReason)
+                            ->bind(':updated_at', $now)
+                            ->bind(':id', $orderId, ParameterType::INTEGER);
+                        $this->db->setQuery($orderUpdate)->execute();
+                    }
+                }
                 $adminCancelledStatus = $this->adminCancelledStatus();
                 $update = $this->db->getQuery(true)
                     ->update($this->db->quoteName('#__memi_bookings'))

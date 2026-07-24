@@ -39,6 +39,7 @@ final class SchedulerService
             'sessions_generated' => $this->generateRecurringSessions($horizon, $dryRun),
             'credit_expiry_notices_queued' => $dryRun ? 0 : $this->queueCreditExpiryNotices(),
             'credits_expired' => $dryRun ? 0 : $this->expireCredits(),
+            'payment_holds_expired' => $dryRun ? 0 : $this->payments->expirePendingSessionOrders(),
             'offers_expired' => $dryRun ? 0 : $this->waitlist->expireOffers(),
             'offers_promoted' => $dryRun ? 0 : $this->waitlist->promoteAvailableSessions(),
             'reminders_queued' => $dryRun || !empty($options['skip_reminders']) ? 0 : $this->queueReminders(),
@@ -224,7 +225,7 @@ final class SchedulerService
             $confirmed = 'confirmed';
             $query = $this->db->getQuery(true)
                 ->select([
-                    'b.user_id', 'b.id AS booking_id', 's.id AS session_id', 's.starts_at',
+                    'b.user_id', 'b.id AS booking_id', 'b.booking_key', 's.id AS session_id', 's.starts_at',
                     'c.title AS session_title', 'i.display_name AS instructor_name',
                     'r.title AS room_title', 'l.title AS location_title',
                 ])
@@ -243,7 +244,13 @@ final class SchedulerService
             $this->db->setQuery($query);
             $bookings = $this->db->loadAssocList() ?: [];
             foreach ($bookings as $booking) {
-                $idempotencyKey = 'reminder:' . (int) $booking['booking_id'] . ':' . $offset;
+                // A cancelled booking row can be reused for a later booking
+                // lifecycle. Include the rotated booking key so that the new
+                // lifecycle receives its reminders without duplicating retries.
+                $idempotencyKey = hash(
+                    'sha256',
+                    'reminder:' . (int) $booking['booking_id'] . ':' . (string) $booking['booking_key'] . ':' . $offset
+                );
                 $notification = $this->notifications->queue((int) $booking['user_id'], 'booking.reminder', [
                     'session_id' => (int) $booking['session_id'],
                     'session_title' => (string) $booking['session_title'],

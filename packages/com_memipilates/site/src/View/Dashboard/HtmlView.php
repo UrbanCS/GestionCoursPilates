@@ -12,6 +12,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Joomla\CMS\Router\Route;
 use Memi\Component\Memipilates\Administrator\Service\ComponentServices;
+use Memi\Component\Memipilates\Site\Service\PortalAccess;
 
 final class HtmlView extends BaseHtmlView
 {
@@ -37,6 +38,8 @@ final class HtmlView extends BaseHtmlView
     public string $loyaltyEndpoint = '';
     public string $cancelEndpoint = '';
     public string $leaveWaitlistEndpoint = '';
+    public bool $canManageStudio = false;
+    public string $managementLandingView = 'manage';
 
     public function display($tpl = null): void
     {
@@ -46,6 +49,9 @@ final class HtmlView extends BaseHtmlView
             Factory::getApplication()->redirect(Route::_('index.php?option=com_users&view=login&return=' . base64_encode('index.php?option=com_memipilates&view=dashboard'), false));
             return;
         }
+        $managementLandingView = PortalAccess::landingView($identity);
+        $this->canManageStudio = $managementLandingView !== null;
+        $this->managementLandingView = $managementLandingView ?? 'manage';
         $this->creditBalance = ComponentServices::credits()->balance($this->userId);
         $this->pointBalance = ComponentServices::points()->balance($this->userId);
         $this->upcoming = $this->loadBookings(true);
@@ -91,6 +97,14 @@ final class HtmlView extends BaseHtmlView
         $sign = $cents < 0 ? '-' : '';
 
         return $sign . number_format($whole, 0, '.', ' ') . '.' . $fraction . ' ' . $safeCurrency;
+    }
+
+    public function statusLabel(string $status): string
+    {
+        $key = 'COM_MEMIPILATES_STATUS_' . strtoupper($status);
+        $translation = Text::_($key);
+
+        return $translation === $key ? ucfirst(str_replace('_', ' ', $status)) : $translation;
     }
 
     /** @return list<array<string,mixed>> */

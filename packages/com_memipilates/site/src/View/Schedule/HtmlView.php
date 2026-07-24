@@ -11,6 +11,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
 use Memi\Component\Memipilates\Administrator\Service\ComponentServices;
+use Memi\Component\Memipilates\Site\Service\PortalAccess;
 
 final class HtmlView extends BaseHtmlView
 {
@@ -21,6 +22,8 @@ final class HtmlView extends BaseHtmlView
     public string $startDate = '';
     public string $viewMode = 'week';
     public string $locale = 'fr-FR';
+    public bool $canManageStudio = false;
+    public string $managementLandingView = 'manage';
 
     public function display($tpl = null): void
     {
@@ -37,6 +40,9 @@ final class HtmlView extends BaseHtmlView
             : $today;
         $this->viewMode = 'week';
         $this->locale = $application->getLanguage()->getTag() ?: 'fr-FR';
+        $managementLandingView = PortalAccess::landingView($application->getIdentity());
+        $this->canManageStudio = $managementLandingView !== null;
+        $this->managementLandingView = $managementLandingView ?? 'manage';
         $this->sessions = $this->loadSessions();
         $this->filters = $this->loadFilters();
 

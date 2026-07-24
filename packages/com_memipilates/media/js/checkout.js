@@ -39,39 +39,49 @@
       const start = root.querySelector('[data-memi-payment-start]');
       const pay = root.querySelector('[data-memi-payment-submit]');
       const cardTarget = root.querySelector('[data-memi-square-card]');
+      const sessionId = Number(root.dataset.sessionId || 0);
       let order = null;
       let card = null;
       const setStatus = (text, kind = 'status') => { if (status) { status.textContent = text; status.dataset.status = kind; } };
 
       start?.addEventListener('click', async () => {
         const packageId = packageSelect?.value;
-        if (!packageId) { setStatus('Choisissez un forfait.', 'error'); return; }
+        if (!sessionId && !packageId) { setStatus(root.dataset.messageSelectPackage || 'Choose a package.', 'error'); return; }
         start.disabled = true;
-        setStatus('Préparation du paiement sécurisé…');
+        setStatus(root.dataset.messagePreparing || 'Preparing secure payment…');
         try {
-          order = await post(root.dataset.createUrl, { package_id: packageId, promotion_code: root.querySelector('[name="promotion_code"]')?.value || '' });
+          const fields = sessionId
+            ? { session_id: sessionId }
+            : { package_id: packageId, promotion_code: root.querySelector('[name="promotion_code"]')?.value || '' };
+          order = await post(root.dataset.createUrl, fields);
+          if (order.status === 'payment_processing') {
+            throw new Error(root.dataset.messageReconciling || 'This payment is being verified. Please wait before trying again.');
+          }
           if (Number(order.total_cents) === 0) {
             const result = await post(root.dataset.payUrl, {
               order_id: order.id,
               source_id: 'zero-total-order',
               idempotency_key: idempotencyKey()
             });
-            setStatus(result.message || 'Paiement reçu. Vos crédits sont maintenant disponibles.', 'success');
+            setStatus(root.dataset.messageSuccess || result.message || 'Payment received.', 'success');
             root.dataset.paid = 'true';
             return;
           }
           if (!order.square_application_id || !order.square_location_id) {
-            throw new Error('Le paiement Square n’est pas encore configuré.');
+            throw new Error(root.dataset.messageConfig || 'Square payment is not configured.');
           }
           const Square = await loadSquare(root.dataset.squareEnvironment || order.environment || 'sandbox');
           const payments = Square.payments(order.square_application_id, order.square_location_id);
           card = await payments.card();
           cardTarget.replaceChildren();
           await card.attach(cardTarget);
+          start.hidden = true;
           pay.hidden = false;
-          setStatus('Carte sécurisée prête. Total : ' + (Number(order.total_cents) / 100).toFixed(2) + ' ' + order.currency + '.');
+          setStatus((root.dataset.messageCardReady || 'Secure card form ready. Total: {total} {currency}.')
+            .replace('{total}', (Number(order.total_cents) / 100).toFixed(2))
+            .replace('{currency}', order.currency));
         } catch (error) {
-          setStatus(error.message || 'Le paiement n’a pas pu être préparé.', 'error');
+          setStatus(error.message || root.dataset.messageFailed || 'Payment could not be prepared.', 'error');
         } finally {
           start.disabled = false;
         }
@@ -80,19 +90,31 @@
       pay?.addEventListener('click', async () => {
         if (!order || !card) return;
         pay.disabled = true;
-        setStatus('Traitement du paiement…');
+        setStatus(root.dataset.messageProcessing || 'Processing payment…');
         try {
-          const tokenResult = await card.tokenize();
-          if (tokenResult.status !== 'OK') throw new Error('Les informations de paiement sont invalides.');
+          const billingContact = {};
+          if (root.dataset.buyerGivenName) billingContact.givenName = root.dataset.buyerGivenName;
+          if (root.dataset.buyerFamilyName) billingContact.familyName = root.dataset.buyerFamilyName;
+          if (root.dataset.buyerEmail) billingContact.email = root.dataset.buyerEmail;
+          const verificationDetails = {
+            amount: (Number(order.total_cents) / 100).toFixed(2),
+            currencyCode: order.currency,
+            intent: 'CHARGE',
+            customerInitiated: true,
+            sellerKeyedIn: false,
+            billingContact
+          };
+          const tokenResult = await card.tokenize(verificationDetails);
+          if (tokenResult.status !== 'OK') throw new Error(root.dataset.messageFailed || 'The payment information is invalid.');
           const result = await post(root.dataset.payUrl, {
             order_id: order.id,
             source_id: tokenResult.token,
             idempotency_key: idempotencyKey()
           });
-          setStatus(result.message || 'Paiement reçu. Vos crédits sont maintenant disponibles.', 'success');
+          setStatus(root.dataset.messageSuccess || result.message || 'Payment received.', 'success');
           root.dataset.paid = 'true';
         } catch (error) {
-          setStatus(error.message || 'Le paiement a échoué. Aucun crédit n’a été ajouté.', 'error');
+          setStatus(error.message || root.dataset.messageFailed || 'Payment failed.', 'error');
         } finally {
           pay.disabled = false;
         }

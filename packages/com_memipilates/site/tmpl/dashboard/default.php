@@ -17,6 +17,11 @@ use Joomla\CMS\HTML\HTMLHelper;
     <header class="memi-dashboard__header">
         <h1><?= Text::_('COM_MEMIPILATES_ACCOUNT'); ?></h1>
         <nav class="memi-dashboard__header-actions" aria-label="<?= Text::_('COM_MEMIPILATES_ACCOUNT'); ?>">
+            <?php if ($this->canManageStudio) : ?>
+                <a class="btn btn-outline-secondary" href="<?= Route::_('index.php?option=com_memipilates&view=' . rawurlencode($this->managementLandingView)); ?>">
+                    <?= Text::_('COM_MEMIPILATES_PORTAL_OPEN'); ?>
+                </a>
+            <?php endif; ?>
             <a class="btn btn-outline-primary" href="<?= Route::_('index.php?option=com_memipilates&view=checkout'); ?>">
                 <?= Text::_('COM_MEMIPILATES_BOOKING_BUY_PACKAGE'); ?>
             </a>
@@ -38,7 +43,7 @@ use Joomla\CMS\HTML\HTMLHelper;
                 <li>
                     <strong><?= htmlspecialchars((string) $booking['course_title'], ENT_QUOTES, 'UTF-8'); ?></strong>
                     — <?= htmlspecialchars($this->formatDate((string) $booking['starts_at']), ENT_QUOTES, 'UTF-8'); ?>
-                    <span><?= htmlspecialchars((string) $booking['status'], ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span><?= htmlspecialchars($this->statusLabel((string) $booking['status']), ENT_QUOTES, 'UTF-8'); ?></span>
                     <?php if (in_array((string) $booking['status'], ['confirmed', 'pending'], true)) : ?>
                         <button class="btn btn-sm btn-outline-secondary" type="button" data-memi-cancel-booking data-booking-id="<?= (int) $booking['id']; ?>">
                             <?= Text::_('COM_MEMIPILATES_BOOKING_CANCEL'); ?>
@@ -147,7 +152,7 @@ use Joomla\CMS\HTML\HTMLHelper;
                 <li>
                     <strong><?= htmlspecialchars((string) $booking['course_title'], ENT_QUOTES, 'UTF-8'); ?></strong>
                     — <?= htmlspecialchars($this->formatDate((string) $booking['starts_at']), ENT_QUOTES, 'UTF-8'); ?>
-                    <span><?= htmlspecialchars((string) $booking['status'], ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span><?= htmlspecialchars($this->statusLabel((string) $booking['status']), ENT_QUOTES, 'UTF-8'); ?></span>
                 </li>
             <?php endforeach; ?>
         </ul>

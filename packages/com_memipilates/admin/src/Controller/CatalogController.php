@@ -16,7 +16,7 @@ use Memi\Component\Memipilates\Administrator\Service\ComponentServices;
 use Memi\Component\Memipilates\Administrator\Service\DomainException;
 
 /** Writes the operational studio catalogue from the back-office catalogue view. */
-final class CatalogController extends BaseController
+class CatalogController extends BaseController
 {
     /** @var array<string,list<string>> */
     private const PERMISSIONS = [

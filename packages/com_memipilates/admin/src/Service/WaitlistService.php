@@ -60,23 +60,32 @@ final class WaitlistService
             $position = $this->nextPosition($sessionId);
             $now = gmdate('Y-m-d H:i:s');
             $waiting = $this->waitingStatus();
+            $lifecycleKey = 'waitlist:' . $sessionId . ':' . $userId . ':' . bin2hex(random_bytes(8));
             if ($existing) {
                 $id = (int) $existing['id'];
                 $update = $this->db->getQuery(true)
                     ->update($this->db->quoteName('#__memi_waitlist'))
                     ->set($this->db->quoteName('status') . ' = :status')
                     ->set($this->db->quoteName('position') . ' = :position')
+                    ->set($this->db->quoteName('offer_token_hash') . ' = NULL')
+                    ->set($this->db->quoteName('offered_at') . ' = NULL')
+                    ->set($this->db->quoteName('offer_expires_at') . ' = NULL')
+                    ->set($this->db->quoteName('accepted_at') . ' = NULL')
                     ->set($this->db->quoteName('withdrawn_at') . ' = NULL')
+                    ->set($this->db->quoteName('promoted_booking_id') . ' = NULL')
+                    ->set($this->db->quoteName('idempotency_key') . ' = :idempotency_key')
+                    ->set($this->db->quoteName('joined_at') . ' = :joined_at')
                     ->set($this->db->quoteName('updated_at') . ' = :updated_at')
                     ->where($this->db->quoteName('id') . ' = :id')
                     ->bind(':status', $waiting)
                     ->bind(':position', $position, ParameterType::INTEGER)
+                    ->bind(':idempotency_key', $lifecycleKey)
+                    ->bind(':joined_at', $now)
                     ->bind(':updated_at', $now)
                     ->bind(':id', $id, ParameterType::INTEGER);
                 $this->db->setQuery($update)->execute();
                 $waitlistId = $id;
             } else {
-                $idempotencyKey = 'waitlist:' . $sessionId . ':' . $userId . ':' . bin2hex(random_bytes(8));
                 $insert = $this->db->getQuery(true)
                     ->insert($this->db->quoteName('#__memi_waitlist'))
                     ->columns(['client_id', 'user_id', 'session_id', 'status', 'position', 'idempotency_key', 'joined_at', 'created_at', 'updated_at'])
@@ -86,7 +95,7 @@ final class WaitlistService
                     ->bind(':session_id', $sessionIdentifier, ParameterType::INTEGER)
                     ->bind(':status', $waiting)
                     ->bind(':position', $position, ParameterType::INTEGER)
-                    ->bind(':idempotency_key', $idempotencyKey)
+                    ->bind(':idempotency_key', $lifecycleKey)
                     ->bind(':joined_at', $now)
                     ->bind(':created_at', $now)
                     ->bind(':updated_at', $now);
@@ -306,12 +315,20 @@ final class WaitlistService
                     ->set($this->db->quoteName('status') . ' = :status')
                     ->set($this->db->quoteName('booking_key') . ' = :booking_key')
                     ->set($this->db->quoteName('active_booking_key') . ' = :active_booking_key')
+                    ->set($this->db->quoteName('booked_at') . ' = :booked_at')
+                    ->set($this->db->quoteName('confirmed_at') . ' = :confirmed_at')
+                    ->set($this->db->quoteName('cancelled_at') . ' = NULL')
+                    ->set($this->db->quoteName('cancelled_by') . ' = 0')
+                    ->set($this->db->quoteName('cancellation_reason') . ' = NULL')
+                    ->set($this->db->quoteName('credit_restored_at') . ' = NULL')
                     ->set($this->db->quoteName('source') . ' = :source')
                     ->set($this->db->quoteName('updated_at') . ' = :updated_at')
                     ->where($this->db->quoteName('id') . ' = :id')
                     ->bind(':status', $confirmed)
                     ->bind(':booking_key', $bookingKey)
                     ->bind(':active_booking_key', $activeBookingKey)
+                    ->bind(':booked_at', $now)
+                    ->bind(':confirmed_at', $now)
                     ->bind(':source', $waitlistSource)
                     ->bind(':updated_at', $now)
                     ->bind(':id', $id, ParameterType::INTEGER);
@@ -340,7 +357,12 @@ final class WaitlistService
 
             $required = max(0, (int) ($session['credits_required'] ?? 1));
             for ($unit = 0; $unit < $required; ++$unit) {
-                $this->credits->consumeForBooking($userId, $bookingId, $sessionId, 'waitlist:' . $waitlistId . ':credit:' . $unit, $actorId);
+                // The row is reused because the schema permits only one
+                // waitlist record per session/client. Its lifecycle key is
+                // rotated on every rejoin so a later offer consumes a fresh
+                // credit while retries of the same offer remain idempotent.
+                $creditKey = hash('sha256', 'waitlist-credit:' . (string) $entry['idempotency_key'] . ':' . $unit);
+                $this->credits->consumeForBooking($userId, $bookingId, $sessionId, $creditKey, $actorId);
             }
 
             $id = $waitlistId;

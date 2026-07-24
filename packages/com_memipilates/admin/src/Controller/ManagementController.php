@@ -21,7 +21,7 @@ use Memi\Component\Memipilates\Administrator\Service\DomainException;
  * bookings. It intentionally has its own controller to keep catalogue and
  * display actions independent.
  */
-final class ManagementController extends BaseController
+class ManagementController extends BaseController
 {
     public function createClient(): void
     {

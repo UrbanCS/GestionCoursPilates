@@ -11,7 +11,7 @@ use Joomla\CMS\Factory;
 use Memi\Component\Memipilates\Administrator\View\AbstractAdminView;
 
 /** Customer list enriched with live ledger and active-package summaries. */
-final class HtmlView extends AbstractAdminView
+class HtmlView extends AbstractAdminView
 {
     /** @var list<array<string, mixed>> */
     public array $items = [];

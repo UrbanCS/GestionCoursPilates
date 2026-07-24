@@ -2,7 +2,9 @@
 
 ## Architecture de paiement
 
-Le navigateur utilise le Web Payments SDK pour présenter les champs de carte et obtenir un jeton de paiement à usage unique. Il n’envoie ce jeton qu’au contrôleur Joomla protégé. Le serveur crée ou met à jour le paiement Square, rapproche l’ordre local et ne confirme la réservation qu’après une réponse serveur valide et/ou le traitement idempotent de l’événement webhook pertinent.
+Le navigateur utilise le Web Payments SDK pour présenter les champs de carte et obtenir un jeton de paiement à usage unique. La tokenisation reçoit le montant, la devise, l’intention `CHARGE`, le contexte d’initiative client et les coordonnées déjà connues du compte afin que Square puisse appliquer la vérification acheteur/3-D Secure. Le navigateur n’envoie le jeton obtenu qu’au contrôleur Joomla protégé. Le serveur crée ou met à jour le paiement Square, rapproche l’ordre local et ne confirme la réservation qu’après une réponse serveur valide et/ou le traitement idempotent de l’événement webhook pertinent.
+
+Deux parcours utilisent ce même traitement : l’achat d’un forfait crédite le compte après paiement, tandis que le paiement direct d’une séance retient atomiquement une place puis confirme automatiquement la réservation après le statut Square `COMPLETED`. Une retenue abandonnée expire selon le délai configuré et libère la capacité; une tentative dont la réponse réseau est incertaine reste protégée jusqu’au rapprochement Square.
 
 Le navigateur peut recevoir l’identifiant d’application et d’emplacement publics. Il ne doit jamais recevoir le jeton d’accès Square, la clé de signature de webhook, le secret de configuration ou des données carte. Les numéros complets de carte et CVV ne passent jamais par Joomla ni ses journaux.
 
@@ -50,12 +52,13 @@ Ne mélangez jamais une Application ID/Location ID Sandbox avec un access token 
 
 ## Contrat de traitement
 
-- Une commande locale débute dans un état non payé; une réservation payante reste pending jusqu’à confirmation serveur.
+- Une commande locale débute dans un état non payé; une réservation payante reste `payment_pending` jusqu’à confirmation serveur.
 - Chaque demande de création de paiement possède une clé d’idempotence unique, persistée et liée à une seule intention de commande.
 - L’ID de paiement Square est unique localement. Un même événement webhook possède également un identifiant unique local.
 - Un webhook est d’abord authentifié par signature, puis validé pour le bon environnement et le bon emplacement. Les contrôles ne doivent pas être contournés par un statut envoyé par navigateur.
 - Les doublons de callback ou de webhook réussissent sans réattribuer forfait, crédit, réservation ou points.
 - Un remboursement est une action administrative explicite et auditée. Il ne déclenche pas automatiquement une restauration de crédit sans règle métier explicite.
+- L’annulation d’une réservation payée directement ne rembourse pas automatiquement la carte; le remboursement Square demeure une action administrative explicite.
 
 ## Diagnostic sûr
 

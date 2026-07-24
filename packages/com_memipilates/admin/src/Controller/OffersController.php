@@ -16,7 +16,7 @@ use Memi\Component\Memipilates\Administrator\Service\ComponentServices;
 use Memi\Component\Memipilates\Administrator\Service\DomainException;
 
 /** Protected back-office changes to promotion codes and reward catalogue. */
-final class OffersController extends BaseController
+class OffersController extends BaseController
 {
     public function savePromotion(): void
     {

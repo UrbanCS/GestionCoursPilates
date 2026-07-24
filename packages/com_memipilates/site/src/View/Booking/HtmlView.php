@@ -20,8 +20,10 @@ final class HtmlView extends BaseHtmlView
     public ?array $session = null;
     public int $userId = 0;
     public int $creditBalance = 0;
+    public string $currency = 'CAD';
     public string $reserveEndpoint = '';
     public string $waitlistEndpoint = '';
+    public string $checkoutUrl = '';
 
     /** Formats UTC database values in the configured studio timezone. */
     public function formatDate(?string $value): string
@@ -48,8 +50,11 @@ final class HtmlView extends BaseHtmlView
             throw new \RuntimeException('COM_MEMIPILATES_ERROR_SESSION_NOT_FOUND', 404);
         }
         $this->creditBalance = $this->userId > 0 ? ComponentServices::credits()->balance($this->userId) : 0;
+        $configuredCurrency = strtoupper((string) ComponentServices::settings()->get('currency', 'CAD'));
+        $this->currency = preg_match('/^[A-Z]{3}$/D', $configuredCurrency) ? $configuredCurrency : 'CAD';
         $this->reserveEndpoint = Route::_('index.php?option=com_memipilates&task=booking.reserve&format=json', false);
         $this->waitlistEndpoint = Route::_('index.php?option=com_memipilates&task=booking.joinWaitlist&format=json', false);
+        $this->checkoutUrl = Route::_('index.php?option=com_memipilates&view=checkout&session_id=' . $id, false);
         Factory::getApplication()->getDocument()->getWebAssetManager()->useStyle('com_memipilates.site')->useScript('com_memipilates.booking');
         parent::display($tpl);
     }

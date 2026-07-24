@@ -113,6 +113,173 @@ final class PaymentService
     }
 
     /**
+     * Creates a pending order and atomically holds one place in a specific
+     * session. The hold becomes a confirmed booking only after Square reports
+     * COMPLETED; a definitive failure or an expired hold releases capacity.
+     *
+     * @return array<string,mixed>
+     */
+    public function createSessionOrder(int $userId, int $sessionId): array
+    {
+        if ($userId <= 0 || $sessionId <= 0) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
+        }
+        if ($this->publicApplicationId() === '' || $this->publicLocationId() === '' || $this->squareAccessToken() === '') {
+            throw new DomainException('COM_MEMIPILATES_ERROR_SQUARE_NOT_CONFIGURED', [], 503);
+        }
+
+        return $this->tools->transaction(function () use ($userId, $sessionId): array {
+            $profile = $this->tools->lockClientProfile($userId);
+            $clientId = (int) $profile['id'];
+            $session = $this->lockSessionForPurchase($sessionId);
+            $this->assertSessionPurchasable($session);
+
+            $existing = $this->findBookingForUpdate($userId, $sessionId);
+            if ($existing && in_array((string) $existing['status'], ['confirmed', 'pending', 'attended'], true)) {
+                throw new DomainException('COM_MEMIPILATES_ERROR_ALREADY_BOOKED');
+            }
+            if ($existing && (string) $existing['status'] === 'payment_pending' && (int) ($existing['order_id'] ?? 0) > 0) {
+                $existingOrder = $this->tools->lockById('#__memi_orders', (int) $existing['order_id']);
+                if ($existingOrder && in_array((string) $existingOrder['status'], ['pending', 'payment_processing'], true)) {
+                    return $this->sessionCheckoutPayload($existingOrder, $session, (int) $existing['id']);
+                }
+            }
+
+            $subtotal = max(0, (int) $session['price_cents']);
+            if ($subtotal <= 0) {
+                throw new DomainException('COM_MEMIPILATES_ERROR_DIRECT_PAYMENT_UNAVAILABLE');
+            }
+            $taxRateBasisPoints = max(0, (int) ($session['tax_rate_basis_points'] ?? 0));
+            $tax = (int) round($subtotal * $taxRateBasisPoints / 10000);
+            $total = $subtotal + $tax;
+            $currency = strtoupper((string) $this->settings->get('currency', 'CAD'));
+            if (!preg_match('/^[A-Z]{3}$/D', $currency)) {
+                $currency = 'CAD';
+            }
+            $now = gmdate('Y-m-d H:i:s');
+            $orderKey = bin2hex(random_bytes(16));
+            $pending = 'pending';
+            $orderUser = $userId;
+            $insertOrder = $this->db->getQuery(true)
+                ->insert($this->db->quoteName('#__memi_orders'))
+                ->columns([
+                    'client_id', 'user_id', 'status', 'currency', 'subtotal_cents', 'discount_cents',
+                    'tax_cents', 'total_cents', 'order_key', 'created_at', 'updated_at',
+                ])
+                ->values(':client_id, :user_id, :status, :currency, :subtotal_cents, 0, :tax_cents, :total_cents, :order_key, :created_at, :updated_at')
+                ->bind(':client_id', $clientId, ParameterType::INTEGER)
+                ->bind(':user_id', $orderUser, ParameterType::INTEGER)
+                ->bind(':status', $pending)
+                ->bind(':currency', $currency)
+                ->bind(':subtotal_cents', $subtotal, ParameterType::INTEGER)
+                ->bind(':tax_cents', $tax, ParameterType::INTEGER)
+                ->bind(':total_cents', $total, ParameterType::INTEGER)
+                ->bind(':order_key', $orderKey)
+                ->bind(':created_at', $now)
+                ->bind(':updated_at', $now);
+            $this->db->setQuery($insertOrder)->execute();
+            $orderId = (int) $this->db->insertid();
+
+            if (!$this->claimCapacity($sessionId)) {
+                throw new DomainException('COM_MEMIPILATES_ERROR_SESSION_FULL');
+            }
+
+            $bookingKey = bin2hex(random_bytes(16));
+            $activeBookingKey = hash('sha256', $sessionId . ':' . $userId);
+            $bookingStatus = 'payment_pending';
+            $source = 'square_direct';
+            $sessionIdentifier = $sessionId;
+            if ($existing) {
+                $bookingId = (int) $existing['id'];
+                $bookingIdentifier = $bookingId;
+                $updateBooking = $this->db->getQuery(true)
+                    ->update($this->db->quoteName('#__memi_bookings'))
+                    ->set($this->db->quoteName('order_id') . ' = :order_id')
+                    ->set($this->db->quoteName('status') . ' = :status')
+                    ->set($this->db->quoteName('booking_key') . ' = :booking_key')
+                    ->set($this->db->quoteName('active_booking_key') . ' = :active_booking_key')
+                    ->set($this->db->quoteName('source') . ' = :source')
+                    ->set($this->db->quoteName('booked_at') . ' = :booked_at')
+                    ->set($this->db->quoteName('confirmed_at') . ' = NULL')
+                    ->set($this->db->quoteName('cancelled_at') . ' = NULL')
+                    ->set($this->db->quoteName('cancelled_by') . ' = 0')
+                    ->set($this->db->quoteName('cancellation_reason') . ' = NULL')
+                    ->set($this->db->quoteName('credit_restored_at') . ' = NULL')
+                    ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+                    ->where($this->db->quoteName('id') . ' = :id')
+                    ->bind(':order_id', $orderId, ParameterType::INTEGER)
+                    ->bind(':status', $bookingStatus)
+                    ->bind(':booking_key', $bookingKey)
+                    ->bind(':active_booking_key', $activeBookingKey)
+                    ->bind(':source', $source)
+                    ->bind(':booked_at', $now)
+                    ->bind(':updated_at', $now)
+                    ->bind(':id', $bookingIdentifier, ParameterType::INTEGER);
+                $this->db->setQuery($updateBooking)->execute();
+            } else {
+                $bookingUser = $userId;
+                $insertBooking = $this->db->getQuery(true)
+                    ->insert($this->db->quoteName('#__memi_bookings'))
+                    ->columns([
+                        'session_id', 'client_id', 'user_id', 'order_id', 'booking_key', 'active_booking_key',
+                        'status', 'source', 'booked_at', 'created_at', 'updated_at',
+                    ])
+                    ->values(':session_id, :client_id, :user_id, :order_id, :booking_key, :active_booking_key, :status, :source, :booked_at, :created_at, :updated_at')
+                    ->bind(':session_id', $sessionIdentifier, ParameterType::INTEGER)
+                    ->bind(':client_id', $clientId, ParameterType::INTEGER)
+                    ->bind(':user_id', $bookingUser, ParameterType::INTEGER)
+                    ->bind(':order_id', $orderId, ParameterType::INTEGER)
+                    ->bind(':booking_key', $bookingKey)
+                    ->bind(':active_booking_key', $activeBookingKey)
+                    ->bind(':status', $bookingStatus)
+                    ->bind(':source', $source)
+                    ->bind(':booked_at', $now)
+                    ->bind(':created_at', $now)
+                    ->bind(':updated_at', $now);
+                $this->db->setQuery($insertBooking)->execute();
+                $bookingId = (int) $this->db->insertid();
+            }
+
+            $itemType = 'session';
+            $title = (string) $session['course_title'];
+            $itemMetadata = json_encode([
+                'booking_id' => $bookingId,
+                'starts_at' => (string) $session['starts_at'],
+            ], JSON_THROW_ON_ERROR);
+            $insertItem = $this->db->getQuery(true)
+                ->insert($this->db->quoteName('#__memi_order_items'))
+                ->columns([
+                    'order_id', 'item_type', 'item_id', 'title_snapshot', 'quantity',
+                    'unit_price_cents', 'tax_cents', 'total_cents', 'metadata', 'created_at',
+                ])
+                ->values(':order_id, :item_type, :item_id, :title_snapshot, 1, :unit_price_cents, :tax_cents, :total_cents, :metadata, :created_at')
+                ->bind(':order_id', $orderId, ParameterType::INTEGER)
+                ->bind(':item_type', $itemType)
+                ->bind(':item_id', $sessionIdentifier, ParameterType::INTEGER)
+                ->bind(':title_snapshot', $title)
+                ->bind(':unit_price_cents', $subtotal, ParameterType::INTEGER)
+                ->bind(':tax_cents', $tax, ParameterType::INTEGER)
+                ->bind(':total_cents', $subtotal, ParameterType::INTEGER)
+                ->bind(':metadata', $itemMetadata)
+                ->bind(':created_at', $now);
+            $this->db->setQuery($insertItem)->execute();
+
+            $this->audit->log($userId, 'order.session.create', 'order', $orderId, null, [
+                'session_id' => $sessionId,
+                'booking_id' => $bookingId,
+                'total_cents' => $total,
+            ]);
+
+            return $this->sessionCheckoutPayload([
+                'id' => $orderId,
+                'order_key' => $orderKey,
+                'total_cents' => $total,
+                'currency' => $currency,
+            ], $session, $bookingId);
+        });
+    }
+
+    /**
      * Charges a Square token and fulfills the order only after Square reports
      * COMPLETED. A duplicate request returns the existing successful payment.
      *
@@ -140,7 +307,7 @@ final class PaymentService
         } catch (\Throwable $error) {
             $definitiveLocalFailure = $this->isDefinitivePaymentFailure($error);
             if ($definitiveLocalFailure) {
-                $this->markOrderFailed($orderId, 'provider_rejected');
+                $this->failOrderAfterPaymentAttempt($orderId, 'provider_rejected');
             } else {
                 // A timeout/5xx does not prove that Square rejected the
                 // charge. Keep the attempt and promotion claim in processing
@@ -155,7 +322,7 @@ final class PaymentService
         if (($squarePayment['status'] ?? '') !== 'COMPLETED') {
             $providerStatus = strtoupper((string) ($squarePayment['status'] ?? 'unknown'));
             if (in_array($providerStatus, ['FAILED', 'CANCELED', 'CANCELLED'], true)) {
-                $this->markOrderFailed($orderId, $providerStatus);
+                $this->failOrderAfterPaymentAttempt($orderId, $providerStatus);
             }
             throw new DomainException('COM_MEMIPILATES_ERROR_PAYMENT_FAILED');
         }
@@ -188,18 +355,18 @@ final class PaymentService
                 ->bind(':id', $id, ParameterType::INTEGER);
             $this->db->setQuery($update)->execute();
 
-            $this->fulfillPackageItems($userId, $orderId);
+            $fulfillment = $this->fulfillOrderItems($userId, $orderId);
             $this->audit->log($userId, 'payment.complete', 'payment', $paymentId, null, [
                 'order_id' => $orderId,
                 'amount_cents' => (int) $order['total_cents'],
             ]);
 
-            return [
+            return array_merge([
                 'order_id' => $orderId,
                 'payment_id' => $paymentId,
                 'status' => 'paid',
                 'receipt_url' => $squarePayment['receipt_url'] ?? null,
-            ];
+            ], $fulfillment);
         });
     }
 
@@ -228,6 +395,7 @@ final class PaymentService
                 throw new DomainException('COM_MEMIPILATES_ERROR_ORDER_NOT_PAYABLE');
             }
 
+            $this->prepareSessionOrderForPayment($order);
             $this->assertPromotionClaimAvailable($order);
 
             // A pending order has never reached Square and payment_failed is a
@@ -362,6 +530,92 @@ final class PaymentService
             'location_id' => $this->publicLocationId(),
             'environment' => $this->isSandbox() ? 'sandbox' : 'production',
         ];
+    }
+
+    /**
+     * Releases abandoned direct-payment holds that never reached Square.
+     * Attempts already in payment_processing are deliberately excluded and
+     * remain protected until provider reconciliation determines their result.
+     */
+    public function expirePendingSessionOrders(int $limit = 100): int
+    {
+        $limit = max(1, min($limit, 500));
+        $holdMinutes = max(5, min($this->settings->getInt('direct_payment_hold_minutes', 15), 120));
+        $cutoff = gmdate('Y-m-d H:i:s', time() - ($holdMinutes * 60));
+        $pendingOrder = 'pending';
+        $pendingBooking = 'payment_pending';
+        $query = $this->db->getQuery(true)
+            ->select('o.id')
+            ->from($this->db->quoteName('#__memi_orders', 'o'))
+            ->join('INNER', $this->db->quoteName('#__memi_bookings', 'b') . ' ON b.order_id = o.id')
+            ->where('o.status = :order_status')
+            ->where('b.status = :booking_status')
+            ->where('o.created_at <= :cutoff')
+            ->order('o.created_at ASC, o.id ASC')
+            ->bind(':order_status', $pendingOrder)
+            ->bind(':booking_status', $pendingBooking)
+            ->bind(':cutoff', $cutoff);
+        $this->db->setQuery($query, 0, $limit);
+        $orderIds = array_map('intval', $this->db->loadColumn() ?: []);
+        $expired = 0;
+
+        foreach ($orderIds as $orderId) {
+            $changed = $this->tools->transaction(function () use ($orderId, $cutoff): bool {
+                $order = $this->tools->lockById('#__memi_orders', $orderId);
+                if (!$order || (string) $order['status'] !== 'pending' || (string) $order['created_at'] > $cutoff) {
+                    return false;
+                }
+                $booking = $this->bookingForOrderForUpdate($orderId);
+                if (!$booking || (string) $booking['status'] !== 'payment_pending') {
+                    return false;
+                }
+
+                $now = gmdate('Y-m-d H:i:s');
+                $expiredOrder = 'expired';
+                $failureReason = 'payment_hold_expired';
+                $orderIdentifier = $orderId;
+                $orderUpdate = $this->db->getQuery(true)
+                    ->update($this->db->quoteName('#__memi_orders'))
+                    ->set($this->db->quoteName('status') . ' = :status')
+                    ->set($this->db->quoteName('failed_at') . ' = :failed_at')
+                    ->set($this->db->quoteName('failure_reason') . ' = :failure_reason')
+                    ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+                    ->where($this->db->quoteName('id') . ' = :id')
+                    ->bind(':status', $expiredOrder)
+                    ->bind(':failed_at', $now)
+                    ->bind(':failure_reason', $failureReason)
+                    ->bind(':updated_at', $now)
+                    ->bind(':id', $orderIdentifier, ParameterType::INTEGER);
+                $this->db->setQuery($orderUpdate)->execute();
+
+                $bookingIdentifier = (int) $booking['id'];
+                $expiredBooking = 'payment_expired';
+                $bookingUpdate = $this->db->getQuery(true)
+                    ->update($this->db->quoteName('#__memi_bookings'))
+                    ->set($this->db->quoteName('status') . ' = :status')
+                    ->set($this->db->quoteName('active_booking_key') . ' = NULL')
+                    ->set($this->db->quoteName('cancelled_at') . ' = :cancelled_at')
+                    ->set($this->db->quoteName('cancellation_reason') . ' = :reason')
+                    ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+                    ->where($this->db->quoteName('id') . ' = :id')
+                    ->bind(':status', $expiredBooking)
+                    ->bind(':cancelled_at', $now)
+                    ->bind(':reason', $failureReason)
+                    ->bind(':updated_at', $now)
+                    ->bind(':id', $bookingIdentifier, ParameterType::INTEGER);
+                $this->db->setQuery($bookingUpdate)->execute();
+                $this->releaseCapacity((int) $booking['session_id']);
+                $this->audit->log(null, 'order.session.expire', 'order', $orderId, $order, [
+                    'booking_id' => $bookingIdentifier,
+                    'session_id' => (int) $booking['session_id'],
+                ]);
+
+                return true;
+            });
+            $expired += $changed ? 1 : 0;
+        }
+
+        return $expired;
     }
 
     /**
@@ -702,6 +956,338 @@ final class PaymentService
         }
 
         return $reconciled;
+    }
+
+    /** @return array<string,mixed> */
+    private function sessionCheckoutPayload(array $order, array $session, int $bookingId): array
+    {
+        return [
+            'id' => (int) $order['id'],
+            'order_key' => (string) $order['order_key'],
+            'status' => (string) ($order['status'] ?? 'pending'),
+            'total_cents' => (int) $order['total_cents'],
+            'currency' => (string) $order['currency'],
+            'square_application_id' => $this->publicApplicationId(),
+            'square_location_id' => $this->publicLocationId(),
+            'environment' => $this->isSandbox() ? 'sandbox' : 'production',
+            'booking_id' => $bookingId,
+            'session_id' => (int) $session['id'],
+            'session_title' => (string) ($session['course_title'] ?? ''),
+            'starts_at' => (string) $session['starts_at'],
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    private function lockSessionForPurchase(int $sessionId): array
+    {
+        $session = $this->tools->lockById('#__memi_sessions', $sessionId);
+        if (!$session) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_SESSION_NOT_FOUND', [], 404);
+        }
+
+        $identifier = $sessionId;
+        $query = $this->db->getQuery(true)
+            ->select([
+                'c.title AS course_title',
+                'i.display_name AS instructor_name',
+                'r.title AS room_title',
+                'l.title AS location_title',
+            ])
+            ->from($this->db->quoteName('#__memi_sessions', 's'))
+            ->join('INNER', $this->db->quoteName('#__memi_courses', 'c') . ' ON c.id = s.course_id')
+            ->join('LEFT', $this->db->quoteName('#__memi_instructors', 'i') . ' ON i.id = s.instructor_id')
+            ->join('LEFT', $this->db->quoteName('#__memi_rooms', 'r') . ' ON r.id = s.room_id')
+            ->join('LEFT', $this->db->quoteName('#__memi_locations', 'l') . ' ON l.id = r.location_id')
+            ->where('s.id = :session_id')
+            ->where('s.archived_at IS NULL')
+            ->where('c.archived_at IS NULL')
+            ->where('c.published = 1')
+            ->bind(':session_id', $identifier, ParameterType::INTEGER);
+        $this->db->setQuery($query, 0, 1);
+        $context = $this->db->loadAssoc();
+        if (!$context) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_SESSION_NOT_FOUND', [], 404);
+        }
+
+        return array_merge($session, $context);
+    }
+
+    /** @param array<string,mixed> $session */
+    private function assertSessionPurchasable(array $session): void
+    {
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        if (!in_array((string) $session['status'], ['published', 'open'], true)) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_SESSION_UNAVAILABLE');
+        }
+        if (!empty($session['registration_opens_at'])
+            && $now < new \DateTimeImmutable((string) $session['registration_opens_at'], new \DateTimeZone('UTC'))) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_REGISTRATION_NOT_OPEN');
+        }
+        if (!empty($session['registration_closes_at'])
+            && $now >= new \DateTimeImmutable((string) $session['registration_closes_at'], new \DateTimeZone('UTC'))) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_REGISTRATION_CLOSED');
+        }
+        if ($now >= new \DateTimeImmutable((string) $session['starts_at'], new \DateTimeZone('UTC'))) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_SESSION_STARTED');
+        }
+    }
+
+    /** @return array<string,mixed>|null */
+    private function findBookingForUpdate(int $userId, int $sessionId): ?array
+    {
+        $user = $userId;
+        $session = $sessionId;
+        $query = $this->db->getQuery(true)
+            ->select('*')
+            ->from($this->db->quoteName('#__memi_bookings'))
+            ->where($this->db->quoteName('user_id') . ' = :user_id')
+            ->where($this->db->quoteName('session_id') . ' = :session_id')
+            ->order($this->db->quoteName('id') . ' DESC')
+            ->bind(':user_id', $user, ParameterType::INTEGER)
+            ->bind(':session_id', $session, ParameterType::INTEGER);
+        $query->setLimit(1);
+        $this->db->setQuery(DatabaseTools::forUpdate($query));
+
+        return $this->db->loadAssoc() ?: null;
+    }
+
+    /** @return array<string,mixed>|null */
+    private function bookingForOrderForUpdate(int $orderId): ?array
+    {
+        $order = $orderId;
+        $source = 'square_direct';
+        $query = $this->db->getQuery(true)
+            ->select('*')
+            ->from($this->db->quoteName('#__memi_bookings'))
+            ->where($this->db->quoteName('order_id') . ' = :order_id')
+            ->where($this->db->quoteName('source') . ' = :source')
+            ->bind(':order_id', $order, ParameterType::INTEGER)
+            ->bind(':source', $source);
+        $query->setLimit(1);
+        $this->db->setQuery(DatabaseTools::forUpdate($query));
+
+        return $this->db->loadAssoc() ?: null;
+    }
+
+    private function claimCapacity(int $sessionId): bool
+    {
+        $identifier = $sessionId;
+        $published = 'published';
+        $open = 'open';
+        $now = gmdate('Y-m-d H:i:s');
+        $query = $this->db->getQuery(true)
+            ->update($this->db->quoteName('#__memi_sessions'))
+            ->set($this->db->quoteName('reserved_count') . ' = ' . $this->db->quoteName('reserved_count') . ' + 1')
+            ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+            ->where($this->db->quoteName('id') . ' = :session_id')
+            ->where($this->db->quoteName('reserved_count') . ' < ' . $this->db->quoteName('capacity'))
+            ->where($this->db->quoteName('status') . ' IN (:published, :open)')
+            ->bind(':updated_at', $now)
+            ->bind(':session_id', $identifier, ParameterType::INTEGER)
+            ->bind(':published', $published)
+            ->bind(':open', $open);
+        $this->db->setQuery($query)->execute();
+
+        return $this->db->getAffectedRows() === 1;
+    }
+
+    private function releaseCapacity(int $sessionId): void
+    {
+        $identifier = $sessionId;
+        $now = gmdate('Y-m-d H:i:s');
+        $query = $this->db->getQuery(true)
+            ->update($this->db->quoteName('#__memi_sessions'))
+            ->set($this->db->quoteName('reserved_count') . ' = GREATEST(0, ' . $this->db->quoteName('reserved_count') . ' - 1)')
+            ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+            ->where($this->db->quoteName('id') . ' = :session_id')
+            ->bind(':updated_at', $now)
+            ->bind(':session_id', $identifier, ParameterType::INTEGER);
+        $this->db->setQuery($query)->execute();
+    }
+
+    /**
+     * A failed direct-payment attempt no longer owns capacity. Before retrying
+     * that same immutable order, atomically claim a fresh place and reactivate
+     * its booking. Package orders have no linked square_direct booking.
+     *
+     * @param array<string,mixed> $order
+     */
+    private function prepareSessionOrderForPayment(array $order): void
+    {
+        $booking = $this->bookingForOrderForUpdate((int) $order['id']);
+        if (!$booking) {
+            $orderIdentifier = (int) $order['id'];
+            $sessionType = 'session';
+            $itemQuery = $this->db->getQuery(true)
+                ->select('COUNT(*)')
+                ->from($this->db->quoteName('#__memi_order_items'))
+                ->where($this->db->quoteName('order_id') . ' = :order_id')
+                ->where($this->db->quoteName('item_type') . ' = :item_type')
+                ->bind(':order_id', $orderIdentifier, ParameterType::INTEGER)
+                ->bind(':item_type', $sessionType);
+            $this->db->setQuery($itemQuery);
+            if ((int) $this->db->loadResult() > 0) {
+                throw new DomainException('COM_MEMIPILATES_ERROR_ORDER_NOT_PAYABLE');
+            }
+            return;
+        }
+        if ((string) $booking['status'] === 'payment_pending') {
+            $session = $this->lockSessionForPurchase((int) $booking['session_id']);
+            $this->assertSessionPurchasable($session);
+            return;
+        }
+        if ((string) $order['status'] !== 'payment_failed'
+            || !in_array((string) $booking['status'], ['payment_failed', 'payment_expired'], true)) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_ORDER_NOT_PAYABLE');
+        }
+
+        $session = $this->lockSessionForPurchase((int) $booking['session_id']);
+        $this->assertSessionPurchasable($session);
+        if (!$this->claimCapacity((int) $booking['session_id'])) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_SESSION_FULL');
+        }
+
+        $now = gmdate('Y-m-d H:i:s');
+        $identifier = (int) $booking['id'];
+        $status = 'payment_pending';
+        $activeBookingKey = hash('sha256', (int) $booking['session_id'] . ':' . (int) $booking['user_id']);
+        $query = $this->db->getQuery(true)
+            ->update($this->db->quoteName('#__memi_bookings'))
+            ->set($this->db->quoteName('status') . ' = :status')
+            ->set($this->db->quoteName('active_booking_key') . ' = :active_booking_key')
+            ->set($this->db->quoteName('cancelled_at') . ' = NULL')
+            ->set($this->db->quoteName('cancelled_by') . ' = 0')
+            ->set($this->db->quoteName('cancellation_reason') . ' = NULL')
+            ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+            ->where($this->db->quoteName('id') . ' = :id')
+            ->bind(':status', $status)
+            ->bind(':active_booking_key', $activeBookingKey)
+            ->bind(':updated_at', $now)
+            ->bind(':id', $identifier, ParameterType::INTEGER);
+        $this->db->setQuery($query)->execute();
+    }
+
+    private function failOrderAfterPaymentAttempt(int $orderId, string $reason): void
+    {
+        $this->tools->transaction(function () use ($orderId, $reason): void {
+            $order = $this->tools->lockById('#__memi_orders', $orderId);
+            if (!$order || (string) $order['status'] === 'paid') {
+                return;
+            }
+            if (!in_array((string) $order['status'], ['pending', 'payment_processing', 'payment_failed'], true)) {
+                return;
+            }
+            $this->markOrderFailed($orderId, $reason);
+        });
+    }
+
+    /** @return array<string,int> */
+    private function fulfillOrderItems(int $userId, int $orderId): array
+    {
+        $identifier = $orderId;
+        $query = $this->db->getQuery(true)
+            ->select('DISTINCT ' . $this->db->quoteName('item_type'))
+            ->from($this->db->quoteName('#__memi_order_items'))
+            ->where($this->db->quoteName('order_id') . ' = :order_id')
+            ->bind(':order_id', $identifier, ParameterType::INTEGER);
+        $this->db->setQuery($query);
+        $types = array_values(array_unique(array_map('strval', $this->db->loadColumn() ?: [])));
+        if ($types === ['package']) {
+            $this->fulfillPackageItems($userId, $orderId);
+
+            return [];
+        }
+        if ($types === ['session']) {
+            return $this->fulfillSessionItems($userId, $orderId);
+        }
+
+        throw new DomainException('COM_MEMIPILATES_ERROR_ORDER_NOT_PAYABLE');
+    }
+
+    /** @return array{booking_id:int,session_id:int} */
+    private function fulfillSessionItems(int $userId, int $orderId): array
+    {
+        $booking = $this->bookingForOrderForUpdate($orderId);
+        if (!$booking || (int) $booking['user_id'] !== $userId) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_ORDER_NOT_PAYABLE');
+        }
+        if ((string) $booking['status'] === 'confirmed') {
+            return ['booking_id' => (int) $booking['id'], 'session_id' => (int) $booking['session_id']];
+        }
+        if ((string) $booking['status'] !== 'payment_pending') {
+            throw new DomainException('COM_MEMIPILATES_ERROR_ORDER_NOT_PAYABLE');
+        }
+
+        $session = $this->lockSessionForPurchase((int) $booking['session_id']);
+        if (!in_array((string) $session['status'], ['published', 'open'], true)) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_SESSION_UNAVAILABLE');
+        }
+
+        $now = gmdate('Y-m-d H:i:s');
+        $identifier = (int) $booking['id'];
+        $confirmed = 'confirmed';
+        $query = $this->db->getQuery(true)
+            ->update($this->db->quoteName('#__memi_bookings'))
+            ->set($this->db->quoteName('status') . ' = :status')
+            ->set($this->db->quoteName('confirmed_at') . ' = :confirmed_at')
+            ->set($this->db->quoteName('cancelled_at') . ' = NULL')
+            ->set($this->db->quoteName('cancelled_by') . ' = 0')
+            ->set($this->db->quoteName('cancellation_reason') . ' = NULL')
+            ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+            ->where($this->db->quoteName('id') . ' = :id')
+            ->bind(':status', $confirmed)
+            ->bind(':confirmed_at', $now)
+            ->bind(':updated_at', $now)
+            ->bind(':id', $identifier, ParameterType::INTEGER);
+        $this->db->setQuery($query)->execute();
+
+        $order = $this->tools->lockById('#__memi_orders', $orderId);
+        if ($order && $this->settings->getBool('loyalty_enabled', true)) {
+            $perDollar = max(0, $this->settings->getInt('points_per_dollar', 1));
+            $orderPoints = (int) floor((int) $order['total_cents'] / 100) * $perDollar;
+            if ($orderPoints > 0) {
+                $this->points->award(
+                    $userId,
+                    $orderPoints,
+                    'order_paid',
+                    'order:' . $orderId . ':spend-points',
+                    null,
+                    $orderId,
+                    $userId,
+                    'Points d’achat'
+                );
+            }
+        }
+
+        $notificationPayload = [
+            'session_id' => (int) $session['id'],
+            'session_title' => (string) ($session['course_title'] ?? ''),
+            'starts_at' => (string) $session['starts_at'],
+            'instructor_name' => (string) ($session['instructor_name'] ?? ''),
+            'room_title' => (string) ($session['room_title'] ?? ''),
+            'location_title' => (string) ($session['location_title'] ?? ''),
+        ];
+        $this->notifications->queue(
+            $userId,
+            'booking.confirmed',
+            $notificationPayload,
+            null,
+            'booking-confirmed:' . $identifier . ':' . (string) $booking['booking_key']
+        );
+        $this->notifications->queue(
+            $userId,
+            'payment.receipt',
+            ['order_id' => $orderId],
+            null,
+            'payment-receipt:order:' . $orderId
+        );
+        $this->audit->log($userId, 'booking.confirm.direct_payment', 'booking', $identifier, $booking, [
+            'order_id' => $orderId,
+            'session_id' => (int) $session['id'],
+            'status' => $confirmed,
+        ]);
+
+        return ['booking_id' => $identifier, 'session_id' => (int) $session['id']];
     }
 
     private function publicApplicationId(): string
@@ -1566,6 +2152,32 @@ final class PaymentService
             ->bind(':updated_at', $now)
             ->bind(':id', $id, ParameterType::INTEGER);
         $this->db->setQuery($query)->execute();
+
+        $booking = $this->bookingForOrderForUpdate($orderId);
+        if ($booking && (string) $booking['status'] === 'payment_pending') {
+            $bookingId = (int) $booking['id'];
+            $bookingFailure = 'payment_failed';
+            $bookingUpdate = $this->db->getQuery(true)
+                ->update($this->db->quoteName('#__memi_bookings'))
+                ->set($this->db->quoteName('status') . ' = :status')
+                ->set($this->db->quoteName('active_booking_key') . ' = NULL')
+                ->set($this->db->quoteName('cancelled_at') . ' = :cancelled_at')
+                ->set($this->db->quoteName('cancellation_reason') . ' = :reason')
+                ->set($this->db->quoteName('updated_at') . ' = :updated_at')
+                ->where($this->db->quoteName('id') . ' = :id')
+                ->bind(':status', $bookingFailure)
+                ->bind(':cancelled_at', $now)
+                ->bind(':reason', $failure)
+                ->bind(':updated_at', $now)
+                ->bind(':id', $bookingId, ParameterType::INTEGER);
+            $this->db->setQuery($bookingUpdate)->execute();
+            $this->releaseCapacity((int) $booking['session_id']);
+            $this->audit->log(null, 'booking.direct_payment_failed', 'booking', $bookingId, $booking, [
+                'order_id' => $orderId,
+                'session_id' => (int) $booking['session_id'],
+                'reason' => $failure,
+            ]);
+        }
     }
 
     /** @return array<string,mixed>|null */
@@ -1685,7 +2297,8 @@ final class PaymentService
             ->join('INNER', $this->db->quoteName('#__memi_payments', 'p') . ' ON p.id = r.payment_id')
             ->where('r.provider_refund_id = :provider_refund_id')
             ->bind(':provider_refund_id', $providerRefundId);
-        $this->db->setQuery(DatabaseTools::forUpdate($query), 0, 1);
+        $query->setLimit(1);
+        $this->db->setQuery(DatabaseTools::forUpdate($query));
         $local = $this->db->loadAssoc();
         if (!$local) {
             $processing = 'processing';
@@ -1701,7 +2314,8 @@ final class PaymentService
                 ->bind(':processing_status', $processing)
                 ->bind(':amount_cents', $amount, ParameterType::INTEGER)
                 ->bind(':provider_payment_id', $providerPaymentId);
-            $this->db->setQuery(DatabaseTools::forUpdate($query), 0, 1);
+            $query->setLimit(1);
+            $this->db->setQuery(DatabaseTools::forUpdate($query));
             $local = $this->db->loadAssoc();
         }
         if (!$local) {
@@ -1870,6 +2484,7 @@ final class PaymentService
         if ($localPaymentKey === '') {
             $localPaymentKey = hash('sha256', 'square-webhook-payment:' . $providerPaymentId);
         }
+        $this->prepareSessionOrderForPayment($order);
         $paymentId = $this->insertPayment($order, $payment, $localPaymentKey);
 
         $now = gmdate('Y-m-d H:i:s');
@@ -1886,7 +2501,7 @@ final class PaymentService
             ->bind(':updated_at', $now)
             ->bind(':id', $identifier, ParameterType::INTEGER);
         $this->db->setQuery($update)->execute();
-        $this->fulfillPackageItems((int) $order['user_id'], $orderId);
+        $this->fulfillOrderItems((int) $order['user_id'], $orderId);
         $this->audit->log(null, 'payment.webhook_complete', 'payment', $paymentId, null, ['order_id' => $orderId]);
     }
 

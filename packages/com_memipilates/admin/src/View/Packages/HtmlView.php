@@ -11,7 +11,7 @@ use Joomla\CMS\Factory;
 use Memi\Component\Memipilates\Administrator\View\AbstractAdminView;
 
 /** Product list with real active-customer and outstanding-credit counts. */
-final class HtmlView extends AbstractAdminView
+class HtmlView extends AbstractAdminView
 {
     /** @var list<array<string, mixed>> */
     public array $items = [];

@@ -7,6 +7,7 @@ Configurer les options dans **Composants → Memi Pilates → Options** après l
 | Fuseau horaire | `America/Toronto` | Les dates stockées restent en UTC. |
 | Devise | `CAD` | Montants stockés en cents. |
 | Délai d’annulation | `12` heures | Ajustable selon la politique du studio. |
+| Retenue d’un paiement direct | `15` minutes | Une commande de séance abandonnée libère ensuite automatiquement sa place. |
 | Promotion automatique de l’attente | Activée | Désactiver pour imposer la promotion manuelle. |
 | Durée d’une offre d’attente | `60` minutes | La place est retenue jusqu’à l’acceptation, au retrait ou à l’expiration. |
 | Rappels | `24,2` | Heures avant la séance. |

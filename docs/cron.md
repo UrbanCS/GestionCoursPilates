@@ -39,6 +39,7 @@ Ne pas utiliser cet alias dans cPanel tant que sa présence n’a pas été conf
 | Traitement | Fréquence cible | Garantie attendue |
 | --- | --- | --- |
 | Offres/expirations de liste d’attente et verrouillage des places | Toutes les 5 minutes | Une seule offre active par place; passage ordonné au suivant. |
+| Retenues de paiement direct abandonnées | Toutes les 5 minutes | Libération atomique après le délai configuré, sans toucher aux paiements en rapprochement. |
 | Notifications et vérification de paiements | Toutes les 5 minutes | Déduplication par clé d’événement et journal de livraison. |
 | Génération de séances récurrentes | Horaire ou toutes les heures | Création idempotente, horizon configuré, sans doublon. |
 | Rappels de cours | Toutes les 15 minutes | Une notification par modèle, réservation et fenêtre de rappel. |
@@ -50,7 +51,7 @@ La commande peut orchestrer l’ensemble des sous-tâches avec des verrous de ba
 
 Les notifications en échec sont reprises automatiquement avec un délai exponentiel configurable. Une réclamation d’envoi abandonnée par un processus interrompu redevient admissible après 15 minutes. À la dernière tentative, une offre de liste d’attente est annulée, sa place temporaire est libérée et le candidat suivant est promu; les autres notifications restent en état d’échec pour inspection.
 
-Chaque exécution rapproche également les commandes `payment_processing` âgées d’au moins deux minutes et les remboursements `processing`/`pending`. Un paiement est identifié par une référence immuable propre à la tentative (`memi-o-{commande}-{empreinte}`), son montant, sa devise et son emplacement; si Square n’a aucun paiement finalisé, l’essai est annulé par sa clé d’idempotence avant d’autoriser une nouvelle carte. Un remboursement sans réponse est rejoué avec exactement la même clé et les mêmes paramètres. Les remboursements en attente utilisent un recul progressif (5 minutes, 30 minutes, 6 heures, puis 24 heures); après 14 jours, chaque nouvelle vérification produit l’audit `refund.reconcile_prolonged` afin de déclencher un suivi avec Square. Les compteurs `payments_reconciled` et `refunds_reconciled` du résultat indiquent les transitions locales réalisées.
+Chaque exécution expire d’abord les commandes de séance encore `pending` au-delà du délai de retenue, puis permet à la liste d’attente d’utiliser la place libérée. Elle rapproche également les commandes `payment_processing` âgées d’au moins deux minutes et les remboursements `processing`/`pending`. Un paiement est identifié par une référence immuable propre à la tentative (`memi-o-{commande}-{empreinte}`), son montant, sa devise et son emplacement; si Square n’a aucun paiement finalisé, l’essai est annulé par sa clé d’idempotence avant d’autoriser une nouvelle carte. Un remboursement sans réponse est rejoué avec exactement la même clé et les mêmes paramètres. Les remboursements en attente utilisent un recul progressif (5 minutes, 30 minutes, 6 heures, puis 24 heures); après 14 jours, chaque nouvelle vérification produit l’audit `refund.reconcile_prolonged` afin de déclencher un suivi avec Square. Les compteurs `payment_holds_expired`, `payments_reconciled` et `refunds_reconciled` du résultat indiquent les transitions locales réalisées.
 
 ## Configuration dans cPanel
 

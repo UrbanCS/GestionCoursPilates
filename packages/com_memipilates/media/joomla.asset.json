@@ -1,7 +1,7 @@
 {
   "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
   "name": "com_memipilates",
-  "version": "1.5.0",
+  "version": "1.6.1",
   "description": "Assets publics et borne de présence pour com_memipilates",
   "license": "GPL-2.0-or-later",
   "assets": [
@@ -9,13 +9,22 @@
       "name": "com_memipilates.site",
       "type": "style",
       "uri": "com_memipilates/site.css",
-      "version": "1.5.0"
+      "version": "1.6.1"
+    },
+    {
+      "name": "com_memipilates.portal",
+      "type": "style",
+      "uri": "com_memipilates/portal.css",
+      "version": "1.6.1",
+      "dependencies": [
+        "com_memipilates.site"
+      ]
     },
     {
       "name": "com_memipilates.schedule",
       "type": "script",
       "uri": "com_memipilates/schedule.js",
-      "version": "1.5.0",
+      "version": "1.6.1",
       "dependencies": [
         "core"
       ],
@@ -27,7 +36,7 @@
       "name": "com_memipilates.dashboard",
       "type": "script",
       "uri": "com_memipilates/dashboard.js",
-      "version": "1.5.0",
+      "version": "1.6.1",
       "dependencies": [
         "core",
         "com_memipilates.qr-generator"
@@ -52,7 +61,7 @@
       "name": "com_memipilates.checkout",
       "type": "script",
       "uri": "com_memipilates/checkout.js",
-      "version": "1.0.0",
+      "version": "1.6.1",
       "dependencies": [
         "core"
       ],
@@ -100,7 +109,7 @@
       "name": "com_memipilates.kiosk-scanner",
       "type": "script",
       "uri": "com_memipilates/kiosk.js",
-      "version": "1.5.0",
+      "version": "1.6.1",
       "dependencies": [
         "core",
         "com_memipilates.qr-decoder-adapter"

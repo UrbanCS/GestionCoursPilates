@@ -218,7 +218,8 @@ final class QrTokenService
             ->order($this->db->quoteName('id') . ' DESC')
             ->bind(':user_id', $user, ParameterType::INTEGER)
             ->bind(':now', $now);
-        $this->db->setQuery(DatabaseTools::forUpdate($query), 0, 1);
+        $query->setLimit(1);
+        $this->db->setQuery(DatabaseTools::forUpdate($query));
 
         return $this->db->loadAssoc() ?: null;
     }
@@ -231,7 +232,8 @@ final class QrTokenService
             ->from($this->db->quoteName('#__memi_qr_tokens'))
             ->where($this->db->quoteName('idempotency_key') . ' = :idempotency_key')
             ->bind(':idempotency_key', $idempotencyKey);
-        $this->db->setQuery(DatabaseTools::forUpdate($query), 0, 1);
+        $query->setLimit(1);
+        $this->db->setQuery(DatabaseTools::forUpdate($query));
 
         return $this->db->loadAssoc() ?: null;
     }

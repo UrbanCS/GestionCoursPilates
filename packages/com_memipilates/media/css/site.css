@@ -780,6 +780,22 @@
   max-inline-size: 42rem;
 }
 
+.memi-checkout__session {
+  background: var(--memi-schedule-soft);
+  border: 1px solid var(--memi-border);
+  border-radius: 0.7rem;
+  padding: 1rem;
+}
+
+.memi-checkout__session h2 {
+  font-size: 1.2rem;
+  margin-block: 0 0.45rem;
+}
+
+.memi-checkout__session p {
+  margin-block: 0.35rem;
+}
+
 .memi-checkout [data-memi-square-card] {
   background: var(--memi-surface);
   border: 1px solid var(--memi-border);

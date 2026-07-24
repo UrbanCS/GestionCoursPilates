@@ -34,4 +34,10 @@ final class CriticalAcceptanceTest extends AcceptanceTestCase
     public function testAt24CronCanRunTwiceWithoutDuplication(): void { $this->runScenario('AT-24'); }
     public function testAt25JoomlaInstallIsNonDestructive(): void { $this->runScenario('AT-25'); }
     public function testAt26UninstallHonorsDataPolicy(): void { $this->runScenario('AT-26'); }
+    public function testAt27RejoinedWaitlistConsumesCreditForNewLifecycle(): void { $this->runScenario('AT-27'); }
+    public function testAt28DirectSessionPaymentConfirmsBooking(): void { $this->runScenario('AT-28'); }
+    public function testAt29FailedOrExpiredPaymentHoldReleasesCapacity(): void { $this->runScenario('AT-29'); }
+    public function testAt30SuperUserCanUseCompleteFrontendPortal(): void { $this->runScenario('AT-30'); }
+    public function testAt31FrontendPortalRejectsUnauthorizedUsers(): void { $this->runScenario('AT-31'); }
+    public function testAt32FrontendSettingsPreserveSquareSecrets(): void { $this->runScenario('AT-32'); }
 }

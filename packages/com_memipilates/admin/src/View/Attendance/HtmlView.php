@@ -12,7 +12,7 @@ use Memi\Component\Memipilates\Administrator\Service\ComponentServices;
 use Memi\Component\Memipilates\Administrator\View\AbstractAdminView;
 
 /** Attendance audit list plus staff-only manual check-in candidates. */
-final class HtmlView extends AbstractAdminView
+class HtmlView extends AbstractAdminView
 {
     /** @var list<array<string, mixed>> */
     public array $items = [];

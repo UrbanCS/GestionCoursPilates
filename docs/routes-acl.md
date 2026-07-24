@@ -19,6 +19,8 @@ La route technique non SEF reste une référence de diagnostic. Lorsqu’un él�
 | Espace client et confirmations | view=dashboard | Client connecté | Filtre systématique sur l’ID Joomla connecté; réservations, forfaits, points, commandes et QR du seul client. |
 | QR personnel | view=dashboard | Client connecté | Jeton opaque uniquement; affichage, impression et régénération auditée. |
 | Borne | index.php?option=com_memipilates&view=kiosk | Employé autorisé | attendance.kiosk avant de rendre la page. |
+| Gestion du studio | index.php?option=com_memipilates&view=manage | Personnel connecté autorisé | Portail protégé; chaque section vérifie son ACL propre, chaque écriture conserve CSRF, portée et validation métier. |
+| Paramètres du studio | index.php?option=com_memipilates&view=settings | Super administrateur | `core.admin`; les secrets Square ne sont jamais renvoyés au navigateur et une valeur vide les conserve. |
 
 L’interface de borne utilise la racine HTML [data-memi-kiosk]. La page peut recevoir des routes AJAX non SEF dans ses attributs de données afin de rester compatible avec Joomla et les déploiements cPanel.
 
@@ -38,6 +40,7 @@ L’interface de borne utilise la racine HTML [data-memi-kiosk]. La page peut re
 | Paiement | contrôleur checkout | POST | client propriétaire | CSRF, ordre/total serveur, clé d’idempotence. |
 | Webhook Square | route configurée dans l’option Square | POST | Signature Square, non pas session Joomla | Signature, environnement, ID d’événement unique, limitation de débit. |
 | Administration | administrator/index.php?option=com_memipilates&view=... | GET/POST | Action métier spécifique | ACL Joomla, CSRF pour écriture, filtres de portée. |
+| Portail de gestion frontal | index.php?option=com_memipilates&view=manage, catalog, sessions, bookings, customers, packages, offers, payments, attendance ou settings | GET/POST | Action métier spécifique | Même ACL, CSRF, services métier et filtres de portée que l’administration. |
 
 Le scan poste token, session_id, method (hid ou camera) et idempotency_key. Le navigateur ne choisit pas le client final ni le résultat de la présence : le serveur retrouve l’empreinte QR, vérifie la réservation et enregistre présence/points atomiquement.
 

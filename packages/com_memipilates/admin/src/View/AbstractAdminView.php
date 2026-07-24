@@ -44,13 +44,21 @@ abstract class AbstractAdminView extends BaseHtmlView
      */
     protected function initialise(array $viewActions, array $editActions = []): void
     {
-        $this->identity = Factory::getApplication()->getIdentity();
+        $application = Factory::getApplication();
+        $this->identity = $application->getIdentity();
 
         if (!$this->hasAnyPermission($viewActions)) {
             throw new \RuntimeException(Text::_('JERROR_ALERTNOAUTHOR'), 403);
         }
 
-        $input = Factory::getApplication()->input;
+        if ($application->isClient('site')) {
+            $application->getLanguage()->load('com_memipilates', JPATH_ADMINISTRATOR, null, true);
+            $application->getDocument()->getWebAssetManager()
+                ->useStyle('com_memipilates.site')
+                ->useStyle('com_memipilates.portal');
+        }
+
+        $input = $application->input;
         $this->limit = min(100, max(5, $input->getUint('limit', 20)));
         $this->limitStart = max(0, $input->getUint('limitstart', 0));
         $this->filterSearch = trim(substr($input->getString('filter_search', ''), 0, 100));
@@ -113,11 +121,16 @@ abstract class AbstractAdminView extends BaseHtmlView
     /** Adds the native Joomla component-settings button for Super Users only. */
     private function addComponentToolbar(): void
     {
+        $application = Factory::getApplication();
+        if (!$application->isClient('administrator')) {
+            return;
+        }
+
         if (!$this->identity?->authorise('core.admin', 'com_memipilates')) {
             return;
         }
 
-        Factory::getApplication()->getDocument()->getToolbar()->preferences('com_memipilates');
+        $application->getDocument()->getToolbar()->preferences('com_memipilates');
     }
 
     public function label(string $key, string $fallback): string
@@ -137,6 +150,12 @@ abstract class AbstractAdminView extends BaseHtmlView
             'cancelled' => 'COM_MEMIPILATES_STATUS_CANCELLED',
             'completed' => 'COM_MEMIPILATES_STATUS_COMPLETED',
             'pending' => 'COM_MEMIPILATES_STATUS_PENDING',
+            'payment_pending' => 'COM_MEMIPILATES_STATUS_PAYMENT_PENDING',
+            'payment_processing' => 'COM_MEMIPILATES_STATUS_PAYMENT_PROCESSING',
+            'payment_failed' => 'COM_MEMIPILATES_STATUS_PAYMENT_FAILED',
+            'payment_expired' => 'COM_MEMIPILATES_STATUS_PAYMENT_EXPIRED',
+            'expired' => 'COM_MEMIPILATES_STATUS_EXPIRED',
+            'paid' => 'COM_MEMIPILATES_STATUS_PAID',
             'confirmed' => 'COM_MEMIPILATES_STATUS_CONFIRMED',
             'waitlisted' => 'COM_MEMIPILATES_STATUS_WAITLISTED',
             'cancelled_on_time' => 'COM_MEMIPILATES_STATUS_CANCELLED_ON_TIME',

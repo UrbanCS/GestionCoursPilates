@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form>
 	<fields name="params">
-		<fieldset name="basic" label="PLG_TASK_MEMIPILATES_FIELDSET_OPTIONS">
+		<fieldset name="task_params" label="PLG_TASK_MEMIPILATES_FIELDSET_OPTIONS">
 			<field name="horizon_days" type="number" default="90" min="1" max="365" step="1"
 				label="PLG_TASK_MEMIPILATES_HORIZON_LABEL"
 				description="PLG_TASK_MEMIPILATES_HORIZON_DESC" filter="uint"/>

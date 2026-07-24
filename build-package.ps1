@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string] $Version = '1.5.0',
+    [string] $Version = '1.6.1',
     [string] $OutputDirectory = ''
 )
 
@@ -70,6 +70,9 @@ function New-JoomlaArchive {
             $relativePath = $item.FullName.Substring($sourceRoot.Length).TrimStart([char]'\', [char]'/')
             $entryName = $relativePath -replace '\\', '/'
             $entry = $archive.CreateEntry($entryName, [System.IO.Compression.CompressionLevel]::Optimal)
+            # ZIP stores timestamps with a two-second resolution. A fixed value
+            # makes nested and outer archives byte-for-byte reproducible.
+            $entry.LastWriteTime = [DateTimeOffset]::new(2000, 1, 1, 0, 0, 0, [TimeSpan]::Zero)
             $input = [System.IO.File]::OpenRead($item.FullName)
             $output = $entry.Open()
 

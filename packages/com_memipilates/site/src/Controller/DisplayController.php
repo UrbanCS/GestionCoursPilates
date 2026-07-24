@@ -8,24 +8,47 @@ namespace Memi\Component\Memipilates\Site\Controller;
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Router\Route;
+use Memi\Component\Memipilates\Administrator\Controller\DisplayController as AdministratorDisplayController;
+use Memi\Component\Memipilates\Site\Service\PortalAccess;
 
-/** Standard Joomla view dispatcher with route-level kiosk protection. */
-final class DisplayController extends BaseController
+/**
+ * Site dispatcher for public/client pages and the protected studio portal.
+ *
+ * The inherited state-changing actions retain the same ACL, CSRF and domain
+ * checks as the administrator application.
+ */
+final class DisplayController extends AdministratorDisplayController
 {
     public function display($cachable = false, $urlparams = []): BaseController
     {
-        $view = Factory::getApplication()->input->getCmd('view', 'schedule');
-        if ($view === 'kiosk') {
-            $identity = Factory::getApplication()->getIdentity();
+        $application = Factory::getApplication();
+        $view = $application->input->getCmd('view', 'schedule');
+
+        if (PortalAccess::isManagementView($view)) {
+            $identity = $application->getIdentity();
+            if ((int) ($identity->id ?? 0) <= 0) {
+                $return = base64_encode('index.php?option=com_memipilates&view=' . $view);
+                $application->redirect(Route::_('index.php?option=com_users&view=login&return=' . rawurlencode($return), false));
+
+                return $this;
+            }
+
+            if (!PortalAccess::canAccess($identity, $view)) {
+                throw new \RuntimeException(Text::_('JERROR_ALERTNOAUTHOR'), 403);
+            }
+        } elseif ($view === 'kiosk') {
+            $identity = $application->getIdentity();
             if (!(bool) $identity->authorise('attendance.kiosk', 'com_memipilates')) {
-                Factory::getApplication()->enqueueMessage(\Joomla\CMS\Language\Text::_('COM_MEMIPILATES_ERROR_FORBIDDEN'), 'error');
-                Factory::getApplication()->redirect(Route::_('index.php?option=com_memipilates&view=schedule', false));
+                $application->enqueueMessage(Text::_('COM_MEMIPILATES_ERROR_FORBIDDEN'), 'error');
+                $application->redirect(Route::_('index.php?option=com_memipilates&view=schedule', false));
+
                 return $this;
             }
         }
 
-        return parent::display($cachable, $urlparams);
+        return $this->renderView($cachable, $urlparams);
     }
 }

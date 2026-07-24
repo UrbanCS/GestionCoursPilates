@@ -13,11 +13,11 @@ final class AcceptanceCatalogTest extends TestCase
         /** @var array<string, array<string, mixed>> $scenarios */
         $scenarios = require dirname(__DIR__) . '/Fixtures/acceptance-scenarios.php';
 
-        self::assertCount(26, $scenarios);
+        self::assertCount(32, $scenarios);
         self::assertSame(
             array_map(
                 static fn (int $number): string => sprintf('AT-%02d', $number),
-                range(1, 26)
+                range(1, 32)
             ),
             array_keys($scenarios)
         );

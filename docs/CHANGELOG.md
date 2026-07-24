@@ -2,6 +2,136 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.6.1] - 2026-07-24
+
+### Corrigé
+
+- Rend explicitement les 26 paramètres du portail frontal au lieu de dépendre du chargement autonome du fichier `config.xml` réservé à l’administration Joomla.
+- Affiche les valeurs actuelles et les valeurs par défaut, tout en continuant de masquer et préserver les secrets Square laissés vides.
+- Empêche le portail, les formulaires de filtres et leurs boutons de dépasser la largeur de la fenêtre.
+- Maintient les tableaux larges dans une zone de défilement horizontale interne afin que les colonnes de droite restent accessibles.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.6.1.zip`
+- Taille : `284532` octets
+- SHA-256 : `32EAD3F9046430FD2E004D95C6C53FC1AC2F4D4A0BE3BD29F97D3CB2EE205C16`
+
+## [1.6.0] - 2026-07-24
+
+### Ajouté
+
+- Ajoute un portail de gestion complet dans le site frontal : tableau de bord, mise en route, catalogue, séances, réservations, clients, forfaits, promotions et fidélité, paiements, présences et paramètres.
+- Ajoute un type d’élément de menu Joomla « Gestion du studio » et un raccourci automatiquement visible aux comptes autorisés dans l’horaire et l’espace client.
+- Réutilise les mêmes vues de lecture, contrôleurs, services métier, règles de portée et journaux d’audit que l’administration Joomla.
+- Permet au Super User de configurer Square depuis le portail frontal sans jamais renvoyer les secrets enregistrés au navigateur; un champ secret vide conserve sa valeur.
+
+### Sécurité
+
+- Toute vue du portail exige une session Joomla et l’action ACL propre à son domaine; les paramètres restent réservés à `core.admin`.
+- Toutes les écritures conservent les contrôles CSRF, ACL et validations serveur existants.
+
+### Tests
+
+- Ajoute AT-30 à AT-32 pour le portail Super User, le refus des comptes non autorisés et la conservation sécurisée des secrets Square.
+- Les essais fonctionnels sur une instance Joomla demeurent obligatoires après installation du paquet.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.6.0.zip`
+- Taille : `281669` octets
+- SHA-256 : `B553B0B7C469E913DC03180436610D85D69B0B6E18AA05BD2D04B61571B105BF`
+
+## [1.5.5] - 2026-07-23
+
+### Ajouté
+
+- Ajoute le paiement direct d’une séance depuis la page de réservation, sans imposer l’achat préalable d’un forfait.
+- Retient atomiquement une place pendant le paiement, puis confirme la réservation seulement après un paiement Square `COMPLETED`.
+- Ajoute un délai configurable de 5 à 120 minutes pour les commandes de séance abandonnées.
+- Affiche les états de paiement temporaire, échoué et expiré dans les listes d’administration et l’espace client.
+
+### Corrigé
+
+- Libère la capacité après un refus définitif de Square ou l’expiration d’une commande abandonnée.
+- Réacquiert atomiquement une place avant une nouvelle tentative et empêche le paiement d’une ancienne commande de séance devenue orpheline.
+- Rapproche les webhooks et les réponses synchrones avec le type réel de la commande : forfait ou séance.
+- Ferme les retenues non payées lorsqu’une séance est annulée par le studio.
+- Transmet à `card.tokenize()` le montant, la devise et le contexte de vérification client requis par le parcours 3-D Secure actuel de Square.
+
+### Tests
+
+- Ajoute AT-28 pour la confirmation d’une réservation payée directement et AT-29 pour la libération des retenues échouées ou expirées.
+- Les essais Joomla/MySQL/Square Sandbox restent obligatoires avant la production.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.5.5.zip`
+- Taille : `265742` octets
+- SHA-256 : `E899B8CD8AAFC6A683A2A67B7FCF79753710D6D1852B2103CA77360389AE72CE`
+
+## [1.5.4] - 2026-07-23
+
+### Corrigé
+
+- Fait tourner la clé de cycle d'une liste d'attente lorsqu'une cliente s'y réinscrit après une offre terminée.
+- Débite un nouveau crédit pour chaque nouveau cycle accepté, tout en gardant les répétitions de la même offre idempotentes.
+- Réinitialise les dates, acteurs et motifs d'annulation lorsqu'une ancienne réservation est confirmée de nouveau.
+- Lie les rappels au nouveau `booking_key` afin qu'une nouvelle réservation reçoive ses propres rappels sans doublonner les reprises du même cycle.
+- Normalise les horodatages des entrées ZIP pour rendre la construction du paquet reproductible.
+
+### Tests
+
+- Ajoute le scénario AT-27 couvrant une acceptation de liste d'attente, une annulation, une réinscription et une deuxième acceptation.
+- Deux constructions successives à partir des mêmes sources produisent la même taille et le même SHA-256.
+- Les essais Joomla/MySQL/Square Sandbox restent obligatoires avant la production.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.5.4.zip`
+- Taille : `257800` octets
+- SHA-256 : `D840FA6C085DEF30D816923BCCFC4198361D5648A4F7B2CBBFC88321D550A771`
+
+## [1.5.3] - 2026-07-23
+
+### Corrigé
+
+- Corrige l'ordre SQL entre `LIMIT 1` et `FOR UPDATE` lors de la génération et de la régénération des codes QR clients.
+- Applique le même correctif préventif aux confirmations de présence et au rapprochement des remboursements afin d'éviter la même erreur générique dans ces parcours.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.5.3.zip`
+- Taille : `257126` octets
+- SHA-256 : `1FB8A63066B1F392F4F35FB9B84FC2BF4A74B2F030CCDA2712BE2DDA6F7F393A`
+
+## [1.5.2] - 2026-07-23
+
+### Corrigé
+
+- Isole les paramètres de la tâche Memi Pilates dans le groupe `task_params` attendu par le planificateur Joomla. La règle « Exécution manuelle » et les intervalles en minutes ne se contaminent plus mutuellement lors de la validation.
+- Ajoute le libellé de titre attendu par Joomla afin que le type de tâche affiche son nom traduit au lieu de `PLG_TASK_MEMIPILATES_TASK_RUN_DUE_TASKS_TITLE`.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.5.2.zip`
+- Taille : `256814` octets
+- SHA-256 : `54651EA36D95995428420FF24D39A7AF2B3B8C332E1718BD07558970AAB0F2E2`
+
+## [1.5.1] - 2026-07-23
+
+### Corrigé
+
+- Remplace les constantes Joomla absentes dans Joomla 6.1 par des libellés propres au composant dans les formulaires de réservation, de création de client et de paiement.
+- Ajoute les traductions françaises et anglaises pour « Sélectionner » et « Confirmer le mot de passe ».
+- Incrémente les manifestes et les ressources Web afin que Joomla et le navigateur chargent immédiatement le correctif après mise à niveau.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.5.1.zip`
+- Taille : `256497` octets
+- SHA-256 : `3E901546722BE4116C72DEA3310DDE5A11050B484632870D3033564FBC18B8D3`
+
 ## [1.5.0] - 2026-07-22
 
 ### Ajouté

@@ -11,7 +11,7 @@ use Joomla\CMS\Factory;
 use Memi\Component\Memipilates\Administrator\View\AbstractAdminView;
 
 /** Customer booking list with a protected cancellation action. */
-final class HtmlView extends AbstractAdminView
+class HtmlView extends AbstractAdminView
 {
     /** @var list<array<string, mixed>> */
     public array $items = [];
@@ -20,7 +20,11 @@ final class HtmlView extends AbstractAdminView
     /** @var list<array<string, mixed>> */
     public array $manualSessions = [];
     /** @var list<string> */
-    public array $statuses = ['pending', 'confirmed', 'attended', 'waitlisted', 'cancelled_on_time', 'cancelled_late', 'administratively_cancelled', 'no_show', 'refunded'];
+    public array $statuses = [
+        'pending', 'payment_pending', 'payment_failed', 'payment_expired', 'confirmed',
+        'attended', 'waitlisted', 'cancelled_on_time', 'cancelled_late',
+        'administratively_cancelled', 'no_show', 'refunded',
+    ];
     public bool $canCancel = false;
     public bool $canManualBooking = false;
     public bool $canViewContact = false;

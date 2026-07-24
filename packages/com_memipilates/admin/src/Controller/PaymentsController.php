@@ -16,7 +16,7 @@ use Memi\Component\Memipilates\Administrator\Service\ComponentServices;
 use Memi\Component\Memipilates\Administrator\Service\DomainException;
 
 /** Protected administrator actions for Square payments. */
-final class PaymentsController extends BaseController
+class PaymentsController extends BaseController
 {
     public function refund(): void
     {

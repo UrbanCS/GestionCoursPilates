@@ -55,6 +55,12 @@ Définir les identifiants, dates et montants à l’intérieur de chaque scénar
 | AT-24 | Cron relancé | Intégration + CLI | Deux exécutions ne créent ni séance, ni offre, ni notification dupliquée. |
 | AT-25 | Installation Joomla non destructive | Préproduction manuelle | Pages, template, menus et extensions existants restent fonctionnels. |
 | AT-26 | Désinstallation selon politique | Préproduction manuelle | Données d’exploitation conservées/traitées selon la politique, sans suppression implicite inattendue. |
+| AT-27 | Réinscription après offre acceptée puis annulation | Intégration + E2E | Un nouveau cycle de liste d’attente possède une nouvelle clé, débite un nouveau crédit à l’acceptation et ne conserve aucune métadonnée d’annulation périmée. |
+| AT-28 | Paiement direct d’une séance | Sandbox + intégration + E2E | La place est retenue pendant le paiement et la réservation est confirmée une seule fois après un paiement Square `COMPLETED`. |
+| AT-29 | Échec ou expiration d’une retenue de paiement | Intégration + CLI | La réservation n’est pas confirmée et la capacité est libérée exactement une fois. |
+| AT-30 | Portail frontal complet pour Super User | ACL + navigateur + E2E | Les onze écrans de gestion sont accessibles et leurs opérations produisent les mêmes effets métier qu’en administration. |
+| AT-31 | Accès frontal sans permission | ACL + HTTP | Le visiteur est dirigé vers la connexion; l’utilisateur connecté sans droit reçoit un refus sans donnée métier. |
+| AT-32 | Enregistrement des paramètres Square au frontal | ACL + intégration + E2E | Les secrets ne sont pas rendus au navigateur et un champ secret vide conserve sa valeur actuelle. |
 
 ## Tests complémentaires de qualité
 
@@ -93,4 +99,4 @@ Consigner chaque campagne avec ce modèle :
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | À compléter | À compléter | Préproduction | À compléter | À compléter | À compléter | À compléter | Journal/capture protégée |
 
-Un test skipped dû à l’absence d’adaptateur ou d’environnement n’est pas un test réussi. Avant la publication, tous les AT-01 à AT-26 doivent être réussis ou faire l’objet d’une décision de risque écrite approuvée.
+Un test skipped dû à l’absence d’adaptateur ou d’environnement n’est pas un test réussi. Avant la publication, tous les AT-01 à AT-32 doivent être réussis ou faire l’objet d’une décision de risque écrite approuvée.

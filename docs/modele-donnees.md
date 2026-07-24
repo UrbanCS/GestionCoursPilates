@@ -87,6 +87,9 @@ Les états de réservation autorisés sont :
 | État | Signification |
 | --- | --- |
 | pending | Intention créée, mais paiement/validation non terminé. |
+| payment_pending | Place retenue temporairement pour un paiement direct non terminé. |
+| payment_failed | Paiement définitivement échoué; la place a été libérée. |
+| payment_expired | Commande de séance abandonnée; la retenue a expiré et la place a été libérée. |
 | confirmed | Place confirmée et capacité réellement consommée. |
 | waitlisted | Client dans la file, sans consommation initiale de crédit. |
 | cancelled_on_time | Annulation avant le délai configuré; le registre restaure le crédit si applicable. |
