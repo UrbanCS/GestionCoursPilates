@@ -61,6 +61,10 @@ $description = static fn (string $key): string => '<small class="memi-portal-fie
                     <?= $description('COM_MEMIPILATES_CONFIG_CURRENCY_DESC'); ?>
                 </div>
             </div>
+            <div class="memi-portal-field">
+                <label for="jform-tax-rate"><?= Text::_('COM_MEMIPILATES_CONFIG_TAX_RATE_LABEL'); ?></label>
+                <div><input id="jform-tax-rate" name="jform[tax_rate_percent]" type="number" min="0" max="100" step="0.001" value="<?= $escape($value('tax_rate_percent', '14.975')); ?>" required><?= $description('COM_MEMIPILATES_CONFIG_TAX_RATE_DESC'); ?></div>
+            </div>
         </fieldset>
 
         <fieldset class="memi-portal-settings__fieldset">

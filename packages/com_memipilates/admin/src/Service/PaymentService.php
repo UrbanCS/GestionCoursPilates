@@ -46,9 +46,8 @@ final class PaymentService
             $subtotal = max(0, (int) $package['price_cents']);
             $promotion = $this->promotionForOrder($clientId, $packageId, $promotionCode, $subtotal);
             $discount = (int) $promotion['discount_cents'];
-            $taxRateBasisPoints = max(0, (int) ($package['tax_rate_basis_points'] ?? 0));
             $taxable = max(0, $subtotal - $discount);
-            $tax = (int) round($taxable * $taxRateBasisPoints / 10000);
+            $tax = $this->settings->calculateTaxCents($taxable);
             $total = $taxable + $tax;
             $orderKey = bin2hex(random_bytes(16));
             $user = $userId;
@@ -85,15 +84,17 @@ final class PaymentService
             $quantity = 1;
             $item = $this->db->getQuery(true)
                 ->insert($this->db->quoteName('#__memi_order_items'))
-                ->columns(['order_id', 'item_type', 'package_id', 'title_snapshot', 'quantity', 'unit_price_cents', 'total_cents', 'created_at'])
-                ->values(':order_id, :item_type, :package_id, :title_snapshot, :quantity, :unit_price_cents, :total_cents, :created_at')
+                ->columns(['order_id', 'item_type', 'package_id', 'title_snapshot', 'quantity', 'unit_price_cents', 'discount_cents', 'tax_cents', 'total_cents', 'created_at'])
+                ->values(':order_id, :item_type, :package_id, :title_snapshot, :quantity, :unit_price_cents, :discount_cents, :tax_cents, :total_cents, :created_at')
                 ->bind(':order_id', $order, ParameterType::INTEGER)
                 ->bind(':item_type', $packageItemType)
                 ->bind(':package_id', $packageIdentifier, ParameterType::INTEGER)
                 ->bind(':title_snapshot', $titleSnapshot)
                 ->bind(':quantity', $quantity, ParameterType::INTEGER)
                 ->bind(':unit_price_cents', $subtotal, ParameterType::INTEGER)
-                ->bind(':total_cents', $subtotal, ParameterType::INTEGER)
+                ->bind(':discount_cents', $discount, ParameterType::INTEGER)
+                ->bind(':tax_cents', $tax, ParameterType::INTEGER)
+                ->bind(':total_cents', $total, ParameterType::INTEGER)
                 ->bind(':created_at', $now);
             $this->db->setQuery($item)->execute();
             $this->audit->log($userId, 'order.create', 'order', $orderId, null, [
@@ -149,8 +150,7 @@ final class PaymentService
             if ($subtotal <= 0) {
                 throw new DomainException('COM_MEMIPILATES_ERROR_DIRECT_PAYMENT_UNAVAILABLE');
             }
-            $taxRateBasisPoints = max(0, (int) ($session['tax_rate_basis_points'] ?? 0));
-            $tax = (int) round($subtotal * $taxRateBasisPoints / 10000);
+            $tax = $this->settings->calculateTaxCents($subtotal);
             $total = $subtotal + $tax;
             $currency = strtoupper((string) $this->settings->get('currency', 'CAD'));
             if (!preg_match('/^[A-Z]{3}$/D', $currency)) {
@@ -259,7 +259,7 @@ final class PaymentService
                 ->bind(':title_snapshot', $title)
                 ->bind(':unit_price_cents', $subtotal, ParameterType::INTEGER)
                 ->bind(':tax_cents', $tax, ParameterType::INTEGER)
-                ->bind(':total_cents', $subtotal, ParameterType::INTEGER)
+                ->bind(':total_cents', $total, ParameterType::INTEGER)
                 ->bind(':metadata', $itemMetadata)
                 ->bind(':created_at', $now);
             $this->db->setQuery($insertItem)->execute();

@@ -1,5 +1,25 @@
 # Résultats de tests
 
+## Contrôles locaux de la version 1.7.0 — 2026-07-28
+
+| Contrôle | Statut | Preuve / limite |
+| --- | --- | --- |
+| Syntaxe PHP | Réussi (analyse statique) | 113 fichiers PHP du paquet et des tests sont acceptés par une grammaire PHP indépendante. |
+| Syntaxe JavaScript | Réussi | Les 9 fichiers JavaScript passent `node --check`. |
+| XML, JSON et langues | Réussi | 14 fichiers XML analysés, manifeste d’assets JSON valide et 16 fichiers INI sans clé dupliquée. |
+| Paramètres du portail | Réussi (contrat statique) | Les 27 champs rendus ont chacun une règle serveur, y compris le nouveau taux global de taxes. |
+| Calcul des taxes | Réussi (revue statique) | Taux `14,975 %` représenté par l’entier `14975`; calcul et arrondi en cents sans flottant; commandes, lignes de commande, affichage et total Square concordants. |
+| Horaire hebdomadaire | Réussi (contrat statique) | Semaine lundi–dimanche, modes Semaine/Jour, compteurs filtrés et marqueurs du calendrier mensuel couverts par le contrat. |
+| Revue indépendante | Réussi après corrections | La navigation hors de la plage préchargée recharge maintenant une plage fiable; l’édition du catalogue préserve les anciennes colonnes fiscales par entité. |
+| Archive Joomla 1.7.0 | Réussi | ZIP externe de 9 entrées, composant de 150 entrées et version imbriquée `1.7.0` confirmée. |
+| Vérification sur le site réel | À exécuter | Installer 1.7.0, vider les caches, vérifier l’horaire en vue Semaine/Jour et effectuer une commande Square Sandbox après configuration. |
+
+### Artefact
+
+- Archive : `dist/pkg_memipilates-1.7.0.zip`
+- Taille : `288929` octets
+- SHA-256 : `3414D7178750C5F2766F8CA38654CA1DEA7CF627EBB87C1C665EF489E3CAF58F`
+
 ## Contrôles locaux de la version 1.6.1 — 2026-07-24
 
 | Contrôle | Statut | Preuve / limite |

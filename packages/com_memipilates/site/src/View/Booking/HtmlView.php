@@ -20,6 +20,7 @@ final class HtmlView extends BaseHtmlView
     public ?array $session = null;
     public int $userId = 0;
     public int $creditBalance = 0;
+    public int $directPaymentTotalCents = 0;
     public string $currency = 'CAD';
     public string $reserveEndpoint = '';
     public string $waitlistEndpoint = '';
@@ -50,6 +51,8 @@ final class HtmlView extends BaseHtmlView
             throw new \RuntimeException('COM_MEMIPILATES_ERROR_SESSION_NOT_FOUND', 404);
         }
         $this->creditBalance = $this->userId > 0 ? ComponentServices::credits()->balance($this->userId) : 0;
+        $priceCents = max(0, (int) $this->session['price_cents']);
+        $this->directPaymentTotalCents = $priceCents + ComponentServices::settings()->calculateTaxCents($priceCents);
         $configuredCurrency = strtoupper((string) ComponentServices::settings()->get('currency', 'CAD'));
         $this->currency = preg_match('/^[A-Z]{3}$/D', $configuredCurrency) ? $configuredCurrency : 'CAD';
         $this->reserveEndpoint = Route::_('index.php?option=com_memipilates&task=booking.reserve&format=json', false);

@@ -58,6 +58,13 @@ final class CatalogManagementService
                 'package' => $this->packageValues($input),
                 default => throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST'),
             };
+            // Taxation is now configured once for the whole studio. Keep the
+            // legacy per-record value untouched so editing another field does
+            // not silently rewrite historical catalogue data.
+            if (array_key_exists('tax_rate_basis_points', $values)
+                && array_key_exists('tax_rate_basis_points', $before)) {
+                $values['tax_rate_basis_points'] = (int) $before['tax_rate_basis_points'];
+            }
             $values['updated_at'] = $this->now();
             $values['updated_by'] = $actorId;
             $this->updateRow($table, $id, $values);

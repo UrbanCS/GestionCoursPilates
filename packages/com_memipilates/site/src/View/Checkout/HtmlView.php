@@ -23,6 +23,9 @@ final class HtmlView extends BaseHtmlView
     /** @var array<string,mixed>|null */
     public ?array $session = null;
     public int $sessionId = 0;
+    public int $sessionSubtotalCents = 0;
+    public int $sessionTaxCents = 0;
+    public int $sessionTotalCents = 0;
     public string $currency = 'CAD';
     public string $buyerGivenName = '';
     public string $buyerFamilyName = '';
@@ -64,7 +67,7 @@ final class HtmlView extends BaseHtmlView
             $now = gmdate('Y-m-d H:i:s');
             $sessionQuery = $db->getQuery(true)
                 ->select([
-                    's.id', 's.starts_at', 's.price_cents', 's.tax_rate_basis_points',
+                    's.id', 's.starts_at', 's.price_cents',
                     'c.title AS course_title', 'i.display_name AS instructor_name', 'r.title AS room_title',
                 ])
                 ->from($db->quoteName('#__memi_sessions', 's'))
@@ -85,12 +88,20 @@ final class HtmlView extends BaseHtmlView
             if (!$this->session) {
                 throw new \RuntimeException('COM_MEMIPILATES_ERROR_DIRECT_PAYMENT_UNAVAILABLE', 404);
             }
+            $this->sessionSubtotalCents = max(0, (int) $this->session['price_cents']);
+            $this->sessionTaxCents = ComponentServices::settings()->calculateTaxCents($this->sessionSubtotalCents);
+            $this->sessionTotalCents = $this->sessionSubtotalCents + $this->sessionTaxCents;
         }
         $configuredCurrency = strtoupper((string) ComponentServices::settings()->get('currency', 'CAD'));
         $this->currency = preg_match('/^[A-Z]{3}$/D', $configuredCurrency) ? $configuredCurrency : 'CAD';
         $query = $db->getQuery(true)->select('*')->from($db->quoteName('#__memi_packages'))->where('published = 1')->where('archived_at IS NULL')->order('ordering ASC, title ASC');
         $db->setQuery($query);
         $this->packages = $db->loadAssocList() ?: [];
+        foreach ($this->packages as &$package) {
+            $subtotal = max(0, (int) $package['price_cents']);
+            $package['total_with_tax_cents'] = $subtotal + ComponentServices::settings()->calculateTaxCents($subtotal);
+        }
+        unset($package);
         $this->square = ComponentServices::payments()->clientConfiguration();
         $this->createEndpoint = Route::_('index.php?option=com_memipilates&task=checkout.createOrder&format=json', false);
         $this->payEndpoint = Route::_('index.php?option=com_memipilates&task=checkout.pay&format=json', false);

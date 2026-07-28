@@ -51,7 +51,18 @@ $refundUrl = $escape(Route::_('index.php?option=com_memipilates&task=payments.re
                     <td>#<?= (int) $item['id']; ?></td>
                     <td><strong><?= $escape($item['customer_name']); ?></strong><br><small><?= $escape($item['customer_email']); ?></small></td>
                     <td><?= $escape($this->formatDate((string) $item['created_at'])); ?><?php if (($item['paid_at'] ?? '') !== '') : ?><br><small class="text-success">Payée : <?= $escape($this->formatDate((string) $item['paid_at'])); ?></small><?php endif; ?></td>
-                    <td><strong><?= $escape($this->formatMoney((int) $item['total_cents'], (string) $item['currency'])); ?></strong><br><small><?= $escape($this->formatMoney((int) $item['subtotal_cents'], (string) $item['currency'])); ?><?php if ((int) $item['discount_cents'] > 0) : ?> − <?= $escape($this->formatMoney((int) $item['discount_cents'], (string) $item['currency'])); ?><?php endif; ?></small></td>
+                    <td>
+                        <strong><?= $escape($this->formatMoney((int) $item['total_cents'], (string) $item['currency'])); ?></strong>
+                        <br><small>
+                            <?= $escape(Text::_('COM_MEMIPILATES_PAYMENT_SUBTOTAL')); ?> :
+                            <?= $escape($this->formatMoney((int) $item['subtotal_cents'], (string) $item['currency'])); ?>
+                            <?php if ((int) $item['discount_cents'] > 0) : ?>
+                                − <?= $escape($this->formatMoney((int) $item['discount_cents'], (string) $item['currency'])); ?>
+                            <?php endif; ?>
+                            · <?= $escape(Text::_('COM_MEMIPILATES_PAYMENT_TAXES')); ?> :
+                            <?= $escape($this->formatMoney((int) $item['tax_cents'], (string) $item['currency'])); ?>
+                        </small>
+                    </td>
                     <td><?= $escape($item['promotion_code'] ?: '—'); ?></td>
                     <td><?= $escape($this->statusLabel((string) $item['status'])); ?></td>
                     <td><?= $escape($item['payment_status'] ?: '—'); ?><?php if (($item['card_brand'] ?? '') !== '') : ?><br><small><?= $escape($item['card_brand']); ?> •••• <?= $escape($item['card_last4']); ?></small><?php endif; ?></td>

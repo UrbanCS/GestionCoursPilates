@@ -32,6 +32,7 @@ final class SettingsController extends BaseController
         'direct_payment_hold_minutes' => ['type' => 'int', 'min' => 5, 'max' => 120],
         'session_generation_lookahead_days' => ['type' => 'int', 'min' => 7, 'max' => 730],
         'currency' => ['type' => 'enum', 'values' => ['CAD', 'USD']],
+        'tax_rate_percent' => ['type' => 'tax_percent'],
         'waitlist_promotion_mode' => ['type' => 'enum', 'values' => ['automatic', 'manual']],
         'waitlist_offer_minutes' => ['type' => 'int', 'min' => 5, 'max' => 10080],
         'waitlist_auto_promote' => ['type' => 'bool'],
@@ -138,6 +139,19 @@ final class SettingsController extends BaseController
         }
 
         $value = trim((string) $raw);
+
+        if ($type === 'tax_percent') {
+            $value = str_replace(',', '.', $value);
+            if (!preg_match('/^(?:100(?:\.0{1,3})?|[0-9]{1,2}(?:\.[0-9]{1,3})?)$/D', $value)) {
+                throw new \InvalidArgumentException(Text::sprintf('COM_MEMIPILATES_PORTAL_INVALID_SETTING', $key));
+            }
+
+            [$whole, $fraction] = array_pad(explode('.', $value, 2), 2, '');
+            $canonical = (int) $whole . '.' . str_pad($fraction, 3, '0');
+
+            return rtrim(rtrim($canonical, '0'), '.');
+        }
+
         $maximum = (int) ($rule['max'] ?? 255);
         if (mb_strlen($value) > $maximum) {
             throw new \InvalidArgumentException(Text::sprintf('COM_MEMIPILATES_PORTAL_INVALID_SETTING', $key));

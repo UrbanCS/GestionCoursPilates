@@ -2,6 +2,32 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.7.0] - 2026-07-28
+
+### Ajouté
+
+- Ajoute un taux de taxes unique pour tout le studio dans **Paramètres → Général**, avec une valeur québécoise initiale de `14,975 %` et une précision de trois décimales.
+- Affiche séparément **Sous-total**, **Taxes** et **Total** lors du paiement d’une séance et dans le suivi administratif.
+- Ouvre l’horaire public sur la semaine courante et liste tous les cours offerts du lundi au dimanche sous le calendrier.
+- Signale par un indicateur coloré et un compteur les jours contenant des cours, dans le bandeau hebdomadaire comme dans le calendrier mensuel.
+- Permet de passer de la vue **Semaine** à la vue **Jour** tout en conservant les filtres et une navigation accessible.
+
+### Modifié
+
+- Les nouvelles commandes de forfaits et de séances utilisent toutes le taux global; les anciens champs de taux par cours et forfait sont retirés des écrans afin d’éviter des valeurs contradictoires.
+- Les calculs fiscaux sont effectués en cents par arithmétique entière, puis le total enregistré est transmis tel quel à Square.
+- Les lignes de commande conservent désormais la remise, les taxes et le total après taxes de façon cohérente avec la commande.
+
+### Validation requise sur Joomla
+
+- Vérifier le taux dans **Paramètres**, une commande Sandbox Square, les montants Sous-total/Taxes/Total, les indicateurs du calendrier et les vues Semaine/Jour après installation.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.7.0.zip`
+- Taille : `288929` octets
+- SHA-256 : `3414D7178750C5F2766F8CA38654CA1DEA7CF627EBB87C1C665EF489E3CAF58F`
+
 ## [1.6.1] - 2026-07-24
 
 ### Corrigé

@@ -63,7 +63,7 @@ final class FrontendPortalContractTest extends TestCase
         $controller = (string) file_get_contents($root . '/src/Controller/SettingsController.php');
         $expected = [
             'timezone', 'cancellation_hours', 'direct_payment_hold_minutes',
-            'session_generation_lookahead_days', 'currency', 'waitlist_promotion_mode',
+            'session_generation_lookahead_days', 'currency', 'tax_rate_percent', 'waitlist_promotion_mode',
             'waitlist_offer_minutes', 'waitlist_auto_promote', 'reminder_hours',
             'credit_expiry_notice_days', 'email_from_name', 'notification_max_attempts',
             'notification_retry_base_minutes', 'loyalty_enabled', 'points_per_attendance',
@@ -77,5 +77,27 @@ final class FrontendPortalContractTest extends TestCase
             self::assertStringContainsString('name="jform[' . $key . ']"', $template, $key);
             self::assertStringContainsString("'" . $key . "' =>", $controller, $key);
         }
+    }
+
+    public function testTaxesUseOnePreciseStudioSettingForOrdersAndFrontendTotals(): void
+    {
+        $component = dirname(__DIR__, 2) . '/packages/com_memipilates';
+        $settings = (string) file_get_contents($component . '/admin/src/Service/SettingsService.php');
+        $payments = (string) file_get_contents($component . '/admin/src/Service/PaymentService.php');
+        $booking = (string) file_get_contents($component . '/site/src/View/Booking/HtmlView.php');
+        $checkout = (string) file_get_contents($component . '/site/src/View/Checkout/HtmlView.php');
+        $catalogue = (string) file_get_contents($component . '/admin/src/Service/CatalogManagementService.php');
+        $configuration = (string) file_get_contents($component . '/admin/config.xml');
+
+        self::assertStringContainsString('name="tax_rate_percent"', $configuration);
+        self::assertStringContainsString('default="14.975"', $configuration);
+        self::assertStringContainsString('taxRateThousandthsPercent', $settings);
+        self::assertStringContainsString('calculateTaxCents', $settings);
+        self::assertStringContainsString('intdiv(', $settings);
+        self::assertSame(2, substr_count($payments, '$this->settings->calculateTaxCents('));
+        self::assertStringNotContainsString('$taxRateBasisPoints', $payments);
+        self::assertStringContainsString('calculateTaxCents($priceCents)', $booking);
+        self::assertStringContainsString('calculateTaxCents($this->sessionSubtotalCents)', $checkout);
+        self::assertStringContainsString("\$values['tax_rate_basis_points'] = (int) \$before['tax_rate_basis_points']", $catalogue);
     }
 }

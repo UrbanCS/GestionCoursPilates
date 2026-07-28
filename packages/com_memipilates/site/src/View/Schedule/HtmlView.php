@@ -19,7 +19,12 @@ final class HtmlView extends BaseHtmlView
     public array $sessions = [];
     /** @var array<string,list<array<string,mixed>>> */
     public array $filters = [];
+    /** @var list<array{date:string,courseType:string,instructor:string,location:string}> */
+    public array $calendarSessions = [];
+    public string $calendarCoverageStart = '';
+    public string $calendarCoverageEnd = '';
     public string $startDate = '';
+    public string $selectedDate = '';
     public string $viewMode = 'week';
     public string $locale = 'fr-FR';
     public bool $canManageStudio = false;
@@ -35,15 +40,19 @@ final class HtmlView extends BaseHtmlView
         $parsedDate = preg_match('/^\d{4}-\d{2}-\d{2}$/D', $candidate)
             ? \DateTimeImmutable::createFromFormat('!Y-m-d', $candidate, $timezone)
             : false;
-        $this->startDate = $parsedDate instanceof \DateTimeImmutable && $parsedDate->format('Y-m-d') === $candidate
-            ? $candidate
-            : $today;
-        $this->viewMode = 'week';
+        $selectedDate = $parsedDate instanceof \DateTimeImmutable && $parsedDate->format('Y-m-d') === $candidate
+            ? $parsedDate
+            : new \DateTimeImmutable($today, $timezone);
+        $this->selectedDate = $selectedDate->format('Y-m-d');
+        $this->startDate = $selectedDate->modify('monday this week')->format('Y-m-d');
+        $requestedMode = $input->getCmd('mode', 'week');
+        $this->viewMode = in_array($requestedMode, ['day', 'week'], true) ? $requestedMode : 'week';
         $this->locale = $application->getLanguage()->getTag() ?: 'fr-FR';
         $managementLandingView = PortalAccess::landingView($application->getIdentity());
         $this->canManageStudio = $managementLandingView !== null;
         $this->managementLandingView = $managementLandingView ?? 'manage';
         $this->sessions = $this->loadSessions();
+        $this->calendarSessions = $this->loadCalendarSessions();
         $this->filters = $this->loadFilters();
 
         $document = $application->getDocument();
@@ -51,13 +60,84 @@ final class HtmlView extends BaseHtmlView
             ->useStyle('com_memipilates.site')
             ->useScript('com_memipilates.schedule');
         $document->addScriptOptions('com_memipilates.schedule', [
+            'calendarSessions' => $this->calendarSessions,
+            'calendarCoverageStart' => $this->calendarCoverageStart,
+            'calendarCoverageEnd' => $this->calendarCoverageEnd,
             'messages' => [
                 'COM_MEMIPILATES_SCHEDULE_VISIBLE_COUNT' => Text::_('COM_MEMIPILATES_SCHEDULE_VISIBLE_COUNT'),
+                'COM_MEMIPILATES_SCHEDULE_DAY_CLASS_COUNT' => Text::_('COM_MEMIPILATES_SCHEDULE_DAY_CLASS_COUNT'),
+                'COM_MEMIPILATES_SCHEDULE_WEEK_RANGE' => Text::_('COM_MEMIPILATES_SCHEDULE_WEEK_RANGE'),
+                'COM_MEMIPILATES_SCHEDULE_WEEK_CLASSES_TITLE' => Text::_('COM_MEMIPILATES_SCHEDULE_WEEK_CLASSES_TITLE'),
+                'COM_MEMIPILATES_SCHEDULE_DAY_CLASSES_TITLE' => Text::_('COM_MEMIPILATES_SCHEDULE_DAY_CLASSES_TITLE'),
             ],
         ]);
-        Text::script('COM_MEMIPILATES_SCHEDULE_VISIBLE_COUNT');
+        foreach ([
+            'COM_MEMIPILATES_SCHEDULE_VISIBLE_COUNT',
+            'COM_MEMIPILATES_SCHEDULE_DAY_CLASS_COUNT',
+            'COM_MEMIPILATES_SCHEDULE_WEEK_RANGE',
+            'COM_MEMIPILATES_SCHEDULE_WEEK_CLASSES_TITLE',
+            'COM_MEMIPILATES_SCHEDULE_DAY_CLASSES_TITLE',
+        ] as $key) {
+            Text::script($key);
+        }
 
         parent::display($tpl);
+    }
+
+    /** @return list<array{date:string,courseType:string,instructor:string,location:string}> */
+    private function loadCalendarSessions(): array
+    {
+        $db = ComponentServices::database();
+        $settings = ComponentServices::settings();
+        $timezone = $settings->timezone();
+        $selected = new \DateTimeImmutable($this->selectedDate . ' 00:00:00', $timezone);
+        $horizonDays = max(90, min(730, $settings->getInt('session_generation_lookahead_days', 90) + 45));
+        $start = $selected->modify('first day of this month')->modify('-7 days');
+        $end = $selected->modify('+' . $horizonDays . ' days')->modify('last day of this month')->modify('+8 days');
+        $this->calendarCoverageStart = $start->format('Y-m-d');
+        $this->calendarCoverageEnd = $end->modify('-1 day')->format('Y-m-d');
+        $startUtc = $start->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+        $endUtc = $end->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+        $query = $db->getQuery(true)
+            ->select([
+                's.starts_at',
+                'c.course_type_id',
+                's.instructor_id',
+                'l.id AS location_id',
+            ])
+            ->from($db->quoteName('#__memi_sessions', 's'))
+            ->join('INNER', $db->quoteName('#__memi_courses', 'c') . ' ON c.id = s.course_id')
+            ->join('INNER', $db->quoteName('#__memi_course_types', 'ct') . ' ON ct.id = c.course_type_id')
+            ->join('LEFT', $db->quoteName('#__memi_rooms', 'r') . ' ON r.id = s.room_id')
+            ->join('LEFT', $db->quoteName('#__memi_locations', 'l') . ' ON l.id = r.location_id')
+            ->where('s.starts_at >= :calendar_start')
+            ->where('s.starts_at < :calendar_end')
+            ->where('s.archived_at IS NULL')
+            ->where('s.status IN (' . $db->quote('published') . ', ' . $db->quote('open') . ')')
+            ->where('c.published = 1')
+            ->where('c.archived_at IS NULL')
+            ->where('ct.published = 1')
+            ->where('ct.archived_at IS NULL')
+            ->order('s.starts_at ASC');
+        $query
+            ->bind(':calendar_start', $startUtc)
+            ->bind(':calendar_end', $endUtc);
+        $db->setQuery($query);
+        $rows = $db->loadAssocList() ?: [];
+        $sessions = [];
+
+        foreach ($rows as $row) {
+            $sessions[] = [
+                'date' => (new \DateTimeImmutable((string) $row['starts_at'], new \DateTimeZone('UTC')))
+                    ->setTimezone($timezone)
+                    ->format('Y-m-d'),
+                'courseType' => (string) (int) $row['course_type_id'],
+                'instructor' => (string) (int) $row['instructor_id'],
+                'location' => (string) (int) ($row['location_id'] ?? 0),
+            ];
+        }
+
+        return $sessions;
     }
 
     /** @return list<array<string,mixed>> */

@@ -5,6 +5,7 @@ Configurer les options dans **Composants → Memi Pilates → Options** après l
 | Paramètre | Exemple de préproduction | Remarque |
 | --- | --- | --- |
 | Fuseau horaire | `America/Toronto` | Les dates stockées restent en UTC. |
+| Taxes | `14.975` | Taux global appliqué aux nouvelles commandes de cours et de forfaits; saisir le pourcentage sans le symbole `%`. |
 | Devise | `CAD` | Montants stockés en cents. |
 | Délai d’annulation | `12` heures | Ajustable selon la politique du studio. |
 | Retenue d’un paiement direct | `15` minutes | Une commande de séance abandonnée libère ensuite automatiquement sa place. |

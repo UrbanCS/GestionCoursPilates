@@ -8,7 +8,7 @@ Un gestionnaire configure les données dans cet ordre afin d’éviter les séan
 2. Instructeurs, liés à leur compte Joomla existant lorsque le rôle doit être limité à ses propres séances.
 3. Types de cours, puis cours : durée, prix en cents, crédits requis, capacité, salle, instructeur, fenêtre d’inscription et publication.
 4. Règles de récurrence et séances générées; vérifier qu’aucun doublon de créneau ou de salle n’existe.
-5. Forfaits, restrictions, dates d’expiration, taxes et points bonus.
+5. Forfaits, restrictions, dates d’expiration et points bonus.
 6. Promotions avec dates, limites et offres applicables.
 7. Modèles courriel, règles de rappel, délai d’annulation, liste d’attente et fidélité.
 8. Menus publics, niveaux d’accès et groupes ACL.
@@ -34,6 +34,10 @@ Après l’installation, un Super administrateur ouvre **Composants → Memi Pil
 7. Forfait de cours.
 
 L’enregistrement d’un horaire hebdomadaire génère immédiatement les séances futures selon l’horizon configuré dans les Options. Une séance publiée future est nécessaire avant que l’horaire public puisse afficher un cours. L’écran **Catalogue** permet ensuite de modifier ou de retirer de la vente les emplacements, salles, instructeurs, types de cours, cours, horaires récurrents et forfaits. Les séances ponctuelles se créent dans Catalogue; l’annulation d’une séance existante se fait dans **Séances** afin de préserver l’historique client.
+
+Le taux de taxes est unique pour le studio. Un Super User peut le modifier dans **Paramètres → Général → Taxes** depuis l’administration Joomla ou le portail frontal. La valeur initiale est `14,975 %`; elle s’applique aux nouvelles commandes de cours et de forfaits. Les commandes déjà créées conservent les montants enregistrés au moment de leur création.
+
+L’horaire public affiche par défaut la semaine courante du lundi au dimanche. Un point et un compteur distinguent les jours où des cours sont programmés, y compris dans le calendrier mensuel. La liste située dessous présente les cours de la semaine; le client peut aussi sélectionner une journée ou utiliser le bouton **Jour**.
 
 ## Gestion quotidienne
 

@@ -68,7 +68,6 @@ $selectOptions = static function (array $items, mixed $selected, bool $empty = f
                 <div class="col-md-3"><label class="form-label">Capacité</label><input required min="1" type="number" class="form-control" name="capacity" value="<?= (int) $value('default_capacity', 8); ?>"></div>
                 <div class="col-md-3"><label class="form-label">Prix (CAD)</label><input min="0" step="0.01" type="number" class="form-control" name="price" value="<?= $escape($money($value('default_price_cents'))); ?>"></div>
                 <div class="col-md-3"><label class="form-label">Crédits requis</label><input min="0" type="number" class="form-control" name="credits_required" value="<?= (int) $value('default_credits_required', 1); ?>"></div>
-                <div class="col-md-3"><label class="form-label">Taxe (centièmes %)</label><input min="0" max="10000" type="number" class="form-control" name="tax_rate_basis_points" value="<?= (int) $value('tax_rate_basis_points', 0); ?>"></div>
                 <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" rows="3" name="description"><?= $escape($value('description')); ?></textarea></div>
             <?php elseif ($this->entity === 'course') : ?>
                 <div class="col-md-4"><label class="form-label">Type de cours *</label><select required class="form-select" name="course_type_id"><?= $selectOptions($this->courseTypes, $value('course_type_id')); ?></select></div>
@@ -79,7 +78,6 @@ $selectOptions = static function (array $items, mixed $selected, bool $empty = f
                 <div class="col-md-3"><label class="form-label">Capacité</label><input required min="1" type="number" class="form-control" name="capacity" value="<?= (int) $value('capacity', 8); ?>"></div>
                 <div class="col-md-2"><label class="form-label">Prix (CAD)</label><input min="0" step="0.01" type="number" class="form-control" name="price" value="<?= $escape($money($value('price_cents'))); ?>"></div>
                 <div class="col-md-2"><label class="form-label">Crédits</label><input min="0" type="number" class="form-control" name="credits_required" value="<?= (int) $value('credits_required', 1); ?>"></div>
-                <div class="col-md-2"><label class="form-label">Taxe (centièmes %)</label><input min="0" max="10000" type="number" class="form-control" name="tax_rate_basis_points" value="<?= (int) $value('tax_rate_basis_points', 0); ?>"></div>
                 <div class="col-md-6"><label class="form-label">Ouverture (jours avant)</label><input min="0" max="365" type="number" class="form-control" name="booking_opens_days" value="<?= (int) floor((int) $value('booking_opens_offset_minutes', 10080) / 1440); ?>"></div>
                 <div class="col-md-6"><label class="form-label">Fermeture (minutes avant)</label><input min="0" max="10080" type="number" class="form-control" name="booking_closes_minutes" value="<?= (int) $value('booking_closes_offset_minutes', 0); ?>"></div>
                 <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" rows="3" name="description"><?= $escape($value('description')); ?></textarea></div>
@@ -106,7 +104,6 @@ $selectOptions = static function (array $items, mixed $selected, bool $empty = f
                 <div class="col-md-3"><label class="form-label">Crédits *</label><input required min="1" type="number" class="form-control" name="credits" value="<?= (int) $value('credits', 1); ?>"></div>
                 <div class="col-md-4"><label class="form-label">Validité (jours, facultatif)</label><input min="1" type="number" class="form-control" name="validity_days" value="<?= $escape($value('validity_days')); ?>"></div>
                 <div class="col-md-4"><label class="form-label">Points bonis</label><input min="0" type="number" class="form-control" name="bonus_points" value="<?= (int) $value('bonus_points', 0); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Taxe (centièmes %)</label><input min="0" max="10000" type="number" class="form-control" name="tax_rate_basis_points" value="<?= (int) $value('tax_rate_basis_points', 0); ?>"></div>
                 <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" rows="3" name="description"><?= $escape($value('description')); ?></textarea></div>
             <?php endif; ?>
 

@@ -11,6 +11,7 @@ use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Memi\Component\Memipilates\Administrator\Service\ComponentServices;
 
 /** Super User-only component settings exposed inside the front-end portal. */
 final class HtmlView extends BaseHtmlView
@@ -37,6 +38,7 @@ final class HtmlView extends BaseHtmlView
             'direct_payment_hold_minutes' => 15,
             'session_generation_lookahead_days' => 90,
             'currency' => 'CAD',
+            'tax_rate_percent' => '14.975',
             'waitlist_promotion_mode' => 'automatic',
             'waitlist_offer_minutes' => 120,
             'waitlist_auto_promote' => 1,
@@ -59,6 +61,7 @@ final class HtmlView extends BaseHtmlView
             'square_webhook_signature_key' => '',
             'square_webhook_url' => '',
         ], $params->toArray());
+        $values['tax_rate_percent'] = ComponentServices::settings()->taxRatePercent();
         $this->squareAccessTokenConfigured = trim((string) ($values['square_access_token'] ?? '')) !== '';
         $this->squareWebhookKeyConfigured = trim((string) ($values['square_webhook_signature_key'] ?? '')) !== '';
 

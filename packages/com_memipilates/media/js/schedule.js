@@ -108,6 +108,12 @@
       };
 
       this.cards = Array.from(root.querySelectorAll('[data-memi-schedule-card], [data-memi-session-card]'));
+      this.calendarSessions = Array.isArray(this.options.calendarSessions)
+        ? this.options.calendarSessions.filter((session) => session && /^\d{4}-\d{2}-\d{2}$/.test(String(session.date || '')))
+        : [];
+      this.calendarCoverageStart = fromIsoDate(this.options.calendarCoverageStart);
+      this.calendarCoverageEnd = fromIsoDate(this.options.calendarCoverageEnd);
+      this.sessionCountsByDate = new Map();
       this.filterControls = Array.from(root.querySelectorAll('[data-memi-schedule-filter]'));
       this.filterForm = root.querySelector('[data-memi-schedule-filters]');
       this.dateChoices = Array.from(root.querySelectorAll('[data-memi-schedule-date-choice]'));
@@ -124,6 +130,7 @@
       this.calendarClose = root.querySelector('[data-memi-schedule-calendar-close]');
       this.emptyState = root.querySelector('[data-memi-schedule-empty]');
       this.countNode = root.querySelector('[data-memi-schedule-count]');
+      this.listHeading = root.querySelector('[data-memi-schedule-list-heading]');
       this.liveRegion = root.querySelector('[data-memi-schedule-live]');
       this.state = {
         date: fromIsoDate(root.dataset.date) || new Date(),
@@ -273,7 +280,7 @@
           }
 
           event.preventDefault();
-          this.navigateToDate(date);
+          this.navigateToDate(date, 'week');
         });
       });
 
@@ -318,7 +325,7 @@
 
       this.closeCalendar(false);
       if (!isLoaded) {
-        this.navigateToDate(isoDate);
+        this.navigateToDate(isoDate, 'day');
         return;
       }
 
@@ -366,12 +373,19 @@
     }
 
     changeCalendarMonth(amount) {
-      this.calendarFocusDate = addMonths(this.calendarFocusDate, amount);
-      this.calendarCursor = new Date(
-        this.calendarFocusDate.getFullYear(),
-        this.calendarFocusDate.getMonth(),
-        1
-      );
+      const targetFocus = addMonths(this.calendarFocusDate, amount);
+      const targetMonthStart = new Date(targetFocus.getFullYear(), targetFocus.getMonth(), 1);
+      const targetMonthEnd = new Date(targetFocus.getFullYear(), targetFocus.getMonth() + 1, 0);
+      if (
+        (this.calendarCoverageStart && targetMonthStart < this.calendarCoverageStart)
+        || (this.calendarCoverageEnd && targetMonthEnd > this.calendarCoverageEnd)
+      ) {
+        this.navigateToDate(toIsoDate(targetMonthStart), this.state.view);
+        return;
+      }
+
+      this.calendarFocusDate = targetFocus;
+      this.calendarCursor = targetMonthStart;
       this.renderCalendar();
       window.requestAnimationFrame(() => this.focusCalendarDate(this.calendarFocusDate));
     }
@@ -479,12 +493,22 @@
         button.dataset.memiScheduleCalendarDate = isoDate;
         button.textContent = String(date.getDate());
         button.setAttribute('role', 'gridcell');
-        button.setAttribute('aria-label', dayFormatter.format(date));
+        const dateHeading = dayFormatter.format(date);
+        const sessionCount = this.sessionCountsByDate.get(isoDate) || 0;
+        const countMessage = translate(
+          this.options,
+          'COM_MEMIPILATES_SCHEDULE_DAY_CLASS_COUNT',
+          'Scheduled classes: %COUNT%',
+          { COUNT: sessionCount }
+        ).replace('%s', String(sessionCount));
+        button.setAttribute('aria-label', sessionCount > 0 ? `${dateHeading}. ${countMessage}` : dateHeading);
         button.setAttribute('aria-selected', String(isoDate === selectedIso));
         button.tabIndex = isoDate === focusIso ? 0 : -1;
         button.classList.toggle('is-outside', date.getMonth() !== monthStart.getMonth());
         button.classList.toggle('is-selected', isoDate === selectedIso);
         button.classList.toggle('is-today', isoDate === todayIso);
+        button.classList.toggle('has-sessions', sessionCount > 0);
+        button.dataset.memiSessionCount = String(sessionCount);
         if (isoDate === todayIso) {
           button.setAttribute('aria-current', 'date');
         }
@@ -494,10 +518,10 @@
       this.calendarGrid.replaceChildren(...days);
     }
 
-    navigateToDate(date) {
+    navigateToDate(date, mode = this.state.view) {
       const url = new URL(window.location.href);
       url.searchParams.set('date', date);
-      url.searchParams.set('mode', 'week');
+      url.searchParams.set('mode', ['day', 'week'].includes(mode) ? mode : 'week');
       url.searchParams.delete('view');
       Object.entries(this.state.filters).forEach(([name, values]) => {
         if (values.length) {
@@ -567,17 +591,44 @@
       }
 
       if (this.dateLabel) {
-        const formatter = new Intl.DateTimeFormat(this.options.locale, this.state.view === 'week'
-          ? { day: 'numeric', month: 'long', year: 'numeric' }
-          : { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        const formatter = new Intl.DateTimeFormat(this.options.locale, {
+          weekday: this.state.view === 'day' ? 'long' : undefined,
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
 
         if (this.state.view === 'week') {
           const weekStart = startOfWeek(this.state.date);
           const weekEnd = addDays(weekStart, 6);
-          this.dateLabel.textContent = `${formatter.format(weekStart)} – ${formatter.format(weekEnd)}`;
+          this.dateLabel.textContent = translate(
+            this.options,
+            'COM_MEMIPILATES_SCHEDULE_WEEK_RANGE',
+            'Week from %START% to %END%',
+            {
+              START: formatter.format(weekStart),
+              END: formatter.format(weekEnd)
+            }
+          );
         } else {
           this.dateLabel.textContent = formatter.format(this.state.date);
         }
+      }
+
+      if (this.listHeading) {
+        this.listHeading.textContent = translate(
+          this.options,
+          this.state.view === 'week'
+            ? 'COM_MEMIPILATES_SCHEDULE_WEEK_CLASSES_TITLE'
+            : 'COM_MEMIPILATES_SCHEDULE_DAY_CLASSES_TITLE',
+          this.state.view === 'week' ? 'Classes available this week' : 'Classes available this day'
+        );
+      }
+
+      if (this.emptyState) {
+        this.emptyState.textContent = this.state.view === 'week'
+          ? (this.emptyState.dataset.weekMessage || '')
+          : (this.emptyState.dataset.dayMessage || '');
       }
 
       const selectedDate = toIsoDate(this.state.date);
@@ -598,6 +649,69 @@
       });
     }
 
+    updateDayIndicators() {
+      const counts = new Map();
+
+      if (this.calendarSessions.length) {
+        this.calendarSessions.forEach((session) => {
+          const matches = Object.entries(this.state.filters).every(([name, selected]) => {
+            if (!selected.length) {
+              return true;
+            }
+
+            const property = filterAliases[name] || name.replace(/[-_](.)/g, (_, letter) => letter.toUpperCase());
+            const values = normalize(session[property]).split(',').map((value) => value.trim()).filter(Boolean);
+            return selected.some((value) => values.includes(value));
+          });
+          if (matches) {
+            const date = String(session.date);
+            counts.set(date, (counts.get(date) || 0) + 1);
+          }
+        });
+      } else {
+        this.cards.forEach((card) => {
+          if (!this.matchesFilters(card)) {
+            return;
+          }
+
+          const date = this.cardDate(card).slice(0, 10);
+          if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            counts.set(date, (counts.get(date) || 0) + 1);
+          }
+        });
+      }
+
+      this.sessionCountsByDate = counts;
+
+      this.dateChoices.forEach((control) => {
+        const date = control.dataset.memiScheduleDateChoice || '';
+        const count = counts.get(date) || 0;
+        const availability = control.querySelector('[data-memi-schedule-date-availability]');
+        const countNode = control.querySelector('[data-memi-schedule-date-count]');
+        const dateHeading = control.dataset.dateHeading || date;
+        const countMessage = translate(
+          this.options,
+          'COM_MEMIPILATES_SCHEDULE_DAY_CLASS_COUNT',
+          '%COUNT% classes available',
+          { COUNT: count }
+        ).replace('%s', String(count));
+
+        control.classList.toggle('has-sessions', count > 0);
+        control.dataset.memiSessionCount = String(count);
+        control.setAttribute('aria-label', count > 0 ? `${dateHeading}. ${countMessage}` : dateHeading);
+        if (availability) {
+          availability.hidden = count === 0;
+        }
+        if (countNode) {
+          countNode.textContent = String(count);
+        }
+      });
+
+      if (this.calendarPanel && !this.calendarPanel.hidden) {
+        this.renderCalendar();
+      }
+    }
+
     syncUrl() {
       if (!this.options.urlSync || !window.history || !window.history.replaceState) {
         return;
@@ -605,7 +719,7 @@
 
       const url = new URL(window.location.href);
       url.searchParams.set('date', toIsoDate(this.state.date));
-      url.searchParams.set('mode', 'week');
+      url.searchParams.set('mode', this.state.view);
       url.searchParams.delete('view');
       Object.entries(this.state.filters).forEach(([name, values]) => {
         if (values.length) {
@@ -619,6 +733,7 @@
 
     apply() {
       this.updateDateUi();
+      this.updateDayIndicators();
       let visibleCount = 0;
 
       this.cards.forEach((card) => {

@@ -7,6 +7,8 @@ use Joomla\CMS\Router\Route;
 
 $tz = \Memi\Component\Memipilates\Administrator\Service\ComponentServices::settings()->timezone();
 $rangeStart = new DateTimeImmutable($this->startDate, $tz);
+$selectedDate = new DateTimeImmutable($this->selectedDate, $tz);
+$rangeEnd = $rangeStart->modify('+6 days');
 $today = new DateTimeImmutable('today', $tz);
 $previous = $rangeStart->modify('-7 days')->format('Y-m-d');
 $next = $rangeStart->modify('+7 days')->format('Y-m-d');
@@ -53,6 +55,13 @@ $formatDateHeading = static function (DateTimeImmutable $date) use ($weekdaysLon
         $date->format('Y')
     );
 };
+$formatWeekHeading = static function (DateTimeImmutable $start, DateTimeImmutable $end) use ($formatDateHeading): string {
+    return str_replace(
+        ['%START%', '%END%'],
+        [$formatDateHeading($start), $formatDateHeading($end)],
+        Text::_('COM_MEMIPILATES_SCHEDULE_WEEK_RANGE')
+    );
+};
 
 $days = [];
 for ($offset = 0; $offset < 7; $offset++) {
@@ -60,12 +69,14 @@ for ($offset = 0; $offset < 7; $offset++) {
 }
 
 $nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+$sessionCountsByDate = [];
 $selectedSessionCount = 0;
 foreach ($this->sessions as $session) {
     $sessionDate = (new DateTimeImmutable((string) $session['starts_at'], new DateTimeZone('UTC')))
         ->setTimezone($tz)
         ->format('Y-m-d');
-    if ($sessionDate === $this->startDate) {
+    $sessionCountsByDate[$sessionDate] = ($sessionCountsByDate[$sessionDate] ?? 0) + 1;
+    if ($this->viewMode === 'week' || $sessionDate === $this->selectedDate) {
         $selectedSessionCount++;
     }
 }
@@ -73,10 +84,10 @@ foreach ($this->sessions as $session) {
 <section
     class="memi-schedule"
     data-memi-schedule
-    data-date="<?= $escape($this->startDate); ?>"
+    data-date="<?= $escape($this->selectedDate); ?>"
     data-today="<?= $escape($today->format('Y-m-d')); ?>"
     data-range-start="<?= $escape($this->startDate); ?>"
-    data-default-view="day"
+    data-default-view="<?= $escape($this->viewMode); ?>"
     data-locale="<?= $escape($this->locale); ?>"
     data-url-sync="true"
 >
@@ -190,7 +201,7 @@ foreach ($this->sessions as $session) {
         <nav class="memi-schedule__week" aria-label="<?= $escape(Text::_('COM_MEMIPILATES_SCHEDULE_DATE_NAVIGATION')); ?>">
             <a
                 class="memi-schedule__week-arrow"
-                href="<?= Route::_('index.php?option=com_memipilates&view=schedule&date=' . $previous); ?>"
+                href="<?= Route::_('index.php?option=com_memipilates&view=schedule&date=' . $previous . '&mode=week'); ?>"
                 data-memi-schedule-range-date="<?= $escape($previous); ?>"
                 aria-label="<?= $escape(Text::_('COM_MEMIPILATES_SCHEDULE_PREVIOUS')); ?>"
             ><span aria-hidden="true">&#8249;</span></a>
@@ -199,39 +210,83 @@ foreach ($this->sessions as $session) {
                 <?php foreach ($days as $index => $day) :
                     $isoDate = $day->format('Y-m-d');
                     $isToday = $isoDate === $today->format('Y-m-d');
-                    $isSelected = $index === 0;
+                    $isSelected = $isoDate === $this->selectedDate;
+                    $sessionCount = (int) ($sessionCountsByDate[$isoDate] ?? 0);
                     $dayLabel = $isToday ? Text::_('COM_MEMIPILATES_SCHEDULE_TODAY') : $weekdaysShort[(int) $day->format('N')];
+                    $dateHeading = $formatDateHeading($day);
+                    $dateAriaLabel = $sessionCount > 0
+                        ? $dateHeading . '. ' . Text::sprintf('COM_MEMIPILATES_SCHEDULE_DAY_CLASS_COUNT', $sessionCount)
+                        : $dateHeading;
                 ?>
                     <a
-                        class="memi-schedule__date<?= $isSelected ? ' is-active' : ''; ?><?= $isToday ? ' is-today' : ''; ?>"
-                        href="<?= Route::_('index.php?option=com_memipilates&view=schedule&date=' . $isoDate); ?>"
+                        class="memi-schedule__date<?= $isSelected ? ' is-active' : ''; ?><?= $isToday ? ' is-today' : ''; ?><?= $sessionCount > 0 ? ' has-sessions' : ''; ?>"
+                        href="<?= Route::_('index.php?option=com_memipilates&view=schedule&date=' . $isoDate . '&mode=day'); ?>"
                         data-memi-schedule-date-choice="<?= $escape($isoDate); ?>"
-                        data-date-heading="<?= $escape($formatDateHeading($day)); ?>"
-                        aria-label="<?= $escape($formatDateHeading($day)); ?>"
+                        data-date-heading="<?= $escape($dateHeading); ?>"
+                        data-memi-session-count="<?= $sessionCount; ?>"
+                        aria-label="<?= $escape($dateAriaLabel); ?>"
                         <?= $isSelected ? 'aria-current="date"' : ''; ?>
                     >
                         <span class="memi-schedule__date-weekday"><?= $escape($dayLabel); ?></span>
                         <span class="memi-schedule__date-number"><?= $escape($day->format('j')); ?></span>
+                        <span
+                            class="memi-schedule__date-availability"
+                            data-memi-schedule-date-availability
+                            aria-hidden="true"
+                            <?= $sessionCount > 0 ? '' : 'hidden'; ?>
+                        >
+                            <span aria-hidden="true" data-memi-schedule-date-count><?= $sessionCount; ?></span>
+                        </span>
                     </a>
                 <?php endforeach; ?>
             </div>
 
             <a
                 class="memi-schedule__week-arrow"
-                href="<?= Route::_('index.php?option=com_memipilates&view=schedule&date=' . $next); ?>"
+                href="<?= Route::_('index.php?option=com_memipilates&view=schedule&date=' . $next . '&mode=week'); ?>"
                 data-memi-schedule-range-date="<?= $escape($next); ?>"
                 aria-label="<?= $escape(Text::_('COM_MEMIPILATES_SCHEDULE_NEXT')); ?>"
             ><span aria-hidden="true">&#8250;</span></a>
         </nav>
 
         <div class="memi-schedule__selected-date">
-            <h3 data-memi-schedule-date-label><?= $escape($formatDateHeading($rangeStart)); ?></h3>
-            <p><?= Text::_('COM_MEMIPILATES_SCHEDULE_TIMEZONE_NOTE'); ?></p>
+            <div>
+                <h3 data-memi-schedule-date-label>
+                    <?= $escape($this->viewMode === 'week'
+                        ? $formatWeekHeading($rangeStart, $rangeEnd)
+                        : $formatDateHeading($selectedDate)); ?>
+                </h3>
+                <p><?= Text::_('COM_MEMIPILATES_SCHEDULE_TIMEZONE_NOTE'); ?></p>
+            </div>
+            <div
+                class="memi-schedule__view-switch"
+                role="group"
+                aria-label="<?= $escape(Text::_('COM_MEMIPILATES_SCHEDULE_VIEW_OPTIONS')); ?>"
+            >
+                <button
+                    type="button"
+                    class="<?= $this->viewMode === 'week' ? 'is-active' : ''; ?>"
+                    data-memi-schedule-view="week"
+                    aria-pressed="<?= $this->viewMode === 'week' ? 'true' : 'false'; ?>"
+                ><?= Text::_('COM_MEMIPILATES_SCHEDULE_WEEK_VIEW'); ?></button>
+                <button
+                    type="button"
+                    class="<?= $this->viewMode === 'day' ? 'is-active' : ''; ?>"
+                    data-memi-schedule-view="day"
+                    aria-pressed="<?= $this->viewMode === 'day' ? 'true' : 'false'; ?>"
+                ><?= Text::_('COM_MEMIPILATES_SCHEDULE_DAY_VIEW'); ?></button>
+            </div>
         </div>
 
         <p class="memi-visually-hidden" data-memi-schedule-count aria-live="polite">
             <?= Text::sprintf('COM_MEMIPILATES_SCHEDULE_VISIBLE_COUNT', $selectedSessionCount); ?>
         </p>
+
+        <h3 class="memi-schedule__list-heading" data-memi-schedule-list-heading>
+            <?= Text::_($this->viewMode === 'week'
+                ? 'COM_MEMIPILATES_SCHEDULE_WEEK_CLASSES_TITLE'
+                : 'COM_MEMIPILATES_SCHEDULE_DAY_CLASSES_TITLE'); ?>
+        </h3>
 
         <div class="memi-schedule__list" data-memi-schedule-list role="list">
             <?php foreach ($this->sessions as $session) :
@@ -259,7 +314,7 @@ foreach ($this->sessions as $session) {
                     : 'COM_MEMIPILATES_SCHEDULE_REGISTRATION_CLOSED';
                 $duration = max(5, (int) ($session['duration_minutes'] ?? 60));
                 $sessionDate = $start->format('Y-m-d');
-                $isSelectedDate = $sessionDate === $this->startDate;
+                $isVisible = $this->viewMode === 'week' || $sessionDate === $this->selectedDate;
                 $description = trim((string) ($session['course_description'] ?? ''));
                 $location = trim((string) ($session['location_title'] ?? ''));
                 $room = trim((string) ($session['room_title'] ?? ''));
@@ -276,9 +331,12 @@ foreach ($this->sessions as $session) {
                     data-status="<?= $escape($state); ?>"
                     role="listitem"
                     aria-labelledby="<?= $escape($titleId); ?>"
-                    <?= $isSelectedDate ? '' : 'hidden'; ?>
+                    <?= $isVisible ? '' : 'hidden'; ?>
                 >
                     <div class="memi-class-card__time">
+                        <time class="memi-class-card__date" datetime="<?= $escape($sessionDate); ?>">
+                            <?= $escape($formatDateHeading($start)); ?>
+                        </time>
                         <time datetime="<?= $escape($start->format(DATE_ATOM)); ?>"><?= $escape($start->format('H:i')); ?></time>
                         <span><?= Text::sprintf('COM_MEMIPILATES_SCHEDULE_DURATION', $duration); ?></span>
                     </div>
@@ -320,8 +378,16 @@ foreach ($this->sessions as $session) {
             <?php endforeach; ?>
         </div>
 
-        <p class="memi-empty-state" data-memi-schedule-empty <?= $selectedSessionCount > 0 ? 'hidden' : ''; ?>>
-            <?= Text::_('COM_MEMIPILATES_SCHEDULE_NO_RESULTS'); ?>
+        <p
+            class="memi-empty-state"
+            data-memi-schedule-empty
+            data-day-message="<?= $escape(Text::_('COM_MEMIPILATES_SCHEDULE_NO_RESULTS')); ?>"
+            data-week-message="<?= $escape(Text::_('COM_MEMIPILATES_SCHEDULE_NO_RESULTS_WEEK')); ?>"
+            <?= $selectedSessionCount > 0 ? 'hidden' : ''; ?>
+        >
+            <?= Text::_($this->viewMode === 'week'
+                ? 'COM_MEMIPILATES_SCHEDULE_NO_RESULTS_WEEK'
+                : 'COM_MEMIPILATES_SCHEDULE_NO_RESULTS'); ?>
         </p>
     </div>
 </section>

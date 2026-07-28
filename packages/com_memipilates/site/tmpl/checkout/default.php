@@ -4,10 +4,6 @@ defined('_JEXEC') or die;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Router\Route;
-$sessionTotal = $this->session
-    ? (int) $this->session['price_cents']
-        + (int) round((int) $this->session['price_cents'] * (int) $this->session['tax_rate_basis_points'] / 10000)
-    : 0;
 ?>
 <section
     class="memi-checkout"
@@ -48,7 +44,11 @@ $sessionTotal = $this->session
                     · <?= htmlspecialchars((string) $this->session['room_title'], ENT_QUOTES, 'UTF-8'); ?>
                 <?php endif; ?>
             </p>
-            <p><strong><?= Text::_('COM_MEMIPILATES_PAYMENT_TOTAL'); ?>:</strong> <?= number_format($sessionTotal / 100, 2); ?> <?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?></p>
+            <dl class="memi-checkout__totals">
+                <div><dt><?= Text::_('COM_MEMIPILATES_PAYMENT_SUBTOTAL'); ?></dt><dd><?= number_format($this->sessionSubtotalCents / 100, 2); ?> <?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?></dd></div>
+                <div><dt><?= Text::_('COM_MEMIPILATES_PAYMENT_TAXES'); ?></dt><dd><?= number_format($this->sessionTaxCents / 100, 2); ?> <?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?></dd></div>
+                <div><dt><?= Text::_('COM_MEMIPILATES_PAYMENT_TOTAL'); ?></dt><dd><strong><?= number_format($this->sessionTotalCents / 100, 2); ?> <?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?></strong></dd></div>
+            </dl>
             <p><?= Text::_('COM_MEMIPILATES_PAYMENT_SESSION_HOLD_NOTICE'); ?></p>
         </article>
     <?php else : ?>
@@ -56,7 +56,7 @@ $sessionTotal = $this->session
             <select data-memi-package-select>
                 <option value=""><?= Text::_('COM_MEMIPILATES_SELECT'); ?></option>
                 <?php foreach ($this->packages as $package) : ?>
-                    <option value="<?= (int) $package['id']; ?>"><?= htmlspecialchars($package['title'], ENT_QUOTES, 'UTF-8'); ?> — <?= number_format((int) $package['price_cents'] / 100, 2); ?> <?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?></option>
+                    <option value="<?= (int) $package['id']; ?>"><?= htmlspecialchars($package['title'], ENT_QUOTES, 'UTF-8'); ?> — <?= number_format((int) $package['total_with_tax_cents'] / 100, 2); ?> <?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?> (<?= Text::_('COM_MEMIPILATES_PAYMENT_TAXES_INCLUDED'); ?>)</option>
                 <?php endforeach; ?>
             </select>
         </label>

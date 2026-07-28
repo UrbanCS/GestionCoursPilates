@@ -45,6 +45,49 @@ final class SettingsService
         return filter_var($this->get($key, $default), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? $default;
     }
 
+    /**
+     * Returns the studio-wide tax rate in thousandths of one percent.
+     *
+     * Quebec's combined GST/QST rate is 14.975%, represented as the integer
+     * 14975. Keeping the value as an integer avoids floating-point money
+     * calculations while retaining the precision required by the QST rate.
+     */
+    public function taxRateThousandthsPercent(): int
+    {
+        $configured = str_replace(',', '.', trim((string) $this->get('tax_rate_percent', '14.975')));
+
+        if (!preg_match('/^(?:100(?:\.0{1,3})?|[0-9]{1,2}(?:\.[0-9]{1,3})?)$/D', $configured)) {
+            return 14975;
+        }
+
+        [$whole, $fraction] = array_pad(explode('.', $configured, 2), 2, '');
+
+        return ((int) $whole * 1000) + (int) str_pad($fraction, 3, '0');
+    }
+
+    /** Returns the canonical percentage displayed in settings forms. */
+    public function taxRatePercent(): string
+    {
+        $rate = $this->taxRateThousandthsPercent();
+        $fraction = str_pad((string) ($rate % 1000), 3, '0', STR_PAD_LEFT);
+
+        return rtrim(rtrim(intdiv($rate, 1000) . '.' . $fraction, '0'), '.');
+    }
+
+    /**
+     * Calculates the tax on an integer-cent taxable amount, rounded half up
+     * to the nearest cent.
+     */
+    public function calculateTaxCents(int $taxableCents): int
+    {
+        $taxableCents = max(0, $taxableCents);
+
+        return intdiv(
+            ($taxableCents * $this->taxRateThousandthsPercent()) + 50000,
+            100000
+        );
+    }
+
     public function timezone(): \DateTimeZone
     {
         $configured = (string) $this->get('timezone', Factory::getApplication()->get('offset', 'America/Toronto'));

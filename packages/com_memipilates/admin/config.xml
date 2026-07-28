@@ -53,6 +53,17 @@
 			<option value="CAD">CAD</option>
 			<option value="USD">USD</option>
 		</field>
+		<field
+			name="tax_rate_percent"
+			type="number"
+			default="14.975"
+			min="0"
+			max="100"
+			step="0.001"
+			label="COM_MEMIPILATES_CONFIG_TAX_RATE_LABEL"
+			description="COM_MEMIPILATES_CONFIG_TAX_RATE_DESC"
+			filter="string"
+		/>
 	</fieldset>
 
 	<fieldset name="waitlist" label="COM_MEMIPILATES_CONFIG_FIELDSET_WAITLIST">
