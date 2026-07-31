@@ -2,6 +2,31 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.8.0] - 2026-07-30
+
+### Ajouté
+
+- Ajoute une page publique **Cours offerts** présentant les catégories publiées sous forme de cartes illustrées.
+- Chaque carte ouvre l’horaire public déjà filtré pour la catégorie choisie.
+- Permet de choisir ou de téléverser l’image d’une catégorie depuis le Catalogue ou la Mise en route grâce au gestionnaire de médias Joomla.
+- Ajoute le type d’élément de menu Joomla **Memi Pilates → Cours offerts** afin que l’alias public `/cours` puisse afficher ce catalogue.
+
+### Corrigé
+
+- Une visite directe d’une page de réservation sans identifiant de séance retourne désormais une erreur contrôlée plutôt qu’une erreur de typage PHP.
+- Applique côté serveur le filtre de catégorie et les niveaux d’accès Joomla dans l’horaire, même lorsque JavaScript est désactivé.
+- Limite les images des catégories au dossier local `images/memipilates/` et rejette les chemins encodés, ambigus ou non canoniques.
+
+### Validation requise sur Joomla
+
+- Installer le paquet, associer le menu **COURS** à la vue **Cours offerts**, téléverser les quatre images et confirmer que chaque carte ouvre le bon horaire filtré.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.0.zip`
+- Taille : `294260` octets
+- SHA-256 : `7EB6B903B231B868C492C56AD121811562761BC45DC08D1CA8C41941940AD068`
+
 ## [1.7.0] - 2026-07-28
 
 ### Ajouté

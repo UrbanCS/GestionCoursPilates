@@ -10,6 +10,7 @@ defined('_JEXEC') or die;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\View\HtmlView as BaseHtmlView;
+use Joomla\Database\ParameterType;
 use Memi\Component\Memipilates\Administrator\Service\ComponentServices;
 use Memi\Component\Memipilates\Site\Service\PortalAccess;
 
@@ -29,11 +30,20 @@ final class HtmlView extends BaseHtmlView
     public string $locale = 'fr-FR';
     public bool $canManageStudio = false;
     public string $managementLandingView = 'manage';
+    /** @var list<int> */
+    private array $authorisedViewLevels = [1];
+    private int $selectedCourseTypeId = 0;
 
     public function display($tpl = null): void
     {
         $application = Factory::getApplication();
         $input = $application->input;
+        $authorisedViewLevels = array_values(array_unique(array_map(
+            'intval',
+            $application->getIdentity()->getAuthorisedViewLevels()
+        )));
+        $this->authorisedViewLevels = $authorisedViewLevels !== [] ? $authorisedViewLevels : [1];
+        $this->selectedCourseTypeId = $this->validateCourseTypeId($input->getInt('type', 0));
         $timezone = ComponentServices::settings()->timezone();
         $today = (new \DateTimeImmutable('now', $timezone))->format('Y-m-d');
         $candidate = $input->getString('date', $today);
@@ -118,10 +128,17 @@ final class HtmlView extends BaseHtmlView
             ->where('c.archived_at IS NULL')
             ->where('ct.published = 1')
             ->where('ct.archived_at IS NULL')
+            ->where('ct.access IN (' . implode(',', $this->authorisedViewLevels) . ')')
             ->order('s.starts_at ASC');
         $query
             ->bind(':calendar_start', $startUtc)
             ->bind(':calendar_end', $endUtc);
+        if ($this->selectedCourseTypeId > 0) {
+            $selectedCourseTypeId = $this->selectedCourseTypeId;
+            $query
+                ->where('c.course_type_id = :calendar_course_type_id')
+                ->bind(':calendar_course_type_id', $selectedCourseTypeId, ParameterType::INTEGER);
+        }
         $db->setQuery($query);
         $rows = $db->loadAssocList() ?: [];
         $sessions = [];
@@ -168,8 +185,15 @@ final class HtmlView extends BaseHtmlView
             ->where('c.archived_at IS NULL')
             ->where('ct.published = 1')
             ->where('ct.archived_at IS NULL')
+            ->where('ct.access IN (' . implode(',', $this->authorisedViewLevels) . ')')
             ->order('s.starts_at ASC');
         $query->bind(':start_at', $startUtc)->bind(':end_at', $endUtc);
+        if ($this->selectedCourseTypeId > 0) {
+            $selectedCourseTypeId = $this->selectedCourseTypeId;
+            $query
+                ->where('c.course_type_id = :course_type_id')
+                ->bind(':course_type_id', $selectedCourseTypeId, ParameterType::INTEGER);
+        }
         $db->setQuery($query);
 
         return $db->loadAssocList() ?: [];
@@ -180,7 +204,13 @@ final class HtmlView extends BaseHtmlView
     {
         $db = ComponentServices::database();
         $queries = [
-            'types' => $db->getQuery(true)->select(['id', 'title'])->from($db->quoteName('#__memi_course_types'))->where('published = 1')->where('archived_at IS NULL')->order('ordering, title'),
+            'types' => $db->getQuery(true)
+                ->select(['ct.id', 'ct.title'])
+                ->from($db->quoteName('#__memi_course_types', 'ct'))
+                ->where('ct.published = 1')
+                ->where('ct.archived_at IS NULL')
+                ->where('ct.access IN (' . implode(',', $this->authorisedViewLevels) . ')')
+                ->order('ct.ordering, ct.title'),
             'instructors' => $db->getQuery(true)->select(['id', 'display_name AS title'])->from($db->quoteName('#__memi_instructors'))->where('published = 1')->where('archived_at IS NULL')->order('ordering, display_name'),
             'locations' => $db->getQuery(true)->select(['id', 'title'])->from($db->quoteName('#__memi_locations'))->where('published = 1')->where('archived_at IS NULL')->order('ordering, title'),
         ];
@@ -191,5 +221,25 @@ final class HtmlView extends BaseHtmlView
         }
 
         return $result;
+    }
+
+    private function validateCourseTypeId(int $requestedCourseTypeId): int
+    {
+        if ($requestedCourseTypeId <= 0) {
+            return 0;
+        }
+
+        $db = ComponentServices::database();
+        $query = $db->getQuery(true)
+            ->select('ct.id')
+            ->from($db->quoteName('#__memi_course_types', 'ct'))
+            ->where('ct.id = :requested_course_type_id')
+            ->where('ct.published = 1')
+            ->where('ct.archived_at IS NULL')
+            ->where('ct.access IN (' . implode(',', $this->authorisedViewLevels) . ')')
+            ->bind(':requested_course_type_id', $requestedCourseTypeId, ParameterType::INTEGER);
+        $db->setQuery($query);
+
+        return (int) $db->loadResult() === $requestedCourseTypeId ? $requestedCourseTypeId : 0;
     }
 }

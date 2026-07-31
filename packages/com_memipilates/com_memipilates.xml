@@ -7,7 +7,7 @@
 	<license>GNU General Public License version 2 or later; see LICENSE.txt</license>
 	<authorEmail>info@memistudio.ca</authorEmail>
 	<authorUrl>https://memistudio.ca</authorUrl>
-	<version>1.7.0</version>
+	<version>1.8.0</version>
 	<description>COM_MEMIPILATES_XML_DESCRIPTION</description>
 	<element>com_memipilates</element>
 	<namespace path="src">Memi\Component\Memipilates</namespace>
@@ -68,6 +68,7 @@
 		<files folder="admin">
 			<filename>access.xml</filename>
 			<filename>config.xml</filename>
+			<folder>forms</folder>
 			<folder>services</folder>
 			<folder>sql</folder>
 			<folder>src</folder>

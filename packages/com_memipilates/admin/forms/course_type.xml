@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+	<fieldset name="media">
+		<field
+			name="image"
+			type="media"
+			label="COM_MEMIPILATES_COURSE_TYPE_IMAGE"
+			description="COM_MEMIPILATES_COURSE_TYPE_IMAGE_DESC"
+			directory="memipilates"
+			preview="tooltip"
+			preview_width="240"
+			preview_height="180"
+			types="images"
+		/>
+	</fieldset>
+</form>

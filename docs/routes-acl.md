@@ -10,6 +10,7 @@ La route technique non SEF reste une référence de diagnostic. Lorsqu’un él�
 
 | Fonction | Vue/route technique de référence | Accès | Contrôles |
 | --- | --- | --- | --- |
+| Cours offerts | index.php?option=com_memipilates&view=coursetypes | Public | Seuls les types de cours publiés, non archivés et visibles au niveau d’accès courant sont affichés; chaque carte ouvre l’horaire filtré pour ce type. |
 | Horaire | index.php?option=com_memipilates&view=schedule | Public | Filtres validés; seules les séances publiées sont visibles. |
 | Horaire et détail d’une séance | view=schedule, puis view=booking avec session_id | Horaire public; connexion requise pour confirmer | Seules les séances publiées sont listées; l’ID est revalidé, puis la capacité, la fenêtre d’inscription et le crédit sont contrôlés sous transaction. |
 | Achat d’un forfait | view=checkout avec package_id | Client connecté, propriétaire de la commande | Offre active, prix serveur en cents, promotion et total recalculés côté serveur. |

@@ -14,6 +14,8 @@ Ce dossier fournit un squelette PHPUnit pour les règles d’acceptation de com_
 | Acceptance/CriticalAcceptanceTest.php | Un test par scénario AT-01 à AT-32. |
 | Contract/AcceptanceCatalogTest.php | Vérifie que le catalogue de scénarios reste complet et sans doublon. |
 | Contract/FrontendPortalContractTest.php | Vérifie la présence des onze vues frontales, l’ACL centrale, le CSRF et la conservation des secrets Square. |
+| Contract/PublicCourseTypesContractTest.php | Vérifie la vue publique des catégories, les images administrables et les liens vers l’horaire filtré. |
+| Contract/PublicScheduleContractTest.php | Vérifie les vues semaine/jour, les indicateurs de disponibilité et la liste des cours de l’horaire public. |
 | Fixtures/acceptance-scenarios.php | Métadonnées versionnées des 32 scénarios obligatoires. |
 
 ## Installer le runner

@@ -42,6 +42,30 @@ final class PublicScheduleContractTest extends TestCase
         self::assertStringContainsString('.memi-schedule__date.has-sessions:not(.is-active)', $style);
     }
 
+    public function testCourseTypeAccessAndRequestedTypeAreEnforcedServerSide(): void
+    {
+        $root = dirname(__DIR__, 2) . '/packages/com_memipilates';
+        $view = (string) file_get_contents($root . '/site/src/View/Schedule/HtmlView.php');
+
+        self::assertStringContainsString("\$application->getIdentity()->getAuthorisedViewLevels()", $view);
+        self::assertStringContainsString("\$input->getInt('type', 0)", $view);
+        self::assertGreaterThanOrEqual(
+            4,
+            substr_count($view, "ct.access IN (' . implode(',', \$this->authorisedViewLevels) . ')'")
+        );
+        self::assertStringContainsString('private function validateCourseTypeId(int $requestedCourseTypeId): int', $view);
+        self::assertStringContainsString("'c.course_type_id = :course_type_id'", $view);
+        self::assertStringContainsString("'c.course_type_id = :calendar_course_type_id'", $view);
+        self::assertStringContainsString(
+            "bind(':course_type_id', \$selectedCourseTypeId, ParameterType::INTEGER)",
+            $view
+        );
+        self::assertStringContainsString(
+            "bind(':calendar_course_type_id', \$selectedCourseTypeId, ParameterType::INTEGER)",
+            $view
+        );
+    }
+
     public function testWeeklyLabelsExistInBothSiteLanguages(): void
     {
         $root = dirname(__DIR__, 2) . '/packages/com_memipilates/site/language';

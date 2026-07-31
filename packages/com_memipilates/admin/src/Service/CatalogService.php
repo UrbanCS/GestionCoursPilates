@@ -226,7 +226,7 @@ final class CatalogService
             'default_price_cents' => $this->moneyCents($input, 'price'),
             'default_credits_required' => $this->integer($input, 'credits_required', 0, 1000, 1),
             'tax_rate_basis_points' => $this->integer($input, 'tax_rate_basis_points', 0, 10000, 0),
-            'image' => '',
+            'image' => $this->image($input),
             'published' => $this->published($input),
             'access' => 1,
             'ordering' => 0,
@@ -635,6 +635,33 @@ final class CatalogService
     private function text(Input $input, string $name, int $length): string
     {
         return mb_substr(trim($input->getString($name, '')), 0, $length);
+    }
+
+    private function image(Input $input): string
+    {
+        $value = $this->text($input, 'image', 1024);
+        if ($value === '') {
+            return '';
+        }
+
+        $parts = explode('#', $value);
+        $relativePath = $parts[0];
+        $pathPattern = '~\Aimages/memipilates/(?:[A-Za-z0-9][A-Za-z0-9_-]*/)*[A-Za-z0-9][A-Za-z0-9_-]*\.(?:jpe?g|png|webp|gif|avif)\z~iD';
+        if (count($parts) > 2 || preg_match($pathPattern, $relativePath) !== 1) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
+        }
+
+        if (isset($parts[1])) {
+            $mediaPath = substr($relativePath, strlen('images/'));
+            $fragmentPattern = '~\AjoomlaImage://local-images/'
+                . preg_quote($mediaPath, '~')
+                . '(?:\?width=[1-9][0-9]{0,5}&height=[1-9][0-9]{0,5})?\z~D';
+            if (preg_match($fragmentPattern, $parts[1]) !== 1) {
+                throw new DomainException('COM_MEMIPILATES_ERROR_INVALID_REQUEST');
+            }
+        }
+
+        return $relativePath;
     }
 
     private function requiredId(Input $input, string $name): int

@@ -2,6 +2,8 @@
 /** @var \Memi\Component\Memipilates\Administrator\View\Catalog\HtmlView $this */
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Factory;
+use Joomla\CMS\Form\FormFactoryInterface;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
 
@@ -14,6 +16,15 @@ $base = 'index.php?option=com_memipilates&view=catalog';
 $formUrl = $escape(Route::_($base . '&entity=' . rawurlencode($this->entity), false));
 $token = $escape(Session::getFormToken());
 $editId = (int) ($record['id'] ?? 0);
+$courseTypeImageField = '';
+if ($this->entity === 'course_type') {
+    $courseTypeForm = Factory::getContainer()
+        ->get(FormFactoryInterface::class)
+        ->createForm('com_memipilates.course_type.catalog', ['control' => '']);
+    $courseTypeForm->loadFile(JPATH_COMPONENT_ADMINISTRATOR . '/forms/course_type.xml');
+    $courseTypeForm->bind(['image' => (string) $value('image')]);
+    $courseTypeImageField = $courseTypeForm->renderField('image');
+}
 $selectOptions = static function (array $items, mixed $selected, bool $empty = false) use ($escape): string {
     $html = $empty ? '<option value="">—</option>' : '';
     foreach ($items as $item) {
@@ -68,6 +79,7 @@ $selectOptions = static function (array $items, mixed $selected, bool $empty = f
                 <div class="col-md-3"><label class="form-label">Capacité</label><input required min="1" type="number" class="form-control" name="capacity" value="<?= (int) $value('default_capacity', 8); ?>"></div>
                 <div class="col-md-3"><label class="form-label">Prix (CAD)</label><input min="0" step="0.01" type="number" class="form-control" name="price" value="<?= $escape($money($value('default_price_cents'))); ?>"></div>
                 <div class="col-md-3"><label class="form-label">Crédits requis</label><input min="0" type="number" class="form-control" name="credits_required" value="<?= (int) $value('default_credits_required', 1); ?>"></div>
+                <div class="col-12"><?= $courseTypeImageField; ?></div>
                 <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" rows="3" name="description"><?= $escape($value('description')); ?></textarea></div>
             <?php elseif ($this->entity === 'course') : ?>
                 <div class="col-md-4"><label class="form-label">Type de cours *</label><select required class="form-select" name="course_type_id"><?= $selectOptions($this->courseTypes, $value('course_type_id')); ?></select></div>

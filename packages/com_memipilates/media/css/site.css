@@ -4,6 +4,7 @@
  * Everything is scoped to a Memi Pilates view so that the active Joomla
  * template remains responsible for the site-wide header, footer and theme.
  */
+.memi-course-types,
 .memi-schedule,
 .memi-booking,
 .memi-checkout,
@@ -24,6 +25,7 @@
 }
 
 @supports (color: color-mix(in srgb, black, white)) {
+  .memi-course-types,
   .memi-schedule,
   .memi-booking,
   .memi-checkout,
@@ -33,6 +35,7 @@
   }
 }
 
+.memi-course-types,
 .memi-schedule,
 .memi-booking,
 .memi-checkout,
@@ -41,6 +44,7 @@
   max-inline-size: 76rem;
 }
 
+.memi-course-types :is(button, a, input, select):focus-visible,
 .memi-schedule :is(button, a, input, select):focus-visible,
 .memi-booking :is(button, a, input, select):focus-visible,
 .memi-checkout :is(button, a, input, select):focus-visible,
@@ -51,6 +55,7 @@
   outline-offset: 3px;
 }
 
+.memi-course-types :is(.btn, button),
 .memi-schedule :is(.btn, button),
 .memi-booking :is(.btn, button),
 .memi-checkout :is(.btn, button),
@@ -58,6 +63,161 @@
 [data-memi-kiosk] :is(.btn, button) {
   border-radius: 0.55rem;
   min-block-size: 2.65rem;
+}
+
+/* Public course categories */
+.memi-course-types {
+  --memi-accent: #67675d;
+  inline-size: min(78rem, calc(100vw - 2rem));
+  max-inline-size: none;
+  padding-block: clamp(2.5rem, 6vw, 5.5rem);
+}
+
+.memi-course-types *,
+.memi-course-types *::before,
+.memi-course-types *::after {
+  box-sizing: border-box;
+}
+
+.memi-course-types__header {
+  margin-block-end: clamp(2rem, 4vw, 3.5rem);
+  max-inline-size: 48rem;
+}
+
+.memi-course-types__eyebrow {
+  color: var(--memi-accent);
+  font-size: 0.82rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  margin: 0 0 0.7rem;
+  text-transform: uppercase;
+}
+
+.memi-course-types .memi-course-types__header h1 {
+  color: var(--memi-ink) !important;
+  font-size: clamp(2.5rem, 6vw, 5rem) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.045em !important;
+  line-height: 0.98 !important;
+  margin: 0 0 1rem !important;
+}
+
+.memi-course-types__header > p:last-child {
+  color: var(--memi-muted);
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.memi-course-types__grid {
+  display: grid;
+  gap: clamp(0.9rem, 2vw, 1.4rem);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.memi-course-type-card {
+  margin: 0;
+  min-inline-size: 0;
+}
+
+.memi-course-type-card > a {
+  aspect-ratio: 1;
+  background: #ded8d2;
+  border-radius: clamp(1rem, 2vw, 1.4rem);
+  box-shadow: 0 0.8rem 2.4rem rgb(32 25 21 / 10%);
+  color: #fff !important;
+  display: block;
+  overflow: hidden;
+  position: relative;
+  text-decoration: none !important;
+  transform: translateY(0);
+  transition: box-shadow 180ms ease, transform 180ms ease;
+}
+
+.memi-course-type-card__media,
+.memi-course-type-card__media img,
+.memi-course-type-card__placeholder,
+.memi-course-type-card__overlay {
+  block-size: 100%;
+  display: block;
+  inline-size: 100%;
+  inset: 0;
+  position: absolute;
+}
+
+.memi-course-type-card__media img {
+  object-fit: cover;
+  transition: transform 300ms ease;
+}
+
+.memi-course-type-card__placeholder {
+  background:
+    radial-gradient(circle at 30% 25%, rgb(255 255 255 / 35%), transparent 36%),
+    linear-gradient(145deg, #a79e95, #665f59);
+}
+
+.memi-course-type-card__overlay {
+  background: linear-gradient(180deg, transparent 38%, rgb(20 15 12 / 82%) 100%);
+}
+
+.memi-course-type-card__content {
+  align-items: flex-start;
+  block-size: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: clamp(1.1rem, 2.2vw, 1.65rem);
+  position: relative;
+  z-index: 1;
+}
+
+.memi-course-type-card__content strong {
+  color: inherit;
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+}
+
+.memi-course-type-card__content > span:not(.memi-course-type-card__action) {
+  color: rgb(255 255 255 / 82%);
+  font-size: 0.9rem;
+  margin-block-start: 0.35rem;
+}
+
+.memi-course-type-card__action {
+  border-block-end: 1px solid currentColor;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-block-start: 0.85rem;
+  padding-block-end: 0.16rem;
+  text-transform: uppercase;
+}
+
+.memi-course-type-card > a:hover {
+  box-shadow: 0 1.1rem 3rem rgb(32 25 21 / 18%);
+  transform: translateY(-0.2rem);
+}
+
+.memi-course-type-card > a:hover .memi-course-type-card__media img {
+  transform: scale(1.035);
+}
+
+@media (max-width: 68rem) {
+  .memi-course-types__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .memi-course-types {
+    inline-size: min(100%, calc(100vw - 1.25rem));
+  }
+
+  .memi-course-types__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Schedule */

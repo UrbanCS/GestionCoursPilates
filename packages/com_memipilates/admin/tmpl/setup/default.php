@@ -5,6 +5,8 @@ declare(strict_types=1);
 
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Factory;
+use Joomla\CMS\Form\FormFactoryInterface;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Session\Session;
@@ -17,6 +19,11 @@ $weekdays = [1 => $label('COM_MEMIPILATES_SETUP_MONDAY', 'Monday'), 2 => $label(
 $entityFields = static function (string $entity) use ($token): string {
     return '<input type="hidden" name="option" value="com_memipilates"><input type="hidden" name="task" value="display.saveSetup"><input type="hidden" name="entity" value="' . $entity . '"><input type="hidden" name="' . $token . '" value="1"><input type="hidden" name="published" value="1">';
 };
+$courseTypeForm = Factory::getContainer()
+    ->get(FormFactoryInterface::class)
+    ->createForm('com_memipilates.course_type.setup', ['control' => '']);
+$courseTypeForm->loadFile(JPATH_COMPONENT_ADMINISTRATOR . '/forms/course_type.xml');
+$courseTypeImageField = $courseTypeForm->renderField('image');
 ?>
 <div class="container-fluid memi-admin-setup">
     <div class="alert alert-info mb-4" role="status">
@@ -108,6 +115,7 @@ $entityFields = static function (string $entity) use ($token): string {
                 <div class="col-6 col-md-3"><label class="form-label" for="type-capacity"><?= $escape($label('COM_MEMIPILATES_SETUP_CAPACITY', 'Capacity')); ?></label><input class="form-control" id="type-capacity" name="capacity" type="number" min="1" max="500" value="8" required></div>
                 <div class="col-6 col-md-2"><label class="form-label" for="type-credits"><?= $escape($label('COM_MEMIPILATES_SETUP_CREDITS', 'Credits')); ?></label><input class="form-control" id="type-credits" name="credits_required" type="number" min="0" max="1000" value="1" required></div>
                 <div class="col-6 col-md-2"><label class="form-label" for="type-price"><?= $escape($label('COM_MEMIPILATES_SETUP_PRICE_CAD', 'Price (CAD)')); ?></label><input class="form-control" id="type-price" name="price" inputmode="decimal" value="0"></div>
+                <div class="col-12"><?= $courseTypeImageField; ?></div>
                 <div class="col-12"><label class="form-label" for="type-description"><?= $escape(Text::_('JGLOBAL_DESCRIPTION')); ?></label><textarea class="form-control" id="type-description" name="description" rows="2"></textarea></div>
                 <div class="col-12"><button class="btn btn-primary" type="submit"><?= $escape($label('COM_MEMIPILATES_SETUP_SAVE_COURSE_TYPE', 'Save course type')); ?></button></div>
             </form>

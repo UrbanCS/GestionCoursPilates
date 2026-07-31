@@ -45,10 +45,10 @@ final class HtmlView extends BaseHtmlView
     public function display($tpl = null): void
     {
         $this->userId = (int) (Factory::getApplication()->getIdentity()->id ?? 0);
-        $id = Factory::getApplication()->input->getInt('session_id');
+        $id = Factory::getApplication()->input->getInt('session_id', 0);
         $this->session = $this->loadSession($id);
         if (!$this->session) {
-            throw new \RuntimeException('COM_MEMIPILATES_ERROR_SESSION_NOT_FOUND', 404);
+            throw new \RuntimeException(Text::_('COM_MEMIPILATES_ERROR_SESSION_NOT_FOUND'), 404);
         }
         $this->creditBalance = $this->userId > 0 ? ComponentServices::credits()->balance($this->userId) : 0;
         $priceCents = max(0, (int) $this->session['price_cents']);

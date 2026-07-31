@@ -1,5 +1,25 @@
 # Résultats de tests
 
+## Contrôles locaux de la version 1.8.0 — 2026-07-30
+
+| Contrôle | Statut | Preuve / limite |
+| --- | --- | --- |
+| Catalogue public des cours | Réussi (contrat statique) | La vue publique sélectionne seulement les catégories publiées, non archivées et visibles; chaque carte illustrée pointe vers l’horaire filtré. |
+| Filtre et accès de l’horaire | Réussi (contrat statique) | Les niveaux d’accès et la catégorie demandée sont imposés dans les requêtes serveur des séances, du calendrier et des filtres; JavaScript n’est qu’une amélioration d’interface. |
+| Images des catégories | Réussi (contrat statique) | Le champ média Joomla est rendu dans le Catalogue et la Mise en route; seuls les chemins canoniques sous `images/memipilates/` avec une extension d’image permise sont acceptés. |
+| Manifestes et ressources | Réussi | 16 fichiers XML analysés, manifeste d’assets JSON valide en version 1.8.0 et 16 fichiers INI sans clé dupliquée. |
+| JavaScript | Réussi | Les 9 fichiers JavaScript passent `node --check`. |
+| Diff Git | Réussi | `git diff --check` ne signale aucune erreur; les avertissements CRLF de Git sont informatifs. |
+| Archive Joomla 1.8.0 | Réussi | ZIP externe de 9 entrées, composant de 155 entrées et cinq fichiers 1.8.0 critiques confirmés dans l’archive. |
+| Syntaxe PHP locale | Non exécutée | Aucun exécutable PHP n’est disponible localement; l’installation et l’ouverture des vues sur Joomla 6.1/PHP 8.3 servent de validation d’exécution. |
+| Vérification sur le site réel | Réussi | Version 1.8.0 installée sur Joomla 6.1/PHP 8.3; le menu COURS affiche les quatre cartes illustrées et chaque lien ouvre l’horaire filtré correspondant sans erreur technique. L’ancienne route de réservation sans séance retourne une 404 française contrôlée. |
+
+### Artefact
+
+- Archive : `dist/pkg_memipilates-1.8.0.zip`
+- Taille : `294260` octets
+- SHA-256 : `7EB6B903B231B868C492C56AD121811562761BC45DC08D1CA8C41941940AD068`
+
 ## Contrôles locaux de la version 1.7.0 — 2026-07-28
 
 | Contrôle | Statut | Preuve / limite |
