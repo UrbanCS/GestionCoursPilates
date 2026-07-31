@@ -2,6 +2,19 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.8.1] - 2026-07-30
+
+### Corrigé
+
+- Permet d’ouvrir le checkout des forfaits sans identifiant de séance, comme prévu par le parcours public, au lieu d’afficher une erreur de typage PHP.
+- Traduit le message d’indisponibilité lorsqu’un paiement direct vise une séance inexistante ou non admissible.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.1.zip`
+- Taille : `294265` octets
+- SHA-256 : `212ECE9634CF2A2F3F1AC7E9F631A36A231153827E0C77A740ABE3E35C762C54`
+
 ## [1.8.0] - 2026-07-30
 
 ### Ajouté

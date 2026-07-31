@@ -100,4 +100,18 @@ final class FrontendPortalContractTest extends TestCase
         self::assertStringContainsString('calculateTaxCents($this->sessionSubtotalCents)', $checkout);
         self::assertStringContainsString("\$values['tax_rate_basis_points'] = (int) \$before['tax_rate_basis_points']", $catalogue);
     }
+
+    public function testCheckoutAllowsPackagePurchasesWithoutASessionId(): void
+    {
+        $checkout = (string) file_get_contents(
+            dirname(__DIR__, 2) . '/packages/com_memipilates/site/src/View/Checkout/HtmlView.php'
+        );
+
+        self::assertStringContainsString("getInt('session_id', 0)", $checkout);
+        self::assertStringNotContainsString("getInt('session_id');", $checkout);
+        self::assertStringContainsString(
+            "Text::_('COM_MEMIPILATES_ERROR_DIRECT_PAYMENT_UNAVAILABLE')",
+            $checkout
+        );
+    }
 }

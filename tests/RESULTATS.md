@@ -1,5 +1,22 @@
 # Résultats de tests
 
+## Contrôles de la version 1.8.1 — 2026-07-30
+
+| Contrôle | Statut | Preuve / limite |
+| --- | --- | --- |
+| Checkout sans séance | Réussi (contrat statique) | La valeur absente de `session_id` devient explicitement `0`, ce qui laisse le catalogue des forfaits se charger. |
+| Erreur de paiement direct | Réussi (contrat statique) | Une séance inexistante produit maintenant le message localisé prévu plutôt que la clé de traduction brute. |
+| Manifestes et ressources | Réussi | Les quatre manifestes déclarent 1.8.1; 16 fichiers XML et le manifeste JSON sont valides. |
+| Diff Git | Réussi | `git diff --check` ne signale aucune erreur; les avertissements CRLF de Git sont informatifs. |
+| Archive Joomla 1.8.1 | Réussi | ZIP externe de 9 entrées, composant de 155 entrées et correctif du checkout confirmé dans l’archive. |
+| Vérification sur le site réel | Réussi | Version 1.8.1 installée sur Joomla 6.1/PHP 8.3; le checkout authentifié sans `session_id` affiche le forfait disponible et le bouton de paiement. Une séance inexistante retourne une 404 française contrôlée sans erreur PHP. |
+
+### Artefact
+
+- Archive : `dist/pkg_memipilates-1.8.1.zip`
+- Taille : `294265` octets
+- SHA-256 : `212ECE9634CF2A2F3F1AC7E9F631A36A231153827E0C77A740ABE3E35C762C54`
+
 ## Contrôles locaux de la version 1.8.0 — 2026-07-30
 
 | Contrôle | Statut | Preuve / limite |

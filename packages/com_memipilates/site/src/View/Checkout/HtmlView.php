@@ -61,7 +61,7 @@ final class HtmlView extends BaseHtmlView
             ? (string) $identity->email
             : '';
         $db = ComponentServices::database();
-        $this->sessionId = Factory::getApplication()->input->getInt('session_id');
+        $this->sessionId = Factory::getApplication()->input->getInt('session_id', 0);
         if ($this->sessionId > 0) {
             $sessionId = $this->sessionId;
             $now = gmdate('Y-m-d H:i:s');
@@ -86,7 +86,7 @@ final class HtmlView extends BaseHtmlView
             $db->setQuery($sessionQuery, 0, 1);
             $this->session = $db->loadAssoc() ?: null;
             if (!$this->session) {
-                throw new \RuntimeException('COM_MEMIPILATES_ERROR_DIRECT_PAYMENT_UNAVAILABLE', 404);
+                throw new \RuntimeException(Text::_('COM_MEMIPILATES_ERROR_DIRECT_PAYMENT_UNAVAILABLE'), 404);
             }
             $this->sessionSubtotalCents = max(0, (int) $this->session['price_cents']);
             $this->sessionTaxCents = ComponentServices::settings()->calculateTaxCents($this->sessionSubtotalCents);
