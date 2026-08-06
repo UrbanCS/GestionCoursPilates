@@ -1,5 +1,23 @@
 # Résultats de tests
 
+## Contrôles de la version 1.8.2 — 2026-08-06
+
+| Contrôle | Statut | Preuve / limite |
+| --- | --- | --- |
+| Horaire du studio unique | Réussi (contrat statique) | Le filtre d’emplacement, les raccourcis Mon compte/Acheter un forfait et le nom du studio sont absents du gabarit; la salle demeure disponible. |
+| Libellés demandés | Réussi (contrat statique) | Les traductions françaises déclarent « Réservez » et « Cours disponibles seulement ». |
+| Administration | Réussi (contrat statique) | Le Catalogue ne propose plus les emplacements; les formulaires de salle conservent l’identifiant technique du studio dans un champ masqué. |
+| Manifestes et ressources | Réussi | Les quatre manifestes déclarent 1.8.2; 16 fichiers XML, le manifeste JSON, 12 fichiers INI et 9 fichiers JavaScript sont valides. |
+| Diff Git | Réussi | `git diff --check` ne signale aucune erreur; les avertissements CRLF de Git sont informatifs. |
+| Archive Joomla 1.8.2 | Réussi | ZIP externe de 9 entrées, taille 293841 octets, SHA-256 `1367C7A343C984F76763467863C6051A1914CC0DCB4FB4BA5D5D414E592D4F75`. |
+| Vérification sur le site réel | Réussi | Le paquet 1.8.2 a été installé sur Joomla. L’horaire affiche « RÉSERVEZ » et « Cours disponibles seulement », sans raccourcis de compte/forfait ni référence à l’emplacement. L’administration utilise uniquement Studio/Salle. |
+| Données d’exemple | Réussi | Les quatre catégories demandées possèdent un cours visible avec séance fictive; les forfaits de la page Tarifs ont été saisis, dont les deux forfaits mensuels illimités représentés par 1 000 crédits valides 30 jours. |
+
+### Artefact
+
+- Archive : `dist/pkg_memipilates-1.8.2.zip`
+- SHA-256 : `1367C7A343C984F76763467863C6051A1914CC0DCB4FB4BA5D5D414E592D4F75`
+
 ## Contrôles de la version 1.8.1 — 2026-07-30
 
 | Contrôle | Statut | Preuve / limite |

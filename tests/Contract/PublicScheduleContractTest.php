@@ -85,4 +85,23 @@ final class PublicScheduleContractTest extends TestCase
             }
         }
     }
+
+    public function testSingleStudioScheduleUsesTheRequestedClientCopyAndNavigation(): void
+    {
+        $component = dirname(__DIR__, 2) . '/packages/com_memipilates';
+        $template = (string) file_get_contents($component . '/site/tmpl/schedule/default.php');
+        $french = (string) file_get_contents($component . '/site/language/fr-FR/com_memipilates.ini');
+
+        self::assertStringContainsString('COM_MEMIPILATES_SCHEDULE_PAGE_TITLE="Réservez"', $french);
+        self::assertStringContainsString(
+            'COM_MEMIPILATES_SCHEDULE_DAY_CLASSES_TITLE="Cours disponibles seulement"',
+            $french
+        );
+        self::assertStringNotContainsString('view=dashboard', $template);
+        self::assertStringNotContainsString('view=checkout', $template);
+        self::assertStringNotContainsString('data-memi-schedule-filter="location"', $template);
+        self::assertStringNotContainsString('data-location=', $template);
+        self::assertStringNotContainsString('$locationText', $template);
+        self::assertStringContainsString("\$room = trim((string) (\$session['room_title'] ?? ''));", $template);
+    }
 }

@@ -114,4 +114,20 @@ final class FrontendPortalContractTest extends TestCase
             $checkout
         );
     }
+
+    public function testSingleStudioBackendHidesLocationManagement(): void
+    {
+        $component = dirname(__DIR__, 2) . '/packages/com_memipilates/admin';
+        $catalogueView = (string) file_get_contents($component . '/src/View/Catalog/HtmlView.php');
+        $catalogueTemplate = (string) file_get_contents($component . '/tmpl/catalog/default.php');
+        $setupView = (string) file_get_contents($component . '/src/View/Setup/HtmlView.php');
+        $setupTemplate = (string) file_get_contents($component . '/tmpl/setup/default.php');
+
+        self::assertStringNotContainsString("'location' => 'Emplacements'", $catalogueView);
+        self::assertStringNotContainsString('Emplacement *', $catalogueTemplate);
+        self::assertStringContainsString('type="hidden" name="location_id"', $catalogueTemplate);
+        self::assertStringNotContainsString('location_title', $setupView);
+        self::assertStringNotContainsString("\$room['location_title']", $setupTemplate);
+        self::assertStringContainsString('type="hidden" name="location_id"', $setupTemplate);
+    }
 }

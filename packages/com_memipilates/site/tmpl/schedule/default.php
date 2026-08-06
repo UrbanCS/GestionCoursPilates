@@ -93,19 +93,13 @@ foreach ($this->sessions as $session) {
 >
     <header class="memi-schedule__header">
         <h1 class="memi-schedule__title"><?= Text::_('COM_MEMIPILATES_SCHEDULE_PAGE_TITLE'); ?></h1>
-        <nav class="memi-schedule__header-actions" aria-label="<?= $escape(Text::_('COM_MEMIPILATES_ACCOUNT')); ?>">
-            <?php if ($this->canManageStudio) : ?>
+        <?php if ($this->canManageStudio) : ?>
+            <nav class="memi-schedule__header-actions" aria-label="<?= $escape(Text::_('COM_MEMIPILATES_SCHEDULE_HEADER_ACTIONS')); ?>">
                 <a class="btn btn-outline-secondary" href="<?= Route::_('index.php?option=com_memipilates&view=' . rawurlencode($this->managementLandingView)); ?>">
                     <?= Text::_('COM_MEMIPILATES_PORTAL_OPEN'); ?>
                 </a>
-            <?php endif; ?>
-            <a class="btn btn-outline-primary" href="<?= Route::_('index.php?option=com_memipilates&view=dashboard'); ?>">
-                <?= Text::_('COM_MEMIPILATES_ACCOUNT'); ?>
-            </a>
-            <a class="btn btn-primary" href="<?= Route::_('index.php?option=com_memipilates&view=checkout'); ?>">
-                <?= Text::_('COM_MEMIPILATES_BOOKING_BUY_PACKAGE'); ?>
-            </a>
-        </nav>
+            </nav>
+        <?php endif; ?>
     </header>
 
     <div class="memi-schedule__panel">
@@ -113,15 +107,6 @@ foreach ($this->sessions as $session) {
             <h2><?= Text::_('COM_MEMIPILATES_SCHEDULE_FIND_CLASS'); ?></h2>
 
             <form class="memi-schedule__filters" data-memi-schedule-filters aria-label="<?= $escape(Text::_('COM_MEMIPILATES_SCHEDULE_FILTERS')); ?>">
-                <label>
-                    <span class="memi-visually-hidden"><?= Text::_('COM_MEMIPILATES_SCHEDULE_FILTER_LOCATION'); ?></span>
-                    <select data-memi-schedule-filter="location" aria-label="<?= $escape(Text::_('COM_MEMIPILATES_SCHEDULE_FILTER_LOCATION')); ?>">
-                        <option value=""><?= Text::_('COM_MEMIPILATES_SCHEDULE_ALL_LOCATIONS'); ?></option>
-                        <?php foreach ($this->filters['locations'] as $item) : ?>
-                            <option value="<?= (int) $item['id']; ?>"><?= $escape($item['title']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
                 <label>
                     <span class="memi-visually-hidden"><?= Text::_('COM_MEMIPILATES_SCHEDULE_FILTER_TYPE'); ?></span>
                     <select data-memi-schedule-filter="type" aria-label="<?= $escape(Text::_('COM_MEMIPILATES_SCHEDULE_FILTER_TYPE')); ?>">
@@ -316,9 +301,7 @@ foreach ($this->sessions as $session) {
                 $sessionDate = $start->format('Y-m-d');
                 $isVisible = $this->viewMode === 'week' || $sessionDate === $this->selectedDate;
                 $description = trim((string) ($session['course_description'] ?? ''));
-                $location = trim((string) ($session['location_title'] ?? ''));
                 $room = trim((string) ($session['room_title'] ?? ''));
-                $locationText = implode(' · ', array_filter([$location, $room]));
                 $titleId = 'memi-session-title-' . (int) $session['id'];
             ?>
                 <article
@@ -326,7 +309,6 @@ foreach ($this->sessions as $session) {
                     data-memi-schedule-card
                     data-course-type="<?= (int) $session['course_type_id']; ?>"
                     data-instructor="<?= (int) $session['instructor_id']; ?>"
-                    data-location="<?= (int) ($session['location_id'] ?? 0); ?>"
                     data-session-date="<?= $escape($sessionDate); ?>"
                     data-status="<?= $escape($state); ?>"
                     role="listitem"
@@ -355,8 +337,8 @@ foreach ($this->sessions as $session) {
                     </div>
 
                     <div class="memi-class-card__location">
-                        <?php if ($locationText !== '') : ?>
-                            <span><?= $escape($locationText); ?></span>
+                        <?php if ($room !== '') : ?>
+                            <span><?= $escape($room); ?></span>
                         <?php endif; ?>
                     </div>
 

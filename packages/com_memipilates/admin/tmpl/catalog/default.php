@@ -16,6 +16,7 @@ $base = 'index.php?option=com_memipilates&view=catalog';
 $formUrl = $escape(Route::_($base . '&entity=' . rawurlencode($this->entity), false));
 $token = $escape(Session::getFormToken());
 $editId = (int) ($record['id'] ?? 0);
+$studioId = (int) $value('location_id', $this->locations[0]['id'] ?? 0);
 $courseTypeImageField = '';
 if ($this->entity === 'course_type') {
     $courseTypeForm = Factory::getContainer()
@@ -52,18 +53,10 @@ $selectOptions = static function (array $items, mixed $selected, bool $empty = f
         <form action="<?= $formUrl; ?>" method="post" class="row g-3">
             <input type="hidden" name="option" value="com_memipilates"><input type="hidden" name="task" value="catalog.save"><input type="hidden" name="entity" value="<?= $escape($this->entity); ?>"><input type="hidden" name="id" value="<?= $editId; ?>"><input type="hidden" name="<?= $token; ?>" value="1">
 
-            <?php if ($this->entity === 'location') : ?>
-                <div class="col-md-6"><label class="form-label">Nom *</label><input required class="form-control" name="title" value="<?= $escape($value('title')); ?>"></div>
-                <div class="col-md-6"><label class="form-label">Téléphone</label><input class="form-control" name="phone" value="<?= $escape($value('phone')); ?>"></div>
-                <div class="col-md-6"><label class="form-label">Adresse</label><input class="form-control" name="address_line1" value="<?= $escape($value('address_line1')); ?>"></div>
-                <div class="col-md-6"><label class="form-label">Complément d’adresse</label><input class="form-control" name="address_line2" value="<?= $escape($value('address_line2')); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Ville</label><input class="form-control" name="city" value="<?= $escape($value('city')); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Province</label><input class="form-control" name="province" value="<?= $escape($value('province', 'Québec')); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Code postal</label><input class="form-control" name="postal_code" value="<?= $escape($value('postal_code')); ?>"></div>
-            <?php elseif ($this->entity === 'room') : ?>
-                <div class="col-md-5"><label class="form-label">Emplacement *</label><select required class="form-select" name="location_id"><?= $selectOptions($this->locations, $value('location_id')); ?></select></div>
-                <div class="col-md-5"><label class="form-label">Nom *</label><input required class="form-control" name="title" value="<?= $escape($value('title')); ?>"></div>
-                <div class="col-md-2"><label class="form-label">Capacité *</label><input required min="1" max="500" type="number" class="form-control" name="capacity" value="<?= (int) $value('capacity', 8); ?>"></div>
+            <?php if ($this->entity === 'room') : ?>
+                <input type="hidden" name="location_id" value="<?= $studioId; ?>">
+                <div class="col-md-8"><label class="form-label">Nom *</label><input required class="form-control" name="title" value="<?= $escape($value('title')); ?>"></div>
+                <div class="col-md-4"><label class="form-label">Capacité *</label><input required min="1" max="500" type="number" class="form-control" name="capacity" value="<?= (int) $value('capacity', 8); ?>"></div>
                 <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" rows="3" name="description"><?= $escape($value('description')); ?></textarea></div>
             <?php elseif ($this->entity === 'instructor') : ?>
                 <div class="col-md-6"><label class="form-label">Nom affiché *</label><input required class="form-control" name="display_name" value="<?= $escape($value('display_name')); ?>"></div>

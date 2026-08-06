@@ -4,7 +4,7 @@
 
 Un gestionnaire configure les données dans cet ordre afin d’éviter les séances impossibles à réserver :
 
-1. Emplacements et salles, avec leur capacité réelle et leur fuseau.
+1. Studio et salles, avec leur capacité réelle et leur fuseau.
 2. Instructeurs, liés à leur compte Joomla existant lorsque le rôle doit être limité à ses propres séances.
 3. Types de cours, puis cours : durée, prix en cents, crédits requis, capacité, salle, instructeur, fenêtre d’inscription et publication.
 4. Règles de récurrence et séances générées; vérifier qu’aucun doublon de créneau ou de salle n’existe.
@@ -25,7 +25,7 @@ Créer un élément de menu Joomla Memi Pilates de type **Gestion du studio**, a
 
 Après l’installation, un Super administrateur ouvre **Composants → Memi Pilates → Mise en route** et crée le catalogue dans cet ordre. Cet écran initial combine tous les domaines; le personnel délégué utilise ensuite l’écran **Catalogue**, filtré selon ses droits :
 
-1. Emplacement;
+1. Studio;
 2. Salle;
 3. Instructeur;
 4. Type de cours;
@@ -33,7 +33,7 @@ Après l’installation, un Super administrateur ouvre **Composants → Memi Pil
 6. Séance unique ou horaire hebdomadaire;
 7. Forfait de cours.
 
-L’enregistrement d’un horaire hebdomadaire génère immédiatement les séances futures selon l’horizon configuré dans les Options. Une séance publiée future est nécessaire avant que l’horaire public puisse afficher un cours. L’écran **Catalogue** permet ensuite de modifier ou de retirer de la vente les emplacements, salles, instructeurs, types de cours, cours, horaires récurrents et forfaits. Les séances ponctuelles se créent dans Catalogue; l’annulation d’une séance existante se fait dans **Séances** afin de préserver l’historique client.
+L’enregistrement d’un horaire hebdomadaire génère immédiatement les séances futures selon l’horizon configuré dans les Options. Une séance publiée future est nécessaire avant que l’horaire public puisse afficher un cours. L’écran **Catalogue** permet ensuite de modifier ou de retirer de la vente les salles, instructeurs, types de cours, cours, horaires récurrents et forfaits. Le studio unique est configuré une fois dans **Mise en route** et n’est pas proposé comme filtre aux clients. Les séances ponctuelles se créent dans Catalogue; l’annulation d’une séance existante se fait dans **Séances** afin de préserver l’historique client.
 
 Le taux de taxes est unique pour le studio. Un Super User peut le modifier dans **Paramètres → Général → Taxes** depuis l’administration Joomla ou le portail frontal. La valeur initiale est `14,975 %`; elle s’applique aux nouvelles commandes de cours et de forfaits. Les commandes déjà créées conservent les montants enregistrés au moment de leur création.
 

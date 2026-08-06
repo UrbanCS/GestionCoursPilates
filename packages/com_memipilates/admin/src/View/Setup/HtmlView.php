@@ -81,12 +81,12 @@ class HtmlView extends AbstractAdminView
     private function loadRooms(): array
     {
         $query = $this->db->getQuery(true)
-            ->select(['r.id', 'r.title', 'r.capacity', 'l.title AS location_title'])
+            ->select(['r.id', 'r.title', 'r.capacity'])
             ->from($this->db->quoteName('#__memi_rooms', 'r'))
             ->join('INNER', $this->db->quoteName('#__memi_locations', 'l') . ' ON l.id = r.location_id')
             ->where('r.archived_at IS NULL')
             ->where('l.archived_at IS NULL')
-            ->order('l.title ASC, r.title ASC');
+            ->order('r.title ASC');
         $this->db->setQuery($query);
 
         return $this->db->loadAssocList() ?: [];

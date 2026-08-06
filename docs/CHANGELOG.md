@@ -2,6 +2,22 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.8.2] - 2026-08-06
+
+### Modifié
+
+- Adapte l’horaire public au studio unique : le filtre et le nom du studio disparaissent, tandis que la salle demeure affichée lorsque nécessaire.
+- Remplace le titre **Réserver** par **Réservez** et le libellé quotidien par **Cours disponibles seulement**.
+- Retire de l’horaire les raccourcis **Mon compte** et **Acheter un forfait**; les forfaits restent présentés par la page Tarifs du site.
+- Masque la gestion des emplacements dans le Catalogue et associe automatiquement les salles au studio configuré lors de la mise en route.
+- Remplace les libellés d’emplacement visibles par **Studio** et clarifie l’identifiant Square comme identifiant de point de vente.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.2.zip`
+- Taille : `293841` octets
+- SHA-256 : `1367C7A343C984F76763467863C6051A1914CC0DCB4FB4BA5D5D414E592D4F75`
+
 ## [1.8.1] - 2026-07-30
 
 ### Corrigé

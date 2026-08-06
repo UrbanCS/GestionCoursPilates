@@ -15,7 +15,6 @@ class HtmlView extends AbstractAdminView
 {
     /** @var array<string,string> */
     public array $entities = [
-        'location' => 'Emplacements',
         'room' => 'Salles',
         'instructor' => 'Instructeurs',
         'course_type' => 'Types de cours',
@@ -46,7 +45,7 @@ class HtmlView extends AbstractAdminView
     {
         $this->initialise(['courses.manage', 'schedules.manage', 'instructors.manage', 'rooms.manage', 'packages.manage']);
         $permissions = [
-            'location' => 'rooms.manage', 'room' => 'rooms.manage',
+            'room' => 'rooms.manage',
             'instructor' => 'instructors.manage',
             'course_type' => 'courses.manage', 'course' => 'courses.manage',
             'session_rule' => 'schedules.manage', 'session' => 'schedules.manage',
@@ -74,12 +73,12 @@ class HtmlView extends AbstractAdminView
         $this->courses = $this->simpleList('#__memi_courses', ['id', 'title'], 'title ASC');
         $this->packages = $this->simpleList('#__memi_packages', ['id', 'title'], 'title ASC');
         $query = $this->db->getQuery(true)
-            ->select(['r.id', "CONCAT(l.title, ' — ', r.title) AS title", 'r.capacity'])
+            ->select(['r.id', 'r.title', 'r.capacity'])
             ->from($this->db->quoteName('#__memi_rooms', 'r'))
             ->join('INNER', $this->db->quoteName('#__memi_locations', 'l') . ' ON l.id = r.location_id')
             ->where('r.archived_at IS NULL')
             ->where('l.archived_at IS NULL')
-            ->order('l.title ASC, r.title ASC');
+            ->order('r.title ASC');
         $this->db->setQuery($query);
         $this->rooms = $this->db->loadAssocList() ?: [];
     }
@@ -108,15 +107,11 @@ class HtmlView extends AbstractAdminView
     private function loadItems(): void
     {
         $query = match ($this->entity) {
-            'location' => $this->db->getQuery(true)
-                ->select(['id', 'title', "CONCAT_WS(', ', address_line1, city, province) AS detail", 'published'])
-                ->from($this->db->quoteName('#__memi_locations'))
-                ->where('archived_at IS NULL')->order('title ASC'),
             'room' => $this->db->getQuery(true)
-                ->select(['r.id', 'r.title', "CONCAT(l.title, ' · ', r.capacity, ' places') AS detail", 'r.published'])
+                ->select(['r.id', 'r.title', "CONCAT(r.capacity, ' places') AS detail", 'r.published'])
                 ->from($this->db->quoteName('#__memi_rooms', 'r'))
                 ->join('INNER', $this->db->quoteName('#__memi_locations', 'l') . ' ON l.id = r.location_id')
-                ->where('r.archived_at IS NULL')->order('l.title ASC, r.title ASC'),
+                ->where('r.archived_at IS NULL')->where('l.archived_at IS NULL')->order('r.title ASC'),
             'instructor' => $this->db->getQuery(true)
                 ->select(['id', 'display_name AS title', 'email AS detail', 'published'])
                 ->from($this->db->quoteName('#__memi_instructors'))->where('archived_at IS NULL')->order('display_name ASC'),
@@ -158,7 +153,6 @@ class HtmlView extends AbstractAdminView
     private function table(): string
     {
         return match ($this->entity) {
-            'location' => '#__memi_locations',
             'room' => '#__memi_rooms',
             'instructor' => '#__memi_instructors',
             'course_type' => '#__memi_course_types',
