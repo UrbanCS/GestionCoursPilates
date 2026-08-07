@@ -1,5 +1,22 @@
 # Résultats de tests
 
+## Contrôles de la version 1.8.3 — 2026-08-06
+
+| Contrôle | Statut | Preuve / limite |
+| --- | --- | --- |
+| Retour après connexion | Réussi (contrat statique) | Les liens de connexion de la réservation et du paiement encodent la séance sélectionnée dans le paramètre Joomla `return`. |
+| Checkout de forfait | Réussi (contrat statique) | L’absence de séance demeure acceptée afin de permettre l’achat d’un forfait sans cours sélectionné. |
+| Manifestes et ressources | Réussi | Les quatre manifestes déclarent 1.8.3; le manifeste d’assets JSON est valide et le paquet se construit sans erreur. |
+| Diff Git | Réussi | `git diff --check` ne signale aucune erreur; les avertissements CRLF de Git sont informatifs. |
+| Archive Joomla 1.8.3 | Réussi | ZIP de 294016 octets, SHA-256 `B01F8664009DE0AA260BE6621DA8FFE7C6FA36DE85554B020DA1ACD44D02D4FD`. |
+| Vérification sur le site réel | Réussi | Le paquet 1.8.3 a été installé sur Joomla. Pour la séance 30 (« Sol essentiel »), le lien de connexion et la redirection du paiement décodent tous deux vers une URL conservant `session_id=30`; la page authentifiée affiche la séance et son paiement direct. |
+
+### Artefact
+
+- Archive : `dist/pkg_memipilates-1.8.3.zip`
+- Taille : `294016` octets
+- SHA-256 : `B01F8664009DE0AA260BE6621DA8FFE7C6FA36DE85554B020DA1ACD44D02D4FD`
+
 ## Contrôles de la version 1.8.2 — 2026-08-06
 
 | Contrôle | Statut | Preuve / limite |

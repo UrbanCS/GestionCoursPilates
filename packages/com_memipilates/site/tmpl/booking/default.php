@@ -13,6 +13,10 @@ $registrationClosed = $nowUtc >= $startsUtc
     || (!empty($this->session['registration_closes_at'])
         && $nowUtc >= new DateTimeImmutable((string) $this->session['registration_closes_at'], new DateTimeZone('UTC')));
 $directPaymentAvailable = (int) $this->session['price_cents'] > 0;
+$loginReturn = base64_encode(
+    'index.php?option=com_memipilates&view=booking&session_id=' . (int) $this->session['id']
+);
+$loginUrl = Route::_('index.php?option=com_users&view=login&return=' . rawurlencode($loginReturn), false);
 ?>
 <section class="memi-booking">
     <a href="<?= Route::_('index.php?option=com_memipilates&view=schedule'); ?>"><?= Text::_('COM_MEMIPILATES_SCHEDULE'); ?></a>
@@ -21,7 +25,7 @@ $directPaymentAvailable = (int) $this->session['price_cents'] > 0;
     <p><?= htmlspecialchars($this->session['description'] ?: '', ENT_QUOTES, 'UTF-8'); ?></p>
     <?php if ($this->userId <= 0) : ?>
         <p><?= Text::_('COM_MEMIPILATES_BOOKING_LOGIN_REQUIRED'); ?></p>
-        <a class="btn btn-primary" href="<?= Route::_('index.php?option=com_users&view=login'); ?>"><?= Text::_('JLOGIN'); ?></a>
+        <a class="btn btn-primary" href="<?= htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8'); ?>"><?= Text::_('JLOGIN'); ?></a>
     <?php elseif ($this->session['status'] === 'cancelled') : ?>
         <p><?= Text::_('COM_MEMIPILATES_SCHEDULE_CANCELLED'); ?></p>
     <?php elseif ($registrationNotOpen || $registrationClosed) : ?>

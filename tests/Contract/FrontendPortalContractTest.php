@@ -115,6 +115,23 @@ final class FrontendPortalContractTest extends TestCase
         );
     }
 
+    public function testLoginReturnsToTheSelectedBookingAndCheckout(): void
+    {
+        $component = dirname(__DIR__, 2) . '/packages/com_memipilates/site';
+        $booking = (string) file_get_contents($component . '/tmpl/booking/default.php');
+        $checkout = (string) file_get_contents($component . '/src/View/Checkout/HtmlView.php');
+
+        self::assertStringContainsString(
+            "'index.php?option=com_memipilates&view=booking&session_id='",
+            $booking
+        );
+        self::assertStringContainsString("'index.php?option=com_users&view=login&return='", $booking);
+        self::assertStringContainsString('rawurlencode($loginReturn)', $booking);
+        self::assertStringContainsString("getInt('session_id', 0)", $checkout);
+        self::assertStringContainsString("\$return .= '&session_id=' . \$sessionId", $checkout);
+        self::assertStringContainsString("'index.php?option=com_users&view=login&return='", $checkout);
+    }
+
     public function testSingleStudioBackendHidesLocationManagement(): void
     {
         $component = dirname(__DIR__, 2) . '/packages/com_memipilates/admin';

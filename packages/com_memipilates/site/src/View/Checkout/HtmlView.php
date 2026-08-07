@@ -49,9 +49,18 @@ final class HtmlView extends BaseHtmlView
 
     public function display($tpl = null): void
     {
-        $identity = Factory::getApplication()->getIdentity();
+        $application = Factory::getApplication();
+        $sessionId = $application->input->getInt('session_id', 0);
+        $identity = $application->getIdentity();
         if ((int) ($identity->id ?? 0) <= 0) {
-            Factory::getApplication()->redirect(Route::_('index.php?option=com_users&view=login', false));
+            $return = 'index.php?option=com_memipilates&view=checkout';
+            if ($sessionId > 0) {
+                $return .= '&session_id=' . $sessionId;
+            }
+            $application->redirect(Route::_(
+                'index.php?option=com_users&view=login&return=' . rawurlencode(base64_encode($return)),
+                false
+            ));
             return;
         }
         $parts = preg_split('/\s+/u', trim((string) ($identity->name ?? '')), 2) ?: [];
@@ -61,7 +70,7 @@ final class HtmlView extends BaseHtmlView
             ? (string) $identity->email
             : '';
         $db = ComponentServices::database();
-        $this->sessionId = Factory::getApplication()->input->getInt('session_id', 0);
+        $this->sessionId = $sessionId;
         if ($this->sessionId > 0) {
             $sessionId = $this->sessionId;
             $now = gmdate('Y-m-d H:i:s');

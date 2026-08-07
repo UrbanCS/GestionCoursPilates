@@ -2,6 +2,20 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.8.3] - 2026-08-06
+
+### Corrigé
+
+- Conserve la séance sélectionnée lorsqu’un visiteur doit se connecter avant de réserver.
+- Conserve également la séance sélectionnée lorsqu’un visiteur accède directement au paiement du cours.
+- Ramène automatiquement l’utilisateur à la réservation ou au paiement prévu après la connexion, sans ajouter de panier inutile au parcours d’un cours unique.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.3.zip`
+- Taille : `294016` octets
+- SHA-256 : `B01F8664009DE0AA260BE6621DA8FFE7C6FA36DE85554B020DA1ACD44D02D4FD`
+
 ## [1.8.2] - 2026-08-06
 
 ### Modifié
