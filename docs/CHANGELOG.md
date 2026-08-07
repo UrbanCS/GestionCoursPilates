@@ -2,6 +2,18 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.8.4] - 2026-08-07
+
+### Modifié
+
+- Remplace le titre **Trouver un cours** par **Horaire** sur la page publique de l’horaire.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.4.zip`
+- Taille : `294008` octets
+- SHA-256 : `21B18B9B3834F645C6AFFBA2C5B1409ED12A7850DC64CC8E3B3DE5C51074D0F2`
+
 ## [1.8.3] - 2026-08-06
 
 ### Corrigé

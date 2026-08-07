@@ -1,5 +1,20 @@
 # Résultats de tests
 
+## Contrôles de la version 1.8.4 — 2026-08-07
+
+| Contrôle | Statut | Preuve / limite |
+| --- | --- | --- |
+| Libellé de l’horaire | Réussi (contrat statique) | La traduction française de `COM_MEMIPILATES_SCHEDULE_FIND_CLASS` est maintenant « Horaire ». |
+| Manifestes et ressources | Réussi | Les quatre manifestes déclarent 1.8.4 et le paquet se construit sans erreur. |
+| Archive Joomla 1.8.4 | Réussi | ZIP de 294008 octets, SHA-256 `21B18B9B3834F645C6AFFBA2C5B1409ED12A7850DC64CC8E3B3DE5C51074D0F2`. |
+| Vérification sur le site réel | Réussi | Le paquet 1.8.4 a été installé sur Joomla; la page publique affiche le titre « Horaire » et ne contient plus « Trouver un cours ». |
+
+### Artefact
+
+- Archive : `dist/pkg_memipilates-1.8.4.zip`
+- Taille : `294008` octets
+- SHA-256 : `21B18B9B3834F645C6AFFBA2C5B1409ED12A7850DC64CC8E3B3DE5C51074D0F2`
+
 ## Contrôles de la version 1.8.3 — 2026-08-06
 
 | Contrôle | Statut | Preuve / limite |
