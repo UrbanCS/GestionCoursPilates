@@ -2,6 +2,20 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.8.9] - 2026-08-28
+
+### Corrigé
+
+- Incrémente les versions des ressources Web afin que les navigateurs chargent immédiatement les styles mobiles déjà livrés au lieu de conserver la feuille de style 1.8.4 en cache.
+- Réduit les titres « Réservez » et « Mon compte » sur téléphone.
+- Empêche le bouton « RÉSERVEZ » de l’en-tête d’être coupé au format tablette.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.9.zip`
+- Taille : `295199` octets
+- SHA-256 : `675B51ACD0EC519D48003F5AA1EE731B8687470496E2FCC32476E20CCDDAC543`
+
 ## [1.8.6] - 2026-08-27
 
 ### Corrigé

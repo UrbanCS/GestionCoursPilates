@@ -1391,6 +1391,25 @@
 }
 
 @media (max-width: 52rem) {
+  /* The Page Builder header reserves only half a column for its CTA at the
+     tablet breakpoint. Give that generated column the complete row so the
+     label is not cut off on iPad-sized screens. */
+  #column-wrap-id-63f693a8-8a2e-4a6f-a7f1-95783bfec86c,
+  #column-wrap-id-81c8347d-8ef2-40ea-9e7b-def4f63c3f18 {
+    display: none !important;
+  }
+
+  #column-wrap-id-a98591f9-bdfe-4ba8-bcb6-51a87afbc1f4 {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  #btn-7ef30902-8544-477c-912d-d9a20b02a6bd {
+    max-width: 100%;
+    white-space: nowrap;
+  }
+
   .memi-schedule__filters {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1475,11 +1494,11 @@
   }
 
   .memi-schedule .memi-schedule__title {
-    font-size: clamp(1.85rem, 9vw, 2.3rem) !important;
+    font-size: clamp(1.8rem, 8vw, 2rem) !important;
   }
 
   .memi-dashboard__header h1 {
-    font-size: clamp(2rem, 10vw, 2.65rem) !important;
+    font-size: clamp(2rem, 8vw, 2.25rem) !important;
   }
 
   .memi-package-picker__grid {
