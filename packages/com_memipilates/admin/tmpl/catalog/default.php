@@ -111,7 +111,7 @@ $selectOptions = static function (array $items, mixed $selected, bool $empty = f
                 <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" rows="3" name="description"><?= $escape($value('description')); ?></textarea></div>
             <?php endif; ?>
 
-            <?php if ($this->entity !== 'session') : ?><div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="published" value="1" id="published"<?= (int) $value('published', 1) === 1 ? ' checked' : ''; ?>><label class="form-check-label" for="published">Publié / disponible</label></div></div><?php endif; ?>
+            <?php if ($this->entity !== 'session') : ?><div class="col-12"><div class="form-check"><input type="hidden" name="published" value="0"><input class="form-check-input" type="checkbox" name="published" value="1" id="published"<?= (int) $value('published', 1) === 1 ? ' checked' : ''; ?>><label class="form-check-label" for="published">Publié / disponible</label></div></div><?php endif; ?>
             <div class="col-12 d-flex gap-2"><button class="btn btn-primary" type="submit"><?= $editId > 0 ? 'Enregistrer les modifications' : 'Créer'; ?></button><?php if ($editId > 0) : ?><a class="btn btn-outline-secondary" href="<?= $formUrl; ?>">Annuler la modification</a><?php endif; ?></div>
         </form>
     </div></div>

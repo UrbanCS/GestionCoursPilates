@@ -254,6 +254,7 @@ final class FrontendPortalContractTest extends TestCase
         self::assertStringNotContainsString("'location' => 'Emplacements'", $catalogueView);
         self::assertStringNotContainsString('Emplacement *', $catalogueTemplate);
         self::assertStringContainsString('type="hidden" name="location_id"', $catalogueTemplate);
+        self::assertStringContainsString('<input type="hidden" name="published" value="0">', $catalogueTemplate);
         self::assertStringNotContainsString('location_title', $setupView);
         self::assertStringNotContainsString("\$room['location_title']", $setupTemplate);
         self::assertStringContainsString('type="hidden" name="location_id"', $setupTemplate);
