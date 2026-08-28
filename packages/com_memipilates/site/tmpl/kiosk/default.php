@@ -57,8 +57,25 @@ $tokenName = \Joomla\CMS\Session\Session::getFormToken();
         </form>
         <div data-memi-manual-results></div>
     </section>
-    <section data-memi-kiosk-pane="test" hidden>
+    <section data-memi-kiosk-pane="test" data-memi-kiosk-test-panel hidden>
         <p><?= Text::_('COM_MEMIPILATES_KIOSK_TEST_NO_WRITE'); ?></p>
-        <dl data-memi-test-diagnostics></dl>
+        <dl data-memi-test-diagnostics>
+            <dt><?= Text::_('COM_MEMIPILATES_KIOSK_TEST_RECEIVED'); ?></dt>
+            <dd data-memi-kiosk-test-field="received">—</dd>
+            <dt><?= Text::_('COM_MEMIPILATES_KIOSK_TEST_CHARACTERS'); ?></dt>
+            <dd data-memi-kiosk-test-field="chars">0</dd>
+            <dt><?= Text::_('COM_MEMIPILATES_KIOSK_TEST_LENGTH'); ?></dt>
+            <dd data-memi-kiosk-test-field="length">0</dd>
+            <dt><?= Text::_('COM_MEMIPILATES_KIOSK_TEST_ENTER'); ?></dt>
+            <dd data-memi-kiosk-test-field="enter">—</dd>
+            <dt><?= Text::_('COM_MEMIPILATES_KIOSK_TEST_DURATION'); ?></dt>
+            <dd data-memi-kiosk-test-field="duration">0 ms</dd>
+            <dt><?= Text::_('COM_MEMIPILATES_KIOSK_TEST_FORMAT'); ?></dt>
+            <dd data-memi-kiosk-test-field="format">—</dd>
+            <dt><?= Text::_('COM_MEMIPILATES_KIOSK_TEST_FOCUS'); ?></dt>
+            <dd data-memi-kiosk-test-field="focus">—</dd>
+            <dt><?= Text::_('COM_MEMIPILATES_KIOSK_TEST_TRANSPORT'); ?></dt>
+            <dd data-memi-kiosk-test-field="transport">—</dd>
+        </dl>
     </section>
 </section>

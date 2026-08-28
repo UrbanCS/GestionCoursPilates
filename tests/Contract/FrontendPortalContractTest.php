@@ -115,6 +115,45 @@ final class FrontendPortalContractTest extends TestCase
         );
     }
 
+    public function testKioskReaderTestRendersEverySafeDiagnostic(): void
+    {
+        $template = (string) file_get_contents(
+            dirname(__DIR__, 2) . '/packages/com_memipilates/site/tmpl/kiosk/default.php'
+        );
+
+        self::assertStringContainsString('data-memi-kiosk-test-panel', $template);
+        foreach (['received', 'chars', 'length', 'enter', 'duration', 'format', 'focus', 'transport'] as $field) {
+            self::assertStringContainsString('data-memi-kiosk-test-field="' . $field . '"', $template, $field);
+        }
+        self::assertStringNotContainsString('data-memi-kiosk-test-field="token"', $template);
+    }
+
+    public function testQueuedEmailsAlwaysRenderInFrench(): void
+    {
+        $service = (string) file_get_contents(
+            dirname(__DIR__, 2) . '/packages/com_memipilates/admin/src/Service/NotificationService.php'
+        );
+        $translations = (string) file_get_contents(
+            dirname(__DIR__, 2) . '/packages/com_memipilates/admin/language/fr-FR/com_memipilates.ini'
+        );
+
+        self::assertStringContainsString("private const EMAIL_LANGUAGE_TAG = 'fr-FR';", $service);
+        self::assertStringContainsString(
+            "load('com_memipilates', JPATH_ADMINISTRATOR, self::EMAIL_LANGUAGE_TAG, true)",
+            $service
+        );
+        self::assertStringContainsString('html lang="\' . self::EMAIL_LANGUAGE_TAG . \'"', $service);
+        self::assertStringContainsString("format('d/m/Y à H:i')", $service);
+        self::assertStringContainsString(
+            'COM_MEMIPILATES_EMAIL_BOOKING_SUBJECT="Votre réservation Memi Pilates"',
+            $translations
+        );
+        self::assertStringContainsString(
+            'COM_MEMIPILATES_EMAIL_BOOKING_CONFIRMED_BODY="Votre réservation est confirmée."',
+            $translations
+        );
+    }
+
     public function testLoginReturnsToTheSelectedBookingAndCheckout(): void
     {
         $component = dirname(__DIR__, 2) . '/packages/com_memipilates/site';

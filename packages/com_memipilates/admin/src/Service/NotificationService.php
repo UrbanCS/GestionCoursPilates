@@ -19,6 +19,8 @@ use Joomla\Database\ParameterType;
  */
 final class NotificationService
 {
+    private const EMAIL_LANGUAGE_TAG = 'fr-FR';
+
     private bool $languageLoaded = false;
 
     public function __construct(
@@ -401,7 +403,7 @@ final class NotificationService
         try {
             $date = new \DateTimeImmutable($utc, new \DateTimeZone('UTC'));
 
-            return $date->setTimezone($this->settings->timezone())->format('Y-m-d H:i T');
+            return $date->setTimezone($this->settings->timezone())->format('d/m/Y à H:i');
         } catch (\Throwable) {
             return $utc;
         }
@@ -409,9 +411,7 @@ final class NotificationService
 
     private function htmlDocument(string $content): string
     {
-        $language = str_replace('_', '-', (string) Factory::getApplication()->getLanguage()->getTag());
-
-        return '<!doctype html><html lang="' . $this->escape($language) . '"><head><meta charset="utf-8"></head><body>' . $content . '</body></html>';
+        return '<!doctype html><html lang="' . self::EMAIL_LANGUAGE_TAG . '"><head><meta charset="utf-8"></head><body>' . $content . '</body></html>';
     }
 
     /** CLI and task-scheduler executions do not dispatch the component first. */
@@ -422,9 +422,9 @@ final class NotificationService
         }
 
         $language = Factory::getApplication()->getLanguage();
-        $loaded = $language->load('com_memipilates', JPATH_ADMINISTRATOR, null, true);
+        $loaded = $language->load('com_memipilates', JPATH_ADMINISTRATOR, self::EMAIL_LANGUAGE_TAG, true);
         if (!$loaded) {
-            $language->load('com_memipilates', JPATH_SITE, null, true);
+            $language->load('com_memipilates', JPATH_SITE, self::EMAIL_LANGUAGE_TAG, true);
         }
         $this->languageLoaded = true;
     }

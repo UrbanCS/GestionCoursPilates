@@ -2,6 +2,31 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.8.6] - 2026-08-27
+
+### Corrigé
+
+- Force les courriels transactionnels Memi Pilates en français même lorsque le planificateur Joomla s’exécute avec la langue anglaise par défaut.
+- Affiche les dates des courriels dans un format français lisible, selon le fuseau horaire du studio.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.6.zip`
+- Taille : `293730` octets
+- SHA-256 : `86161AC5528956EEC07C184C18F986F22FD10E5C52A4EDE8994264452BFCB6A7`
+
+## [1.8.5] - 2026-08-27
+
+### Corrigé
+
+- Affiche dans le mode de test du lecteur QR les diagnostics sûrs de réception, longueur, touche Entrée, durée, format, focus et connexion, sans révéler ni enregistrer le contenu du QR.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.5.zip`
+- Taille : `293705` octets
+- SHA-256 : `08B3869652CC42CFE413133E5CA7D342CD88CD40BF95A324371A63C08B909D1A`
+
 ## [1.8.4] - 2026-08-07
 
 ### Modifié
