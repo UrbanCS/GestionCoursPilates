@@ -18,6 +18,8 @@ final class HtmlView extends BaseHtmlView
 {
     public int $userId = 0;
     public int $creditBalance = 0;
+    public int $reservedCreditBalance = 0;
+    public int $totalCreditBalance = 0;
     public int $pointBalance = 0;
     /** @var list<array<string,mixed>> */
     public array $upcoming = [];
@@ -53,6 +55,8 @@ final class HtmlView extends BaseHtmlView
         $this->canManageStudio = $managementLandingView !== null;
         $this->managementLandingView = $managementLandingView ?? 'manage';
         $this->creditBalance = ComponentServices::credits()->balance($this->userId);
+        $this->reservedCreditBalance = $this->loadReservedCreditBalance();
+        $this->totalCreditBalance = $this->creditBalance + $this->reservedCreditBalance;
         $this->pointBalance = ComponentServices::points()->balance($this->userId);
         $this->upcoming = $this->loadBookings(true);
         $this->history = $this->loadBookings(false);
@@ -189,6 +193,40 @@ final class HtmlView extends BaseHtmlView
         $db->setQuery($query);
 
         return $db->loadAssocList() ?: [];
+    }
+
+    private function loadReservedCreditBalance(): int
+    {
+        $db = ComponentServices::database();
+        $user = $this->userId;
+        $confirmed = 'confirmed';
+        $pending = 'pending';
+        $query = $db->getQuery(true)
+            ->select([
+                'cl.booking_id',
+                'cl.customer_package_id',
+                'SUM(cl.credits_delta) AS ledger_delta',
+            ])
+            ->from($db->quoteName('#__memi_credit_ledger', 'cl'))
+            ->join('INNER', $db->quoteName('#__memi_bookings', 'b') . ' ON b.id = cl.booking_id')
+            ->where('cl.user_id = :user_id')
+            ->where('cl.booking_id IS NOT NULL')
+            ->where('b.status IN (:confirmed_status, :pending_status)')
+            ->group(['cl.booking_id', 'cl.customer_package_id'])
+            ->bind(':user_id', $user)
+            ->bind(':confirmed_status', $confirmed)
+            ->bind(':pending_status', $pending);
+        $db->setQuery($query);
+
+        $reserved = 0;
+        foreach ($db->loadAssocList() ?: [] as $entry) {
+            $delta = (int) ($entry['ledger_delta'] ?? 0);
+            if ($delta < 0) {
+                $reserved -= $delta;
+            }
+        }
+
+        return $reserved;
     }
 
     /** @return list<array<string,mixed>> */

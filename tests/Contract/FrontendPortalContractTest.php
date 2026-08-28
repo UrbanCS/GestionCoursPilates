@@ -126,6 +126,28 @@ final class FrontendPortalContractTest extends TestCase
         self::assertGreaterThanOrEqual(2, substr_count($attendance, '$pointsAdded = 1;'));
     }
 
+    public function testDirectSessionPaymentsCreateRestorableReservedCredits(): void
+    {
+        $component = dirname(__DIR__, 2) . '/packages/com_memipilates';
+        $payments = (string) file_get_contents($component . '/admin/src/Service/PaymentService.php');
+        $credits = (string) file_get_contents($component . '/admin/src/Service/CreditLedgerService.php');
+        $dashboardView = (string) file_get_contents($component . '/site/src/View/Dashboard/HtmlView.php');
+        $dashboardTemplate = (string) file_get_contents($component . '/site/tmpl/dashboard/default.php');
+        $migration = (string) file_get_contents($component . '/admin/sql/updates/mysql/1.8.14.sql');
+
+        self::assertStringContainsString('createDirectSessionAllocation', $payments);
+        self::assertStringContainsString("'direct_purchase'", $payments);
+        self::assertStringContainsString('consumeAllocationForBooking', $payments);
+        self::assertStringContainsString('$credits = 1;', $payments);
+        self::assertStringContainsString('public function consumeAllocationForBooking', $credits);
+        self::assertStringContainsString('$this->reservedCreditBalance = $this->loadReservedCreditBalance();', $dashboardView);
+        self::assertStringContainsString('$this->totalCreditBalance = $this->creditBalance + $this->reservedCreditBalance;', $dashboardView);
+        self::assertStringContainsString('COM_MEMIPILATES_ACCOUNT_CREDIT_BREAKDOWN', $dashboardTemplate);
+        self::assertStringContainsString("b.source = 'square_direct'", $migration);
+        self::assertStringContainsString('AND p2.credits = 1', $migration);
+        self::assertStringContainsString("'booking_use'", $migration);
+    }
+
     public function testFrontendStudioPortalUsesTheMemiStudioBrand(): void
     {
         $template = (string) file_get_contents(
@@ -210,6 +232,17 @@ final class FrontendPortalContractTest extends TestCase
         self::assertStringContainsString('this.state.inputTimer = window.setTimeout', $script);
         self::assertStringContainsString('this.input.value !== capturedValue', $script);
         self::assertStringContainsString('this.clearInputTimer();', $script);
+    }
+
+    public function testKioskRequiresASelectableSessionAndExplainsAnEmptyList(): void
+    {
+        $component = dirname(__DIR__, 2) . '/packages/com_memipilates/site';
+        $template = (string) file_get_contents($component . '/tmpl/kiosk/default.php');
+        $french = (string) file_get_contents($component . '/language/fr-FR/com_memipilates.ini');
+
+        self::assertStringContainsString('data-require-session="true"', $template);
+        self::assertStringContainsString('COM_MEMIPILATES_KIOSK_NO_SESSIONS', $template);
+        self::assertStringContainsString('jusqu’à 12 heures avant leur début', $french);
     }
 
     public function testQueuedEmailsAlwaysRenderInFrench(): void

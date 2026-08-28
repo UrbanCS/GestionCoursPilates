@@ -125,6 +125,51 @@ final class CreditLedgerService
     }
 
     /**
+     * Consumes one credit from a specific allocation. Direct session payments
+     * use this method so the purchased entitlement remains tied to the booking
+     * and can be restored to that same allocation after an admissible
+     * cancellation.
+     */
+    public function consumeAllocationForBooking(
+        int $userId,
+        int $customerPackageId,
+        int $bookingId,
+        int $sessionId,
+        string $idempotencyKey,
+        ?int $actorId = null
+    ): int {
+        $existing = $this->findByIdempotency($idempotencyKey);
+        if ($existing !== null) {
+            return (int) $existing['id'];
+        }
+
+        $allocation = $this->tools->lockById('#__memi_customer_packages', $customerPackageId);
+        $now = gmdate('Y-m-d H:i:s');
+        if (!$allocation
+            || (int) $allocation['user_id'] !== $userId
+            || !in_array((string) $allocation['status'], [$this->activeStatus(), $this->restoredStatus()], true)
+            || ((string) $allocation['status'] === $this->activeStatus()
+                && !empty($allocation['expires_at'])
+                && (string) $allocation['expires_at'] <= $now)
+            || $this->remainingForAllocation($customerPackageId) <= 0) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_INSUFFICIENT_CREDITS');
+        }
+
+        return $this->insertEntry(
+            $userId,
+            -1,
+            'booking_use',
+            $idempotencyKey,
+            $customerPackageId,
+            null,
+            $bookingId,
+            null,
+            $actorId,
+            'Crédit utilisé pour la séance #' . $sessionId
+        );
+    }
+
+    /**
      * Restores every credit still consumed by the current booking occurrence,
      * while preserving the allocation each credit originated from.
      *

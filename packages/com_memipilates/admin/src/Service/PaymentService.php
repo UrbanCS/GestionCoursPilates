@@ -149,6 +149,10 @@ final class PaymentService
             if ($subtotal <= 0) {
                 throw new DomainException('COM_MEMIPILATES_ERROR_DIRECT_PAYMENT_UNAVAILABLE');
             }
+            // A direct checkout purchases one class, hence one transferable
+            // credit, even when the selected session has a stale credit-cost
+            // override. Package purchases keep their configured quantities.
+            $directCreditPackage = $this->directCreditPackage($subtotal, 1);
             $tax = $this->settings->calculateTaxCents($subtotal);
             $total = $subtotal + $tax;
             $currency = strtoupper((string) $this->settings->get('currency', 'CAD'));
@@ -241,20 +245,23 @@ final class PaymentService
 
             $itemType = 'session';
             $title = (string) $session['course_title'];
+            $directCreditPackageId = (int) $directCreditPackage['id'];
             $itemMetadata = json_encode([
                 'booking_id' => $bookingId,
                 'starts_at' => (string) $session['starts_at'],
+                'direct_credit_package_id' => $directCreditPackageId,
             ], JSON_THROW_ON_ERROR);
             $insertItem = $this->db->getQuery(true)
                 ->insert($this->db->quoteName('#__memi_order_items'))
                 ->columns([
-                    'order_id', 'item_type', 'item_id', 'title_snapshot', 'quantity',
+                    'order_id', 'item_type', 'item_id', 'package_id', 'title_snapshot', 'quantity',
                     'unit_price_cents', 'tax_cents', 'total_cents', 'metadata', 'created_at',
                 ])
-                ->values(':order_id, :item_type, :item_id, :title_snapshot, 1, :unit_price_cents, :tax_cents, :total_cents, :metadata, :created_at')
+                ->values(':order_id, :item_type, :item_id, :package_id, :title_snapshot, 1, :unit_price_cents, :tax_cents, :total_cents, :metadata, :created_at')
                 ->bind(':order_id', $orderId, ParameterType::INTEGER)
                 ->bind(':item_type', $itemType)
                 ->bind(':item_id', $sessionIdentifier, ParameterType::INTEGER)
+                ->bind(':package_id', $directCreditPackageId, ParameterType::INTEGER)
                 ->bind(':title_snapshot', $title)
                 ->bind(':unit_price_cents', $subtotal, ParameterType::INTEGER)
                 ->bind(':tax_cents', $tax, ParameterType::INTEGER)
@@ -1224,10 +1231,20 @@ final class PaymentService
 
         $now = gmdate('Y-m-d H:i:s');
         $identifier = (int) $booking['id'];
+        $customerPackageId = $this->createDirectSessionAllocation($userId, $orderId, $session, $now);
+        $this->credits->consumeAllocationForBooking(
+            $userId,
+            $customerPackageId,
+            $identifier,
+            (int) $session['id'],
+            'direct-order:' . $orderId . ':booking:' . $identifier . ':credit:0',
+            $userId
+        );
         $confirmed = 'confirmed';
         $query = $this->db->getQuery(true)
             ->update($this->db->quoteName('#__memi_bookings'))
             ->set($this->db->quoteName('status') . ' = :status')
+            ->set($this->db->quoteName('customer_package_id') . ' = :customer_package_id')
             ->set($this->db->quoteName('confirmed_at') . ' = :confirmed_at')
             ->set($this->db->quoteName('cancelled_at') . ' = NULL')
             ->set($this->db->quoteName('cancelled_by') . ' = 0')
@@ -1235,6 +1252,7 @@ final class PaymentService
             ->set($this->db->quoteName('updated_at') . ' = :updated_at')
             ->where($this->db->quoteName('id') . ' = :id')
             ->bind(':status', $confirmed)
+            ->bind(':customer_package_id', $customerPackageId, ParameterType::INTEGER)
             ->bind(':confirmed_at', $now)
             ->bind(':updated_at', $now)
             ->bind(':id', $identifier, ParameterType::INTEGER);
@@ -1269,6 +1287,123 @@ final class PaymentService
         ]);
 
         return ['booking_id' => $identifier, 'session_id' => (int) $session['id']];
+    }
+
+    /**
+     * A direct class payment buys a transferable course credit and immediately
+     * reserves that credit for the selected booking. The available balance is
+     * therefore unchanged while the booking is active, but an admissible
+     * cancellation can restore the exact paid entitlement.
+     *
+     * @param array<string,mixed> $session
+     */
+    private function createDirectSessionAllocation(int $userId, int $orderId, array $session, string $now): int
+    {
+        $orderIdentifier = $orderId;
+        $existing = $this->db->getQuery(true)
+            ->select($this->db->quoteName('id'))
+            ->from($this->db->quoteName('#__memi_customer_packages'))
+            ->where($this->db->quoteName('order_id') . ' = :order_id')
+            ->bind(':order_id', $orderIdentifier, ParameterType::INTEGER);
+        $this->db->setQuery(DatabaseTools::forUpdate($existing), 0, 1);
+        $existingId = (int) $this->db->loadResult();
+        if ($existingId > 0) {
+            return $existingId;
+        }
+
+        $itemType = 'session';
+        $item = $this->db->getQuery(true)
+            ->select(['i.package_id', 'i.unit_price_cents', 'p.validity_days', 'p.fixed_expiry_at'])
+            ->from($this->db->quoteName('#__memi_order_items', 'i'))
+            ->join('LEFT', $this->db->quoteName('#__memi_packages', 'p') . ' ON p.id = i.package_id')
+            ->where('i.order_id = :order_id')
+            ->where('i.item_type = :item_type')
+            ->bind(':order_id', $orderIdentifier, ParameterType::INTEGER)
+            ->bind(':item_type', $itemType);
+        $this->db->setQuery($item, 0, 1);
+        $orderItem = $this->db->loadAssoc() ?: [];
+        $package = (int) ($orderItem['package_id'] ?? 0) > 0
+            ? $this->tools->lockById('#__memi_packages', (int) $orderItem['package_id'])
+            : $this->directCreditPackage(
+                max(0, (int) ($orderItem['unit_price_cents'] ?? $session['price_cents'] ?? 0)),
+                1
+            );
+        if (!$package) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_DIRECT_PAYMENT_UNAVAILABLE');
+        }
+
+        $profile = $this->tools->lockClientProfile($userId);
+        $credits = 1;
+        $purchasedAt = new \DateTimeImmutable($now, new \DateTimeZone('UTC'));
+        $expires = !empty($package['fixed_expiry_at'])
+            ? new \DateTimeImmutable((string) $package['fixed_expiry_at'], new \DateTimeZone('UTC'))
+            : (max(0, (int) ($package['validity_days'] ?? 0)) > 0
+                ? $purchasedAt->modify('+' . (int) $package['validity_days'] . ' days')
+                : null);
+        $expiresAt = $expires?->format('Y-m-d H:i:s');
+        $clientId = (int) $profile['id'];
+        $packageId = (int) $package['id'];
+        $active = 'active';
+        $insert = $this->db->getQuery(true)
+            ->insert($this->db->quoteName('#__memi_customer_packages'))
+            ->columns([
+                'client_id', 'user_id', 'package_id', 'order_id', 'status', 'original_credits',
+                'remaining_credits', 'credits_granted', 'purchased_at', 'starts_at', 'expires_at',
+                'created_at', 'updated_at',
+            ])
+            ->values(':client_id, :user_id, :package_id, :order_id, :status, :original_credits, :remaining_credits, :credits_granted, :purchased_at, :starts_at, :expires_at, :created_at, :updated_at')
+            ->bind(':client_id', $clientId, ParameterType::INTEGER)
+            ->bind(':user_id', $userId, ParameterType::INTEGER)
+            ->bind(':package_id', $packageId, ParameterType::INTEGER)
+            ->bind(':order_id', $orderIdentifier, ParameterType::INTEGER)
+            ->bind(':status', $active)
+            ->bind(':original_credits', $credits, ParameterType::INTEGER)
+            ->bind(':remaining_credits', $credits, ParameterType::INTEGER)
+            ->bind(':credits_granted', $credits, ParameterType::INTEGER)
+            ->bind(':purchased_at', $now)
+            ->bind(':starts_at', $now)
+            ->bind(':expires_at', $expiresAt)
+            ->bind(':created_at', $now)
+            ->bind(':updated_at', $now);
+        $this->db->setQuery($insert)->execute();
+        $allocationId = (int) $this->db->insertid();
+        $this->credits->grant(
+            $userId,
+            $credits,
+            'direct_purchase',
+            'direct-order:' . $orderId . ':grant',
+            $allocationId,
+            $orderId,
+            $expires,
+            $userId,
+            'Crédit acheté avec une séance'
+        );
+
+        return $allocationId;
+    }
+
+    /** @return array<string,mixed> */
+    private function directCreditPackage(int $priceCents, int $credits): array
+    {
+        $published = 1;
+        $query = $this->db->getQuery(true)
+            ->select('*')
+            ->from($this->db->quoteName('#__memi_packages'))
+            ->where($this->db->quoteName('price_cents') . ' = :price_cents')
+            ->where($this->db->quoteName('credits') . ' = :credits')
+            ->where($this->db->quoteName('published') . ' = :published')
+            ->where($this->db->quoteName('archived_at') . ' IS NULL')
+            ->order($this->db->quoteName('ordering') . ' ASC, ' . $this->db->quoteName('id') . ' ASC')
+            ->bind(':price_cents', $priceCents, ParameterType::INTEGER)
+            ->bind(':credits', $credits, ParameterType::INTEGER)
+            ->bind(':published', $published, ParameterType::INTEGER);
+        $this->db->setQuery($query, 0, 1);
+        $package = $this->db->loadAssoc();
+        if (!$package) {
+            throw new DomainException('COM_MEMIPILATES_ERROR_DIRECT_PAYMENT_UNAVAILABLE');
+        }
+
+        return $package;
     }
 
     private function publicApplicationId(): string

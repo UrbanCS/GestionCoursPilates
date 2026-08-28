@@ -43,7 +43,17 @@ use Joomla\CMS\HTML\HTMLHelper;
     </header>
 
     <div class="memi-dashboard__metrics">
-        <article><h2><?= Text::_('COM_MEMIPILATES_ACCOUNT_CREDITS'); ?></h2><p><?= (int) $this->creditBalance; ?></p></article>
+        <article>
+            <h2><?= Text::_('COM_MEMIPILATES_ACCOUNT_CREDITS'); ?></h2>
+            <p><?= (int) $this->totalCreditBalance; ?></p>
+            <small>
+                <?= Text::sprintf(
+                    'COM_MEMIPILATES_ACCOUNT_CREDIT_BREAKDOWN',
+                    (int) $this->creditBalance,
+                    (int) $this->reservedCreditBalance
+                ); ?>
+            </small>
+        </article>
         <article><h2><?= Text::_('COM_MEMIPILATES_ACCOUNT_POINTS'); ?></h2><p><?= (int) $this->pointBalance; ?></p></article>
     </div>
 

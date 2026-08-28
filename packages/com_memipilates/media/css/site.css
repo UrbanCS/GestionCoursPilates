@@ -1245,6 +1245,13 @@
   margin: 0;
 }
 
+.memi-dashboard__metrics small {
+  color: var(--memi-muted);
+  display: block;
+  font-size: 0.9rem;
+  margin-block-start: 0.5rem;
+}
+
 .memi-dashboard__list {
   display: grid;
   gap: 0.65rem;

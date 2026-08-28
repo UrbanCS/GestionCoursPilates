@@ -13,6 +13,7 @@ $tokenName = \Joomla\CMS\Session\Session::getFormToken();
     data-auto-reset-ms="<?= (int) $this->settings['auto_reset_ms']; ?>"
     data-default-mode="<?= htmlspecialchars((string) $this->settings['default_mode'], ENT_QUOTES, 'UTF-8'); ?>"
     data-max-token-length="<?= (int) $this->settings['max_token_length']; ?>"
+    data-require-session="true"
     data-scan-url="<?= htmlspecialchars($this->scanUrl, ENT_QUOTES, 'UTF-8'); ?>"
     data-manual-url="<?= htmlspecialchars($this->manualUrl, ENT_QUOTES, 'UTF-8'); ?>"
     data-manual-search-url="<?= htmlspecialchars(\Joomla\CMS\Router\Route::_('index.php?option=com_memipilates&task=kiosk.search&format=json', false), ENT_QUOTES, 'UTF-8'); ?>"
@@ -32,6 +33,9 @@ $tokenName = \Joomla\CMS\Session\Session::getFormToken();
             <?php endforeach; ?>
         </select>
     </label>
+    <?php if ($this->sessions === []) : ?>
+        <p class="memi-kiosk__no-sessions" role="status"><?= Text::_('COM_MEMIPILATES_KIOSK_NO_SESSIONS'); ?></p>
+    <?php endif; ?>
     <div class="memi-kiosk__modes" data-memi-kiosk-modes role="tablist" aria-label="<?= Text::_('COM_MEMIPILATES_KIOSK_TITLE'); ?>">
         <button type="button" role="tab" data-memi-kiosk-mode="reader"><?= Text::_('COM_MEMIPILATES_KIOSK_SCAN_PROMPT'); ?></button>
         <button type="button" role="tab" data-memi-kiosk-mode="camera"><?= Text::_('COM_MEMIPILATES_KIOSK_CAMERA_SCAN'); ?></button>

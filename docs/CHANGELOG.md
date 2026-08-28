@@ -2,6 +2,35 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.8.14] - 2026-08-28
+
+### Corrigé
+
+- Compte toujours un paiement direct de séance comme l’achat d’un seul crédit transférable, même si une ancienne séance contient une surcharge incohérente du coût en crédits.
+- Reprend la migration des paiements directs existants afin que la commande payée et la réservation « Sol stabilité » soient bien associées à ce crédit réservé.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.14.zip`
+- Taille : `300216` octets
+- SHA-256 : `C3EDF53B159B9180481A5E36026026C974FD8A0E55E7FAF0EA88B9959551E0B9`
+
+## [1.8.13] - 2026-08-28
+
+### Corrigé
+
+- Transforme chaque paiement direct d’une séance en crédit transférable réservé par la séance achetée.
+- Restaure ce crédit dans le solde disponible lorsqu’une réservation est annulée dans le délai permis.
+- Affiche séparément les crédits disponibles et ceux réservés par des cours afin que le crédit acheté demeure visible sans permettre une double réservation.
+- Migre les paiements directs déjà confirmés vers ce nouveau suivi de crédits.
+- Explique lorsqu’aucun cours n’est encore disponible sur la borne et empêche un scan sans séance sélectionnée d’afficher une erreur générique.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.13.zip`
+- Taille : `299093` octets
+- SHA-256 : `7D8AC2D47A63752D9E5877254802469FDE485A92DE7FE6964E9B1F47632EB7B1`
+
 ## [1.8.12] - 2026-08-28
 
 ### Corrigé
