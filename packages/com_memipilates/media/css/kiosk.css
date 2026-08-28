@@ -23,6 +23,12 @@
   margin-block-end: 1.25rem;
 }
 
+[data-memi-kiosk] [data-memi-kiosk-header] h1 {
+  font-size: clamp(2.25rem, 5vw, 4rem);
+  line-height: 1.05;
+  margin: 0;
+}
+
 [data-memi-kiosk] [data-memi-kiosk-clock] {
   color: var(--memi-kiosk-muted);
   font-variant-numeric: tabular-nums;
@@ -137,13 +143,32 @@
   padding: 1rem;
 }
 
+/* A successful scanner beep must always have an unmistakable visual
+ * equivalent, including on a wall-mounted kiosk viewed from a distance. */
+[data-memi-kiosk] [data-memi-kiosk-result]:not([hidden]) {
+  align-content: center;
+  border: 0.4rem solid currentColor;
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 32%);
+  display: grid;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  inset: 50% auto auto 50%;
+  min-block-size: min(18rem, calc(100dvh - 2rem));
+  padding: clamp(1.5rem, 5vw, 3rem);
+  position: fixed;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  width: min(42rem, calc(100vw - 2rem));
+  z-index: 2000;
+}
+
 [data-memi-kiosk] [data-memi-kiosk-result][hidden] {
   display: none;
 }
 
 [data-memi-kiosk] [data-memi-kiosk-result] [data-memi-kiosk-result-title] {
-  font-size: 1.25rem;
+  font-size: clamp(2rem, 6vw, 3.5rem);
   font-weight: 700;
+  line-height: 1.05;
 }
 
 [data-memi-kiosk] [data-memi-camera-wrap] {

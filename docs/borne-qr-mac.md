@@ -20,7 +20,7 @@ La vue expose une racine [data-memi-kiosk]. Son script garde le focus sur le cha
 
 ## Choisir et connecter un lecteur QR HID
 
-Choisir un lecteur USB ou Bluetooth compatible **HID keyboard / keyboard wedge**. Il doit envoyer le contenu du QR comme si un clavier le tapait, puis envoyer une touche Entrée. Aucun pilote ou logiciel macOS propriétaire ne doit être requis pour la borne.
+Choisir un lecteur USB ou Bluetooth compatible **HID keyboard / keyboard wedge**. Il doit envoyer le contenu du QR comme si un clavier le tapait. Un suffixe Entrée/CR reste recommandé, mais la borne soumet aussi automatiquement un code complet lorsque le lecteur n’envoie pas cette touche. Aucun pilote ou logiciel macOS propriétaire ne doit être requis pour la borne.
 
 ### Lecteur USB
 
@@ -54,7 +54,7 @@ Ne scanner pas un QR client dans un éditeur de texte, une barre d’adresse, un
 1. Se connecter à Joomla et ouvrir la borne.
 2. Vérifier le titre, l’instructeur, la salle et l’heure du cours sélectionné. Sélectionner manuellement un cours si aucun cours actif n’est proposé.
 3. Vérifier que le champ est en état « prêt » et que le mode Lecteur QR externe est sélectionné.
-4. Inviter le client à présenter son QR. Le lecteur envoie le token puis Entrée.
+4. Inviter le client à présenter son QR. Le lecteur envoie le token puis Entrée; sans suffixe Entrée/CR, la borne le soumet automatiquement après une courte pause.
 5. La page effectue un POST vers la tâche kiosk.scan avec le token, session_id, la méthode hid ou camera, une idempotency_key et un jeton CSRF Joomla si fourni.
 6. Le serveur vérifie le QR, la réservation, l’état du cours, les autorisations et l’absence de présence antérieure; il crée la présence et les points dans une transaction.
 7. Lire le résultat affiché, puis attendre le retour automatique au mode prêt avant le client suivant.

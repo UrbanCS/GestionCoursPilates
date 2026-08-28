@@ -19,7 +19,7 @@ $tokenName = \Joomla\CMS\Session\Session::getFormToken();
     data-csrf-token="<?= htmlspecialchars($tokenName, ENT_QUOTES, 'UTF-8'); ?>"
     data-time-zone="<?= htmlspecialchars((string) $this->settings['timezone'], ENT_QUOTES, 'UTF-8'); ?>"
 >
-    <header class="memi-kiosk__header">
+    <header class="memi-kiosk__header" data-memi-kiosk-header>
         <div><h1><?= Text::_('COM_MEMIPILATES_KIOSK_TITLE'); ?></h1><p data-memi-kiosk-clock></p></div>
         <button class="btn btn-outline-secondary" type="button" data-memi-kiosk-fullscreen><?= Text::_('COM_MEMIPILATES_KIOSK_FULLSCREEN'); ?></button>
     </header>
@@ -32,14 +32,14 @@ $tokenName = \Joomla\CMS\Session\Session::getFormToken();
             <?php endforeach; ?>
         </select>
     </label>
-    <div class="memi-kiosk__modes" role="tablist" aria-label="<?= Text::_('COM_MEMIPILATES_KIOSK_TITLE'); ?>">
+    <div class="memi-kiosk__modes" data-memi-kiosk-modes role="tablist" aria-label="<?= Text::_('COM_MEMIPILATES_KIOSK_TITLE'); ?>">
         <button type="button" role="tab" data-memi-kiosk-mode="reader"><?= Text::_('COM_MEMIPILATES_KIOSK_SCAN_PROMPT'); ?></button>
         <button type="button" role="tab" data-memi-kiosk-mode="camera"><?= Text::_('COM_MEMIPILATES_KIOSK_CAMERA_SCAN'); ?></button>
         <button type="button" role="tab" data-memi-kiosk-mode="manual"><?= Text::_('COM_MEMIPILATES_KIOSK_MANUAL_SEARCH'); ?></button>
         <button type="button" role="tab" data-memi-kiosk-mode="test"><?= Text::_('COM_MEMIPILATES_KIOSK_TEST_MODE'); ?></button>
     </div>
     <p class="memi-kiosk__status" data-memi-kiosk-status></p>
-    <div class="memi-kiosk__result" data-memi-kiosk-result aria-live="polite"></div>
+    <div class="memi-kiosk__result" data-memi-kiosk-result aria-live="assertive" hidden></div>
     <section data-memi-kiosk-pane="reader">
         <label for="memi-scan-input"><?= Text::_('COM_MEMIPILATES_KIOSK_SCAN_INPUT_LABEL'); ?></label>
         <input id="memi-scan-input" data-memi-scan-input inputmode="none" autocomplete="off" aria-describedby="memi-scan-help" autofocus>

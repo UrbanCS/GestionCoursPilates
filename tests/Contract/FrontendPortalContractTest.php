@@ -185,6 +185,33 @@ final class FrontendPortalContractTest extends TestCase
         self::assertStringNotContainsString('data-memi-kiosk-test-field="token"', $template);
     }
 
+    public function testKioskUsesACompactTitleAndProminentVisualScanResult(): void
+    {
+        $component = dirname(__DIR__, 2) . '/packages/com_memipilates';
+        $template = (string) file_get_contents($component . '/site/tmpl/kiosk/default.php');
+        $styles = (string) file_get_contents($component . '/media/css/kiosk.css');
+        $script = (string) file_get_contents($component . '/media/js/kiosk.js');
+
+        self::assertStringContainsString('data-memi-kiosk-header', $template);
+        self::assertStringContainsString('data-memi-kiosk-result aria-live="assertive" hidden', $template);
+        self::assertStringContainsString('[data-memi-kiosk-header] h1', $styles);
+        self::assertStringContainsString('[data-memi-kiosk-result]:not([hidden])', $styles);
+        self::assertStringContainsString('position: fixed;', $styles);
+        self::assertStringContainsString("setAttribute('aria-live', 'assertive')", $script);
+    }
+
+    public function testKioskAutoSubmitsReaderInputWithoutAnEnterSuffix(): void
+    {
+        $script = (string) file_get_contents(
+            dirname(__DIR__, 2) . '/packages/com_memipilates/media/js/kiosk.js'
+        );
+
+        self::assertStringContainsString('autoSubmitDelayMs: 350', $script);
+        self::assertStringContainsString('this.state.inputTimer = window.setTimeout', $script);
+        self::assertStringContainsString('this.input.value !== capturedValue', $script);
+        self::assertStringContainsString('this.clearInputTimer();', $script);
+    }
+
     public function testQueuedEmailsAlwaysRenderInFrench(): void
     {
         $service = (string) file_get_contents(

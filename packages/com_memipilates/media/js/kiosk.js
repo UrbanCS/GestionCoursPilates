@@ -8,6 +8,7 @@
   'use strict';
 
   const DEFAULTS = {
+    autoSubmitDelayMs: 350,
     autoResetMs: 5000,
     cameraIntervalMs: 220,
     cooldownMs: 700,
@@ -86,6 +87,7 @@
       this.options = {
         ...DEFAULTS,
         ...options,
+        autoSubmitDelayMs: toNumber(root.dataset.autoSubmitDelayMs, toNumber(options.autoSubmitDelayMs, DEFAULTS.autoSubmitDelayMs), 100),
         autoResetMs: toNumber(root.dataset.autoResetMs, toNumber(options.autoResetMs, DEFAULTS.autoResetMs), 250),
         cameraIntervalMs: toNumber(root.dataset.cameraIntervalMs, toNumber(options.cameraIntervalMs, DEFAULTS.cameraIntervalMs), 80),
         cooldownMs: toNumber(root.dataset.cooldownMs, toNumber(options.cooldownMs, DEFAULTS.cooldownMs), 0),
@@ -113,6 +115,7 @@
         activeMode: normalizeMode(this.options.defaultMode),
         camera: null,
         cameraFrame: null,
+        inputTimer: null,
         lastCompletedAt: 0,
         manualRecords: [],
         processing: false,
@@ -174,7 +177,7 @@
       }
 
       if (this.resultNode) {
-        this.resultNode.setAttribute('aria-live', 'polite');
+        this.resultNode.setAttribute('aria-live', 'assertive');
       }
 
       if (this.video) {
@@ -253,6 +256,7 @@
     handleInputKeydown(event) {
       if (event.key === 'Enter') {
         event.preventDefault();
+        this.clearInputTimer();
         this.state.scan.enterDetected = true;
         this.state.scan.endAt = performance.now();
         this.updateTestDiagnostics();
@@ -285,6 +289,8 @@
         return;
       }
 
+      this.clearInputTimer();
+
       if (this.input.value.length > this.options.maxTokenLength) {
         this.input.value = this.input.value.slice(0, this.options.maxTokenLength);
       }
@@ -294,6 +300,22 @@
       }
       this.state.scan.characters = Math.max(this.state.scan.characters, this.input.value.length);
       this.updateTestDiagnostics();
+
+      // Some HID readers send the complete QR value without an Enter/CR
+      // suffix. Submit once the input has remained unchanged long enough to
+      // distinguish a complete scanner burst from characters still arriving.
+      const capturedValue = this.input.value;
+      if (capturedValue) {
+        this.state.inputTimer = window.setTimeout(() => {
+          this.state.inputTimer = null;
+          if (!this.input || this.input.value !== capturedValue || this.state.processing) {
+            return;
+          }
+          this.state.scan.endAt = performance.now();
+          this.updateTestDiagnostics();
+          this.submitInput();
+        }, this.options.autoSubmitDelayMs);
+      }
     }
 
     resetScanMetrics() {
@@ -613,8 +635,16 @@
     }
 
     clearInput() {
+      this.clearInputTimer();
       if (this.input) {
         this.input.value = '';
+      }
+    }
+
+    clearInputTimer() {
+      if (this.state.inputTimer) {
+        window.clearTimeout(this.state.inputTimer);
+        this.state.inputTimer = null;
       }
     }
 

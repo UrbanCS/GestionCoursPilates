@@ -2,6 +2,34 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.8.12] - 2026-08-28
+
+### Corrigé
+
+- Actualise explicitement la version de la feuille de style de la borne afin que la réduction du titre et le panneau de confirmation soient chargés immédiatement.
+- Rend l’annonce de résultat prioritaire pour les technologies d’assistance.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.12.zip`
+- Taille : `295946` octets
+- SHA-256 : `7C867E448B05395B31BE9076D9F9E8163CAC94EC98C8DF53D2D004537370265E`
+
+## [1.8.11] - 2026-08-28
+
+### Corrigé
+
+- Réduit le titre de la borne de présence afin qu’il reste lisible sans dominer l’écran.
+- Affiche après chaque scan un panneau central très visible qui confirme la présence ou explique clairement l’avertissement ou l’erreur.
+- Masque le panneau de résultat vide avant le premier scan.
+- Soumet automatiquement les codes reçus par un lecteur HID qui n’envoie pas de suffixe Entrée/CR.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.11.zip`
+- Taille : `295946` octets
+- SHA-256 : `C90B2BADC4C0C6D1C6A15FE6EB969EF0B44C707484D437B27E7EB7B3E6A8F8AE`
+
 ## [1.8.10] - 2026-08-28
 
 ### Corrigé
