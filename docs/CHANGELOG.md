@@ -2,6 +2,19 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.8.10] - 2026-08-28
+
+### Corrigé
+
+- Limite la page de paiement au seul forfait choisi lorsqu’elle est ouverte depuis la page Tarifs avec un `package_id`.
+- Conserve le catalogue complet uniquement pour le parcours générique « Acheter un forfait » sans forfait présélectionné.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.10.zip`
+- Taille : `295334` octets
+- SHA-256 : `83A687A833BEED3D609B0EFF0737C4899DE7045A300C1DF903BE5DEE3D3E08CF`
+
 ## [1.8.9] - 2026-08-28
 
 ### Corrigé

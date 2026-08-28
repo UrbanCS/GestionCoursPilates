@@ -98,7 +98,7 @@ final class FrontendPortalContractTest extends TestCase
         self::assertStringContainsString('COM_MEMIPILATES_CONFIG_LOYALTY_ATTENDANCE_ONLY', $template);
     }
 
-    public function testPackageCheckoutUsesResponsiveCardsAndPreservesASelectedPackage(): void
+    public function testPackageCheckoutUsesResponsiveCardsAndLimitsAnExplicitSelection(): void
     {
         $component = dirname(__DIR__, 2) . '/packages/com_memipilates';
         $template = (string) file_get_contents($component . '/site/tmpl/checkout/default.php');
@@ -111,6 +111,8 @@ final class FrontendPortalContractTest extends TestCase
         self::assertStringNotContainsString('data-memi-package-select', $template);
         self::assertStringContainsString("getInt('package_id', 0)", $view);
         self::assertStringContainsString("\$return .= '&package_id=' . \$this->selectedPackageId", $view);
+        self::assertStringContainsString('$selectedPackages = array_values(array_filter(', $view);
+        self::assertStringContainsString('$this->packages = $selectedPackages;', $view);
         self::assertStringContainsString("'[data-memi-package-choice]:checked'", $script);
     }
 

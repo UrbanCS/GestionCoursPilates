@@ -115,11 +115,19 @@ final class HtmlView extends BaseHtmlView
             $package['total_with_tax_cents'] = $subtotal + ComponentServices::settings()->calculateTaxCents($subtotal);
         }
         unset($package);
-        if ($this->selectedPackageId > 0 && !array_filter(
-            $this->packages,
-            fn (array $package): bool => (int) $package['id'] === $this->selectedPackageId
-        )) {
-            $this->selectedPackageId = 0;
+        if ($this->selectedPackageId > 0) {
+            $selectedPackages = array_values(array_filter(
+                $this->packages,
+                fn (array $package): bool => (int) $package['id'] === $this->selectedPackageId
+            ));
+            if ($selectedPackages === []) {
+                $this->selectedPackageId = 0;
+            } else {
+                // A checkout opened from the public Tarifs page concerns one
+                // explicit offer. Keep the full catalogue only for the generic
+                // "Acheter un forfait" route without a package_id.
+                $this->packages = $selectedPackages;
+            }
         }
         $this->square = ComponentServices::payments()->clientConfiguration();
         $this->createEndpoint = Route::_('index.php?option=com_memipilates&task=checkout.createOrder&format=json', false);
