@@ -48,8 +48,6 @@ final class HtmlView extends BaseHtmlView
             'notification_max_attempts' => 5,
             'notification_retry_base_minutes' => 5,
             'loyalty_enabled' => 1,
-            'points_per_attendance' => 10,
-            'points_per_dollar' => 1,
             'attendance_before_minutes' => 30,
             'attendance_after_minutes' => 30,
             'kiosk_confirmation_seconds' => 4,

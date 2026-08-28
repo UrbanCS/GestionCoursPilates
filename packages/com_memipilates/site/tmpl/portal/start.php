@@ -24,19 +24,25 @@ $portalItems = [
     ['view' => 'offers', 'label' => 'COM_MEMIPILATES_SUBMENU_OFFERS'],
     ['view' => 'payments', 'label' => 'COM_MEMIPILATES_SUBMENU_PAYMENTS'],
     ['view' => 'attendance', 'label' => 'COM_MEMIPILATES_SUBMENU_ATTENDANCE'],
+    ['view' => 'kiosk', 'label' => 'COM_MEMIPILATES_KIOSK_TITLE', 'permission' => 'attendance.kiosk'],
     ['view' => 'settings', 'label' => 'COM_MEMIPILATES_PORTAL_SETTINGS'],
 ];
 ?>
 <section class="memi-management-portal">
     <aside class="memi-management-sidebar">
         <div class="memi-management-sidebar__heading">
-            <span class="memi-management-sidebar__eyebrow"><?= Text::_('COM_MEMIPILATES'); ?></span>
+            <span class="memi-management-sidebar__eyebrow"><?= Text::_('COM_MEMIPILATES_STUDIO_NAME'); ?></span>
             <h1><?= Text::_('COM_MEMIPILATES_PORTAL_TITLE'); ?></h1>
         </div>
         <nav aria-label="<?= $escape(Text::_('COM_MEMIPILATES_PORTAL_TITLE')); ?>">
             <ul>
                 <?php foreach ($portalItems as $item) : ?>
-                    <?php if (PortalAccess::canAccess($identity, $item['view'])) : ?>
+                    <?php
+                    $canAccess = isset($item['permission'])
+                        ? (bool) $identity->authorise($item['permission'], 'com_memipilates')
+                        : PortalAccess::canAccess($identity, $item['view']);
+                    ?>
+                    <?php if ($canAccess) : ?>
                         <li>
                             <a
                                 href="<?= Route::_('index.php?option=com_memipilates&view=' . $item['view']); ?>"

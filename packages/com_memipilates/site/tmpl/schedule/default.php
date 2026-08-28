@@ -214,14 +214,6 @@ foreach ($this->sessions as $session) {
                     >
                         <span class="memi-schedule__date-weekday"><?= $escape($dayLabel); ?></span>
                         <span class="memi-schedule__date-number"><?= $escape($day->format('j')); ?></span>
-                        <span
-                            class="memi-schedule__date-availability"
-                            data-memi-schedule-date-availability
-                            aria-hidden="true"
-                            <?= $sessionCount > 0 ? '' : 'hidden'; ?>
-                        >
-                            <span aria-hidden="true" data-memi-schedule-date-count><?= $sessionCount; ?></span>
-                        </span>
                     </a>
                 <?php endforeach; ?>
             </div>
@@ -343,8 +335,11 @@ foreach ($this->sessions as $session) {
                     </div>
 
                     <div class="memi-class-card__availability">
-                        <span class="memi-status memi-status--<?= $escape($state); ?>"><?= Text::_($statusKey); ?></span>
-                        <span><?= Text::sprintf('COM_MEMIPILATES_SCHEDULE_PLACES_LEFT', $remaining); ?></span>
+                        <span class="memi-status memi-status--<?= $escape($state); ?>">
+                            <?= $remaining === 1 && $state !== 'cancelled'
+                                ? Text::_('COM_MEMIPILATES_SCHEDULE_ONE_PLACE_LEFT')
+                                : Text::_($statusKey); ?>
+                        </span>
                     </div>
 
                     <div class="memi-class-card__actions">

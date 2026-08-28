@@ -52,17 +52,53 @@ use Joomla\CMS\Router\Route;
             <p><?= Text::_('COM_MEMIPILATES_PAYMENT_SESSION_HOLD_NOTICE'); ?></p>
         </article>
     <?php else : ?>
-        <label><?= Text::_('COM_MEMIPILATES_ACCOUNT_PACKAGES'); ?>
-            <select data-memi-package-select>
-                <option value=""><?= Text::_('COM_MEMIPILATES_SELECT'); ?></option>
-                <?php foreach ($this->packages as $package) : ?>
-                    <option value="<?= (int) $package['id']; ?>"><?= htmlspecialchars($package['title'], ENT_QUOTES, 'UTF-8'); ?> — <?= number_format((int) $package['total_with_tax_cents'] / 100, 2); ?> <?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?> (<?= Text::_('COM_MEMIPILATES_PAYMENT_TAXES_INCLUDED'); ?>)</option>
+        <fieldset class="memi-package-picker" data-memi-package-picker>
+            <legend><?= Text::_('COM_MEMIPILATES_ACCOUNT_PACKAGES'); ?></legend>
+            <div class="memi-package-picker__grid">
+                <?php foreach ($this->packages as $package) :
+                    $packageId = (int) $package['id'];
+                    $description = trim((string) ($package['description'] ?? ''));
+                    $validityDays = max(0, (int) ($package['validity_days'] ?? 0));
+                ?>
+                    <article class="memi-package-card" data-memi-package-card>
+                        <input
+                            class="memi-visually-hidden"
+                            id="memi-package-<?= $packageId; ?>"
+                            type="radio"
+                            name="package_id"
+                            value="<?= $packageId; ?>"
+                            data-memi-package-choice
+                            <?= $this->selectedPackageId === $packageId ? 'checked' : ''; ?>
+                        >
+                        <label for="memi-package-<?= $packageId; ?>">
+                            <span class="memi-package-card__title"><?= htmlspecialchars((string) $package['title'], ENT_QUOTES, 'UTF-8'); ?></span>
+                            <?php if ($description !== '') : ?>
+                                <span class="memi-package-card__description"><?= nl2br(htmlspecialchars($description, ENT_QUOTES, 'UTF-8')); ?></span>
+                            <?php endif; ?>
+                            <span class="memi-package-card__price">
+                                <?= number_format((int) $package['total_with_tax_cents'] / 100, 2); ?>
+                                <small><?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?> · <?= Text::_('COM_MEMIPILATES_PAYMENT_TAXES_INCLUDED'); ?></small>
+                            </span>
+                            <span class="memi-package-card__meta">
+                                <?= Text::sprintf('COM_MEMIPILATES_PAYMENT_PACKAGE_CREDITS', (int) $package['credits']); ?>
+                                · <?= $validityDays > 0
+                                    ? Text::sprintf('COM_MEMIPILATES_PAYMENT_PACKAGE_VALIDITY', $validityDays)
+                                    : Text::_('COM_MEMIPILATES_PAYMENT_PACKAGE_NO_EXPIRY'); ?>
+                            </span>
+                        </label>
+                        <button
+                            class="btn btn-primary memi-package-card__buy"
+                            type="button"
+                            data-memi-package-buy
+                            data-package-id="<?= $packageId; ?>"
+                        ><?= Text::_('COM_MEMIPILATES_PAYMENT_PACKAGE_BUY'); ?></button>
+                    </article>
                 <?php endforeach; ?>
-            </select>
-        </label>
+            </div>
+        </fieldset>
         <label><?= Text::_('COM_MEMIPILATES_BOOKING_PROMO_CODE'); ?><input type="text" name="promotion_code" maxlength="64" autocomplete="off"></label>
     <?php endif; ?>
-    <button class="btn btn-primary" type="button" data-memi-payment-start><?= Text::_('COM_MEMIPILATES_PAYMENT_PAY_NOW'); ?></button>
+    <button class="btn btn-primary" type="button" data-memi-payment-start<?= $this->session ? '' : ' hidden'; ?>><?= Text::_('COM_MEMIPILATES_PAYMENT_PAY_NOW'); ?></button>
     <div data-memi-square-card></div>
     <button class="btn btn-primary" type="button" data-memi-payment-submit hidden><?= Text::_('COM_MEMIPILATES_PAYMENT_PAY_NOW'); ?></button>
     <p data-memi-checkout-status role="status"></p>

@@ -13,7 +13,7 @@
   --memi-ink: var(--body-color, #202124);
   --memi-muted: #5f6670;
   --memi-border: rgb(32 33 36 / 16%);
-  --memi-accent: var(--link-color, #7a4562);
+  --memi-accent: #67675d;
   --memi-success-bg: #e7f5eb;
   --memi-success-ink: #145c35;
   --memi-warning-bg: #fff2dc;
@@ -230,9 +230,9 @@
   --memi-schedule-border: #dedddb;
   --memi-schedule-selected: #9a9a8b;
   --memi-schedule-selected-dark: #67675d;
-  --memi-schedule-action: #9a9a8b;
-  --memi-schedule-action-hover: #858578;
-  --memi-schedule-action-ink: #121212;
+  --memi-schedule-action: #41413f;
+  --memi-schedule-action-hover: #222521;
+  --memi-schedule-action-ink: #fff;
   --memi-schedule-soft: #f1f1ed;
   box-sizing: border-box;
   color: var(--memi-schedule-ink);
@@ -286,9 +286,9 @@
 }
 
 .memi-schedule .memi-schedule__title {
-  color: #1d2b41 !important;
+  color: var(--memi-schedule-ink) !important;
   font-family: Roboto, Arial, sans-serif !important;
-  font-size: clamp(2.4rem, 5vw, 3.7rem) !important;
+  font-size: clamp(2.2rem, 4.2vw, 3.25rem) !important;
   font-weight: 800 !important;
   letter-spacing: -0.035em !important;
   line-height: 1 !important;
@@ -668,30 +668,6 @@
   box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px var(--memi-schedule-selected-dark);
 }
 
-.memi-schedule__date-availability {
-  align-items: center;
-  color: var(--memi-schedule-selected-dark);
-  display: inline-flex;
-  font-size: 0.72rem !important;
-  font-variant-numeric: tabular-nums;
-  font-weight: 750;
-  gap: 0.3rem;
-  line-height: 1 !important;
-  min-block-size: 0.9rem;
-}
-
-.memi-schedule__date-availability::before {
-  background: var(--memi-schedule-selected-dark);
-  border-radius: 50%;
-  block-size: 0.45rem;
-  content: '';
-  inline-size: 0.45rem;
-}
-
-.memi-schedule__date-availability[hidden] {
-  display: none !important;
-}
-
 .memi-schedule__selected-date {
   align-items: center;
   border-block-end: 1px solid #bdbbb9;
@@ -971,6 +947,41 @@
   width: 100%;
 }
 
+.memi-dashboard a:not(.btn),
+.memi-checkout a:not(.btn),
+.memi-booking a:not(.btn) {
+  color: #67675d !important;
+  overflow-wrap: anywhere;
+}
+
+.memi-dashboard :is(.btn-primary, .btn-outline-primary),
+.memi-checkout :is(.btn-primary, .btn-outline-primary),
+.memi-booking :is(.btn-primary, .btn-outline-primary) {
+  border-color: #41413f !important;
+}
+
+.memi-dashboard .btn-primary,
+.memi-checkout .btn-primary,
+.memi-booking .btn-primary {
+  background: #41413f !important;
+  color: #fff !important;
+}
+
+.memi-dashboard .btn-outline-primary,
+.memi-checkout .btn-outline-primary,
+.memi-booking .btn-outline-primary {
+  background: transparent !important;
+  color: #41413f !important;
+}
+
+.memi-dashboard :is(.btn-primary, .btn-outline-primary):hover,
+.memi-checkout :is(.btn-primary, .btn-outline-primary):hover,
+.memi-booking :is(.btn-primary, .btn-outline-primary):hover {
+  background: #222521 !important;
+  border-color: #222521 !important;
+  color: #fff !important;
+}
+
 /* Booking, waitlist offer and checkout */
 .memi-booking,
 .memi-checkout {
@@ -1030,6 +1041,100 @@
 
 .memi-checkout {
   max-inline-size: 42rem;
+}
+
+.memi-package-picker {
+  border: 0;
+  margin: 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.memi-package-picker > legend {
+  color: var(--memi-ink);
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
+  font-weight: 700;
+  margin-block-end: 0.85rem;
+  padding: 0;
+}
+
+.memi-package-picker__grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.memi-package-card {
+  background: #fff;
+  border: 1px solid var(--memi-border);
+  border-radius: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  overflow: hidden;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.memi-package-card:hover,
+.memi-package-card.is-selected {
+  border-color: #67675d;
+  box-shadow: 0 0.55rem 1.4rem rgb(34 37 33 / 10%);
+  transform: translateY(-0.12rem);
+}
+
+.memi-package-card > label {
+  cursor: pointer;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-inline-size: 0;
+  padding: 1.15rem 1.15rem 0.9rem;
+}
+
+.memi-package-card__title,
+.memi-package-card__description,
+.memi-package-card__price,
+.memi-package-card__meta {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.memi-package-card__title {
+  color: #222521;
+  font-size: 1.08rem;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.memi-package-card__description,
+.memi-package-card__meta {
+  color: var(--memi-muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.memi-package-card__price {
+  color: #222521;
+  font-size: clamp(1.55rem, 4vw, 2rem);
+  font-weight: 750;
+  line-height: 1.05;
+  margin-block-start: auto;
+}
+
+.memi-package-card__price small {
+  color: var(--memi-muted);
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.35;
+  margin-block-start: 0.35rem;
+}
+
+.memi-package-card__buy {
+  border-radius: 0 !important;
+  margin: 0 !important;
+  width: 100%;
 }
 
 .memi-checkout__session {
@@ -1098,6 +1203,15 @@
 }
 
 .memi-dashboard__header h1 {
+  color: #222521 !important;
+  font-size: clamp(2rem, 5vw, 3.5rem) !important;
+  letter-spacing: -0.035em !important;
+  line-height: 1 !important;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.memi-dashboard__logout-form {
   margin: 0;
 }
 
@@ -1186,6 +1300,19 @@
   gap: 0.75rem 1rem;
   justify-content: space-between;
   margin-block-end: 1.25rem;
+}
+
+/* The application views use the full space below the Joomla header. */
+.memi-course-types,
+.memi-schedule,
+.memi-booking,
+.memi-checkout,
+.memi-dashboard {
+  inline-size: calc(100vw - 0.5rem);
+  margin-inline: 50%;
+  max-inline-size: none;
+  padding-inline: clamp(0.75rem, 2.5vw, 2.5rem);
+  transform: translateX(-50%);
 }
 
 [data-memi-kiosk] .memi-kiosk__header :is(h1, p) {
@@ -1330,6 +1457,10 @@
     width: 100%;
   }
 
+  .memi-dashboard__logout-form {
+    width: 100%;
+  }
+
   .memi-schedule {
     inline-size: calc(100vw - 1rem);
     padding-block: 1.5rem 2.5rem;
@@ -1344,7 +1475,15 @@
   }
 
   .memi-schedule .memi-schedule__title {
-    font-size: clamp(2rem, 12vw, 2.8rem) !important;
+    font-size: clamp(1.85rem, 9vw, 2.3rem) !important;
+  }
+
+  .memi-dashboard__header h1 {
+    font-size: clamp(2rem, 10vw, 2.65rem) !important;
+  }
+
+  .memi-package-picker__grid {
+    grid-template-columns: 1fr;
   }
 
   .memi-schedule__panel {
@@ -1452,7 +1591,21 @@
   }
 
   .memi-class-card__actions .btn {
+    min-inline-size: 0;
+    white-space: normal;
     width: 100%;
+  }
+
+  .memi-checkout,
+  .memi-booking,
+  .memi-dashboard {
+    inline-size: calc(100vw - 0.5rem);
+    min-inline-size: 0;
+  }
+
+  .memi-checkout__session,
+  .memi-dashboard__list > li {
+    overflow-wrap: anywhere;
   }
 
   .memi-qr {

@@ -35,7 +35,8 @@
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-memi-checkout]').forEach((root) => {
       const status = root.querySelector('[data-memi-checkout-status]');
-      const packageSelect = root.querySelector('[data-memi-package-select]');
+      const packageChoices = Array.from(root.querySelectorAll('[data-memi-package-choice]'));
+      const packageButtons = Array.from(root.querySelectorAll('[data-memi-package-buy]'));
       const start = root.querySelector('[data-memi-payment-start]');
       const pay = root.querySelector('[data-memi-payment-submit]');
       const cardTarget = root.querySelector('[data-memi-square-card]');
@@ -43,11 +44,29 @@
       let order = null;
       let card = null;
       const setStatus = (text, kind = 'status') => { if (status) { status.textContent = text; status.dataset.status = kind; } };
+      const selectedPackageId = () => root.querySelector('[data-memi-package-choice]:checked')?.value || '';
+      const syncPackageCards = () => {
+        packageChoices.forEach((choice) => {
+          const cardNode = choice.closest('[data-memi-package-card]');
+          cardNode?.classList.toggle('is-selected', choice.checked);
+        });
+      };
+
+      packageChoices.forEach((choice) => choice.addEventListener('change', syncPackageCards));
+      packageButtons.forEach((button) => button.addEventListener('click', () => {
+        const choice = packageChoices.find((item) => item.value === String(button.dataset.packageId || ''));
+        if (!choice) return;
+        choice.checked = true;
+        syncPackageCards();
+        start?.click();
+      }));
+      syncPackageCards();
 
       start?.addEventListener('click', async () => {
-        const packageId = packageSelect?.value;
+        const packageId = selectedPackageId();
         if (!sessionId && !packageId) { setStatus(root.dataset.messageSelectPackage || 'Choose a package.', 'error'); return; }
         start.disabled = true;
+        packageButtons.forEach((button) => { button.disabled = true; });
         setStatus(root.dataset.messagePreparing || 'Preparing secure payment…');
         try {
           const fields = sessionId
@@ -77,6 +96,7 @@
           await card.attach(cardTarget);
           start.hidden = true;
           pay.hidden = false;
+          packageButtons.forEach((button) => { button.hidden = true; });
           setStatus((root.dataset.messageCardReady || 'Secure card form ready. Total: {total} {currency}.')
             .replace('{total}', (Number(order.total_cents) / 100).toFixed(2))
             .replace('{currency}', order.currency));
@@ -84,6 +104,7 @@
           setStatus(error.message || root.dataset.messageFailed || 'Payment could not be prepared.', 'error');
         } finally {
           start.disabled = false;
+          if (pay.hidden) packageButtons.forEach((button) => { button.disabled = false; });
         }
       });
 

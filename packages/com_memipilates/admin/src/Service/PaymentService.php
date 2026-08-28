@@ -21,7 +21,6 @@ final class PaymentService
         private readonly DatabaseTools $tools,
         private readonly SettingsService $settings,
         private readonly CreditLedgerService $credits,
-        private readonly PointLedgerService $points,
         private readonly AuditLogger $audit,
         private readonly NotificationService $notifications
     ) {
@@ -1241,24 +1240,6 @@ final class PaymentService
             ->bind(':id', $identifier, ParameterType::INTEGER);
         $this->db->setQuery($query)->execute();
 
-        $order = $this->tools->lockById('#__memi_orders', $orderId);
-        if ($order && $this->settings->getBool('loyalty_enabled', true)) {
-            $perDollar = max(0, $this->settings->getInt('points_per_dollar', 1));
-            $orderPoints = (int) floor((int) $order['total_cents'] / 100) * $perDollar;
-            if ($orderPoints > 0) {
-                $this->points->award(
-                    $userId,
-                    $orderPoints,
-                    'order_paid',
-                    'order:' . $orderId . ':spend-points',
-                    null,
-                    $orderId,
-                    $userId,
-                    'Points d’achat'
-                );
-            }
-        }
-
         $notificationPayload = [
             'session_id' => (int) $session['id'],
             'session_title' => (string) ($session['course_title'] ?? ''),
@@ -1832,7 +1813,7 @@ final class PaymentService
         $order = $orderId;
         $packageItemType = 'package';
         $query = $this->db->getQuery(true)
-            ->select('i.*, p.credits, p.validity_days, p.points_bonus')
+            ->select('i.*, p.credits, p.validity_days')
             ->from($this->db->quoteName('#__memi_order_items', 'i'))
             ->join('INNER', $this->db->quoteName('#__memi_packages', 'p') . ' ON p.id = i.package_id')
             ->where('i.order_id = :order_id')
@@ -1842,8 +1823,6 @@ final class PaymentService
         $this->db->setQuery($query);
         $items = $this->db->loadAssocList() ?: [];
         $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
-        $loyaltyEnabled = $this->settings->getBool('loyalty_enabled', true);
-
         foreach ($items as $item) {
             $credits = max(0, (int) $item['credits']);
             $validity = max(0, (int) $item['validity_days']);
@@ -1874,22 +1853,11 @@ final class PaymentService
             if ($credits > 0) {
                 $this->credits->grant($userId, $credits, 'purchase', 'order:' . $orderId . ':package:' . $customerPackageId, $customerPackageId, $orderId, $expires, $userId, 'Forfait acheté');
             }
-            $bonus = max(0, (int) $item['points_bonus']);
-            if ($loyaltyEnabled && $bonus > 0) {
-                $this->points->award($userId, $bonus, 'package_purchase', 'order:' . $orderId . ':points', null, $orderId, $userId, 'Points de forfait');
-            }
         }
 
         $orderData = $this->tools->lockById('#__memi_orders', $orderId);
         if ($orderData) {
-            $this->fulfillPromotion($userId, $clientId, $orderData, $items, $loyaltyEnabled);
-        }
-        if ($loyaltyEnabled && $orderData) {
-            $perDollar = max(0, $this->settings->getInt('points_per_dollar', 1));
-            $orderPoints = (int) floor((int) $orderData['total_cents'] / 100) * $perDollar;
-            if ($orderPoints > 0) {
-                $this->points->award($userId, $orderPoints, 'order_paid', 'order:' . $orderId . ':spend-points', null, $orderId, $userId, 'Points d’achat');
-            }
+            $this->fulfillPromotion($userId, $clientId, $orderData, $items);
         }
         $this->notifications->queue($userId, 'payment.receipt', ['order_id' => $orderId]);
     }
@@ -1902,7 +1870,7 @@ final class PaymentService
      * @param array<string,mixed> $order
      * @param list<array<string,mixed>> $items
      */
-    private function fulfillPromotion(int $userId, int $clientId, array $order, array $items, bool $loyaltyEnabled): void
+    private function fulfillPromotion(int $userId, int $clientId, array $order, array $items): void
     {
         $promotionId = (int) ($order['promotion_id'] ?? 0);
         if ($promotionId <= 0) {
@@ -1973,10 +1941,6 @@ final class PaymentService
                 $allocationId = (int) $this->db->insertid();
                 $this->credits->grant($userId, $bonusCredits, 'promotion_bonus', 'order:' . $orderId . ':promotion-credits', $allocationId, $orderId, $expires, $userId, 'Crédits promotionnels');
             }
-        }
-        $bonusPoints = max(0, (int) ($promotion['bonus_points'] ?? 0));
-        if ($loyaltyEnabled && $bonusPoints > 0) {
-            $this->points->award($userId, $bonusPoints, 'promotion_bonus', 'order:' . $orderId . ':promotion-points', null, $orderId, $userId, 'Points promotionnels');
         }
     }
 

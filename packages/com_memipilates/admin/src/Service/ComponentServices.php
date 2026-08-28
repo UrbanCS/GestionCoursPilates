@@ -153,7 +153,6 @@ final class ComponentServices
             self::databaseTools(),
             self::settings(),
             self::credits(),
-            self::points(),
             self::audit(),
             self::notifications()
         );

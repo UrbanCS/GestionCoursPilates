@@ -8,16 +8,17 @@
   box-sizing: border-box;
   display: grid;
   grid-template-columns: minmax(190px, 240px) minmax(0, 1fr);
-  width: calc(100% - 1rem);
-  max-width: 1600px;
+  width: calc(100vw - .5rem);
+  max-width: none;
   min-height: 70vh;
-  margin: 2rem auto;
+  margin: 1rem 50%;
   color: var(--memi-portal-ink);
   background: var(--memi-portal-surface);
   border: 1px solid var(--memi-portal-line);
   border-radius: 18px;
   box-shadow: 0 18px 50px rgba(34, 37, 33, .08);
   overflow: hidden;
+  transform: translateX(-50%);
 }
 
 .memi-management-portal *,
@@ -108,6 +109,7 @@
   padding: clamp(1rem, 2.5vw, 2.5rem);
   background: var(--memi-portal-soft);
   overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .memi-management-content h1,
@@ -387,11 +389,17 @@
   font-weight: 400;
 }
 
+.memi-portal-settings__notice {
+  color: var(--memi-portal-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
 @media (max-width: 900px) {
   .memi-management-portal {
     grid-template-columns: 1fr;
-    width: calc(100% - .5rem);
-    margin: 1rem auto;
+    width: calc(100vw - .5rem);
+    margin: .5rem 50%;
   }
 
   .memi-management-sidebar nav ul {

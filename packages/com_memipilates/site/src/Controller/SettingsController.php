@@ -42,8 +42,6 @@ final class SettingsController extends BaseController
         'notification_max_attempts' => ['type' => 'int', 'min' => 1, 'max' => 20],
         'notification_retry_base_minutes' => ['type' => 'int', 'min' => 1, 'max' => 1440],
         'loyalty_enabled' => ['type' => 'bool'],
-        'points_per_attendance' => ['type' => 'int', 'min' => 0, 'max' => 100000],
-        'points_per_dollar' => ['type' => 'int', 'min' => 0, 'max' => 1000],
         'attendance_before_minutes' => ['type' => 'int', 'min' => 0, 'max' => 1440],
         'attendance_after_minutes' => ['type' => 'int', 'min' => 0, 'max' => 1440],
         'kiosk_confirmation_seconds' => ['type' => 'int', 'min' => 1, 'max' => 60],

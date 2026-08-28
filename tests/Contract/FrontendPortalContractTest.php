@@ -43,6 +43,21 @@ final class FrontendPortalContractTest extends TestCase
         self::assertStringContainsString("'payments' => ['payments.view']", $access);
     }
 
+    public function testPortalMenuLinksAuthorizedStaffToTheAttendanceKiosk(): void
+    {
+        $template = (string) file_get_contents(
+            dirname(__DIR__, 2) . '/packages/com_memipilates/site/tmpl/portal/start.php'
+        );
+
+        self::assertStringContainsString("'view' => 'kiosk'", $template);
+        self::assertStringContainsString("'label' => 'COM_MEMIPILATES_KIOSK_TITLE'", $template);
+        self::assertStringContainsString("'permission' => 'attendance.kiosk'", $template);
+        self::assertStringContainsString(
+            "authorise(\$item['permission'], 'com_memipilates')",
+            $template
+        );
+    }
+
     public function testSquareSecretsAreBlankedAndPreserved(): void
     {
         $root = dirname(__DIR__, 2) . '/packages/com_memipilates/site/src';
@@ -66,8 +81,8 @@ final class FrontendPortalContractTest extends TestCase
             'session_generation_lookahead_days', 'currency', 'tax_rate_percent', 'waitlist_promotion_mode',
             'waitlist_offer_minutes', 'waitlist_auto_promote', 'reminder_hours',
             'credit_expiry_notice_days', 'email_from_name', 'notification_max_attempts',
-            'notification_retry_base_minutes', 'loyalty_enabled', 'points_per_attendance',
-            'points_per_dollar', 'attendance_before_minutes', 'attendance_after_minutes',
+            'notification_retry_base_minutes', 'loyalty_enabled',
+            'attendance_before_minutes', 'attendance_after_minutes',
             'kiosk_confirmation_seconds', 'kiosk_sound_enabled', 'square_environment',
             'square_application_id', 'square_location_id', 'square_access_token',
             'square_webhook_signature_key', 'square_webhook_url',
@@ -77,6 +92,46 @@ final class FrontendPortalContractTest extends TestCase
             self::assertStringContainsString('name="jform[' . $key . ']"', $template, $key);
             self::assertStringContainsString("'" . $key . "' =>", $controller, $key);
         }
+
+        self::assertStringNotContainsString('name="jform[points_per_attendance]"', $template);
+        self::assertStringNotContainsString('name="jform[points_per_dollar]"', $template);
+        self::assertStringContainsString('COM_MEMIPILATES_CONFIG_LOYALTY_ATTENDANCE_ONLY', $template);
+    }
+
+    public function testPackageCheckoutUsesResponsiveCardsAndPreservesASelectedPackage(): void
+    {
+        $component = dirname(__DIR__, 2) . '/packages/com_memipilates';
+        $template = (string) file_get_contents($component . '/site/tmpl/checkout/default.php');
+        $view = (string) file_get_contents($component . '/site/src/View/Checkout/HtmlView.php');
+        $script = (string) file_get_contents($component . '/media/js/checkout.js');
+
+        self::assertStringContainsString('class="memi-package-picker"', $template);
+        self::assertStringContainsString('data-memi-package-choice', $template);
+        self::assertStringContainsString('data-memi-package-buy', $template);
+        self::assertStringNotContainsString('data-memi-package-select', $template);
+        self::assertStringContainsString("getInt('package_id', 0)", $view);
+        self::assertStringContainsString("\$return .= '&package_id=' . \$this->selectedPackageId", $view);
+        self::assertStringContainsString("'[data-memi-package-choice]:checked'", $script);
+    }
+
+    public function testLoyaltyPointsAreAwardedOnlyForConfirmedAttendance(): void
+    {
+        $component = dirname(__DIR__, 2) . '/packages/com_memipilates/admin/src/Service';
+        $payments = (string) file_get_contents($component . '/PaymentService.php');
+        $attendance = (string) file_get_contents($component . '/AttendanceService.php');
+
+        self::assertStringNotContainsString('$this->points->award', $payments);
+        self::assertGreaterThanOrEqual(2, substr_count($attendance, '$pointsAdded = 1;'));
+    }
+
+    public function testFrontendStudioPortalUsesTheMemiStudioBrand(): void
+    {
+        $template = (string) file_get_contents(
+            dirname(__DIR__, 2) . '/packages/com_memipilates/site/tmpl/portal/start.php'
+        );
+
+        self::assertStringContainsString("Text::_('COM_MEMIPILATES_STUDIO_NAME')", $template);
+        self::assertStringNotContainsString("Text::_('COM_MEMIPILATES')", $template);
     }
 
     public function testTaxesUseOnePreciseStudioSettingForOrdersAndFrontendTotals(): void
@@ -169,6 +224,23 @@ final class FrontendPortalContractTest extends TestCase
         self::assertStringContainsString("getInt('session_id', 0)", $checkout);
         self::assertStringContainsString("\$return .= '&session_id=' . \$sessionId", $checkout);
         self::assertStringContainsString("'index.php?option=com_users&view=login&return='", $checkout);
+    }
+
+    public function testDashboardProvidesASecureLogoutAction(): void
+    {
+        $dashboard = (string) file_get_contents(
+            dirname(__DIR__, 2) . '/packages/com_memipilates/site/tmpl/dashboard/default.php'
+        );
+
+        self::assertStringContainsString(
+            "Route::_('index.php?option=com_users&task=user.logout')",
+            $dashboard
+        );
+        self::assertStringContainsString('class="memi-dashboard__logout-form"', $dashboard);
+        self::assertStringContainsString('method="post"', $dashboard);
+        self::assertStringContainsString('name="return"', $dashboard);
+        self::assertStringContainsString("Text::_('JLOGOUT')", $dashboard);
+        self::assertSame(2, substr_count($dashboard, "HTMLHelper::_('form.token')"));
     }
 
     public function testSingleStudioBackendHidesLocationManagement(): void

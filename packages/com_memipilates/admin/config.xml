@@ -168,28 +168,6 @@
 			<option value="1">JYES</option>
 			<option value="0">JNO</option>
 		</field>
-		<field
-			name="points_per_attendance"
-			type="number"
-			default="10"
-			min="0"
-			max="100000"
-			step="1"
-			label="COM_MEMIPILATES_CONFIG_POINTS_ATTENDANCE_LABEL"
-			description="COM_MEMIPILATES_CONFIG_POINTS_ATTENDANCE_DESC"
-			filter="int"
-		/>
-		<field
-			name="points_per_dollar"
-			type="number"
-			default="1"
-			min="0"
-			max="1000"
-			step="1"
-			label="COM_MEMIPILATES_CONFIG_POINTS_DOLLAR_LABEL"
-			description="COM_MEMIPILATES_CONFIG_POINTS_DOLLAR_DESC"
-			filter="int"
-		/>
 	</fieldset>
 
 	<fieldset name="kiosk" label="COM_MEMIPILATES_CONFIG_FIELDSET_KIOSK">

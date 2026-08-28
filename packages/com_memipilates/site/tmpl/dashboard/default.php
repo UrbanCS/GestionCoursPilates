@@ -28,6 +28,17 @@ use Joomla\CMS\HTML\HTMLHelper;
             <a class="btn btn-primary" href="<?= Route::_('index.php?option=com_memipilates&view=schedule'); ?>">
                 <?= Text::_('COM_MEMIPILATES_SCHEDULE_BOOK'); ?>
             </a>
+            <form
+                class="memi-dashboard__logout-form"
+                action="<?= Route::_('index.php?option=com_users&task=user.logout'); ?>"
+                method="post"
+            >
+                <button class="btn btn-outline-secondary" type="submit">
+                    <?= Text::_('JLOGOUT'); ?>
+                </button>
+                <input type="hidden" name="return" value="<?= base64_encode(Route::_('index.php', false)); ?>">
+                <?= HTMLHelper::_('form.token'); ?>
+            </form>
         </nav>
     </header>
 

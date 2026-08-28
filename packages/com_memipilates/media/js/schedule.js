@@ -686,8 +686,6 @@
       this.dateChoices.forEach((control) => {
         const date = control.dataset.memiScheduleDateChoice || '';
         const count = counts.get(date) || 0;
-        const availability = control.querySelector('[data-memi-schedule-date-availability]');
-        const countNode = control.querySelector('[data-memi-schedule-date-count]');
         const dateHeading = control.dataset.dateHeading || date;
         const countMessage = translate(
           this.options,
@@ -699,12 +697,6 @@
         control.classList.toggle('has-sessions', count > 0);
         control.dataset.memiSessionCount = String(count);
         control.setAttribute('aria-label', count > 0 ? `${dateHeading}. ${countMessage}` : dateHeading);
-        if (availability) {
-          availability.hidden = count === 0;
-        }
-        if (countNode) {
-          countNode.textContent = String(count);
-        }
       });
 
       if (this.calendarPanel && !this.calendarPanel.hidden) {

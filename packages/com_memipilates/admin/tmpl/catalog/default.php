@@ -108,7 +108,6 @@ $selectOptions = static function (array $items, mixed $selected, bool $empty = f
                 <div class="col-md-3"><label class="form-label">Prix (CAD) *</label><input required min="0" step="0.01" type="number" class="form-control" name="price" value="<?= $escape($money($value('price_cents'))); ?>"></div>
                 <div class="col-md-3"><label class="form-label">Crédits *</label><input required min="1" type="number" class="form-control" name="credits" value="<?= (int) $value('credits', 1); ?>"></div>
                 <div class="col-md-4"><label class="form-label">Validité (jours, facultatif)</label><input min="1" type="number" class="form-control" name="validity_days" value="<?= $escape($value('validity_days')); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Points bonis</label><input min="0" type="number" class="form-control" name="bonus_points" value="<?= (int) $value('bonus_points', 0); ?>"></div>
                 <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" rows="3" name="description"><?= $escape($value('description')); ?></textarea></div>
             <?php endif; ?>
 

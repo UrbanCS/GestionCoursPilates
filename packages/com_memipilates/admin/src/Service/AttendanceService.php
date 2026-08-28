@@ -130,7 +130,7 @@ final class AttendanceService
                 $pointsAdded = 0;
                 if ($this->settings->getBool('loyalty_enabled', true)
                     && $this->settings->getBool('attendance_auto_points', true)) {
-                    $pointsAdded = max(0, $this->settings->getInt('points_per_attendance', 0));
+                    $pointsAdded = 1;
                     $this->points->award(
                         $userId,
                         $pointsAdded,
@@ -243,7 +243,7 @@ final class AttendanceService
             $pointsAdded = 0;
             if ($this->settings->getBool('loyalty_enabled', true)
                 && $this->settings->getBool('attendance_auto_points', true)) {
-                $pointsAdded = max(0, $this->settings->getInt('points_per_attendance', 0));
+                $pointsAdded = 1;
                 $this->points->award($userId, $pointsAdded, 'attendance', 'attendance:' . $attendanceId, $attendanceId, null, $actorId, 'Présence confirmée manuellement');
             }
             $this->audit->log($actorId, 'attendance.manual', 'attendance', $attendanceId, null, [

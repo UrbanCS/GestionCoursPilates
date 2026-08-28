@@ -26,6 +26,7 @@ final class HtmlView extends BaseHtmlView
     public int $sessionSubtotalCents = 0;
     public int $sessionTaxCents = 0;
     public int $sessionTotalCents = 0;
+    public int $selectedPackageId = 0;
     public string $currency = 'CAD';
     public string $buyerGivenName = '';
     public string $buyerFamilyName = '';
@@ -51,11 +52,14 @@ final class HtmlView extends BaseHtmlView
     {
         $application = Factory::getApplication();
         $sessionId = $application->input->getInt('session_id', 0);
+        $this->selectedPackageId = $application->input->getInt('package_id', 0);
         $identity = $application->getIdentity();
         if ((int) ($identity->id ?? 0) <= 0) {
             $return = 'index.php?option=com_memipilates&view=checkout';
             if ($sessionId > 0) {
                 $return .= '&session_id=' . $sessionId;
+            } elseif ($this->selectedPackageId > 0) {
+                $return .= '&package_id=' . $this->selectedPackageId;
             }
             $application->redirect(Route::_(
                 'index.php?option=com_users&view=login&return=' . rawurlencode(base64_encode($return)),
@@ -111,6 +115,12 @@ final class HtmlView extends BaseHtmlView
             $package['total_with_tax_cents'] = $subtotal + ComponentServices::settings()->calculateTaxCents($subtotal);
         }
         unset($package);
+        if ($this->selectedPackageId > 0 && !array_filter(
+            $this->packages,
+            fn (array $package): bool => (int) $package['id'] === $this->selectedPackageId
+        )) {
+            $this->selectedPackageId = 0;
+        }
         $this->square = ComponentServices::payments()->clientConfiguration();
         $this->createEndpoint = Route::_('index.php?option=com_memipilates&task=checkout.createOrder&format=json', false);
         $this->payEndpoint = Route::_('index.php?option=com_memipilates&task=checkout.pay&format=json', false);

@@ -35,7 +35,8 @@ final class PublicScheduleContractTest extends TestCase
         self::assertStringContainsString("'calendarCoverageStart' => \$this->calendarCoverageStart", $view);
         self::assertStringContainsString('targetMonthStart < this.calendarCoverageStart', $script);
         self::assertStringContainsString('this.navigateToDate(toIsoDate(targetMonthStart)', $script);
-        self::assertStringContainsString('data-memi-schedule-date-availability', $template);
+        self::assertStringNotContainsString('data-memi-schedule-date-availability', $template);
+        self::assertStringNotContainsString('data-memi-schedule-date-count', $template);
         self::assertStringContainsString('updateDayIndicators()', $script);
         self::assertStringContainsString("button.classList.toggle('has-sessions'", $script);
         self::assertStringContainsString('.memi-schedule__calendar-day.has-sessions::after', $style);
@@ -103,5 +104,9 @@ final class PublicScheduleContractTest extends TestCase
         self::assertStringNotContainsString('data-location=', $template);
         self::assertStringNotContainsString('$locationText', $template);
         self::assertStringContainsString("\$room = trim((string) (\$session['room_title'] ?? ''));", $template);
+        self::assertStringContainsString('COM_MEMIPILATES_SCHEDULE_BOOK="RÉSERVEZ"', $french);
+        self::assertStringContainsString('COM_MEMIPILATES_SCHEDULE_JOIN_WAITLIST="S\'inscrire à la liste d\'attente"', $french);
+        self::assertStringContainsString('COM_MEMIPILATES_SCHEDULE_ONE_PLACE_LEFT', $template);
+        self::assertStringNotContainsString("Text::sprintf('COM_MEMIPILATES_SCHEDULE_PLACES_LEFT'", $template);
     }
 }

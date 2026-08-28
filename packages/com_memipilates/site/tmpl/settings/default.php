@@ -131,14 +131,7 @@ $description = static fn (string $key): string => '<small class="memi-portal-fie
                     <?= $description('COM_MEMIPILATES_CONFIG_LOYALTY_ENABLED_DESC'); ?>
                 </div>
             </div>
-            <div class="memi-portal-field">
-                <label for="jform-points-attendance"><?= Text::_('COM_MEMIPILATES_CONFIG_POINTS_ATTENDANCE_LABEL'); ?></label>
-                <div><input id="jform-points-attendance" name="jform[points_per_attendance]" type="number" min="0" max="100000" step="1" value="<?= (int) $value('points_per_attendance', 10); ?>" required><?= $description('COM_MEMIPILATES_CONFIG_POINTS_ATTENDANCE_DESC'); ?></div>
-            </div>
-            <div class="memi-portal-field">
-                <label for="jform-points-dollar"><?= Text::_('COM_MEMIPILATES_CONFIG_POINTS_DOLLAR_LABEL'); ?></label>
-                <div><input id="jform-points-dollar" name="jform[points_per_dollar]" type="number" min="0" max="1000" step="1" value="<?= (int) $value('points_per_dollar', 1); ?>" required><?= $description('COM_MEMIPILATES_CONFIG_POINTS_DOLLAR_DESC'); ?></div>
-            </div>
+            <p class="memi-portal-settings__notice"><?= Text::_('COM_MEMIPILATES_CONFIG_LOYALTY_ATTENDANCE_ONLY'); ?></p>
         </fieldset>
 
         <fieldset class="memi-portal-settings__fieldset">
