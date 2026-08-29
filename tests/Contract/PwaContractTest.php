@@ -76,6 +76,19 @@ final class PwaContractTest extends TestCase
         self::assertStringContainsString("addEventListener('notificationclick'", $worker);
     }
 
+    public function testInstallationGuidanceMatchesTheDevice(): void
+    {
+        $index = (string) file_get_contents($this->root . '/index.html');
+        self::assertStringContainsString('iPhone et iPad', $index);
+        self::assertStringContainsString('<strong>Safari</strong>', $index);
+        self::assertStringContainsString('Sur l’écran d’accueil', $index);
+
+        $script = (string) file_get_contents($this->root . '/assets/app.js');
+        self::assertStringContainsString("iosInstall ? 'Comment installer' : 'Installer'", $script);
+        self::assertStringContainsString("navigator.platform === 'MacIntel'", $script);
+        self::assertStringContainsString("addEventListener('beforeinstallprompt'", $script);
+    }
+
     public function testSensitiveServerDirectoriesAreNotWebAccessible(): void
     {
         $rules = (string) file_get_contents($this->root . '/.htaccess');

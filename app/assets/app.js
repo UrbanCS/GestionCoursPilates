@@ -237,7 +237,10 @@
     } catch (error) { els.preferencesStatus.textContent = error.message; }
   }
 
-  function isIos() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+  function isIos() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
   function isStandalone() { return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
   function base64ToUint8Array(value) {
     const padding = '='.repeat((4 - (value.length % 4)) % 4);
@@ -307,9 +310,12 @@
   }
 
   function setupInstall() {
+    const iosInstall = isIos() && !isStandalone();
+    els.installButton.textContent = iosInstall ? 'Comment installer' : 'Installer';
     window.addEventListener('beforeinstallprompt', (event) => {
       event.preventDefault();
       deferredInstall = event;
+      els.installButton.textContent = 'Installer';
       els.installButton.hidden = false;
     });
     window.addEventListener('appinstalled', () => { els.installButton.hidden = true; deferredInstall = null; toast('Memi a été ajoutée à votre appareil.'); });
@@ -322,7 +328,7 @@
         els.installHelp.showModal();
       }
     });
-    if (isIos() && !isStandalone()) els.installButton.hidden = false;
+    if (iosInstall) els.installButton.hidden = false;
   }
 
   async function registerServiceWorker() {

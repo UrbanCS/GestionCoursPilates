@@ -12,7 +12,7 @@
   <link rel="manifest" href="/app/manifest.webmanifest">
   <link rel="icon" href="/app/assets/icons/icon-192.png">
   <link rel="apple-touch-icon" href="/app/assets/icons/icon-192.png">
-  <link rel="stylesheet" href="/app/assets/app.css?v=1.0.0">
+  <link rel="stylesheet" href="/app/assets/app.css?v=1.0.1">
   <title>Memi Studio — Mon espace</title>
 </head>
 <body>
@@ -23,7 +23,7 @@
       <span class="brand-studio">studio</span>
     </a>
     <div class="header-actions">
-      <button class="button button-quiet install-button" id="install-button" type="button" hidden>Installer l’app</button>
+      <button class="button button-quiet install-button" id="install-button" type="button" hidden>Installer</button>
       <a class="button button-primary" href="/index.php/horaire-des-cours?view=schedule">Réserver</a>
     </div>
   </header>
@@ -186,12 +186,18 @@
 
   <dialog id="install-help">
     <button class="dialog-close" type="button" aria-label="Fermer">×</button>
-    <p class="eyebrow">Installer Memi</p>
-    <h2>Ajoutez l’app à votre écran d’accueil.</h2>
-    <ol><li>Dans Safari, touchez le bouton <strong>Partager</strong>.</li><li>Choisissez <strong>Sur l’écran d’accueil</strong>.</li><li>Ouvrez ensuite Memi depuis sa nouvelle icône pour activer les notifications.</li></ol>
+    <p class="eyebrow">iPhone et iPad</p>
+    <h2>Comment installer Memi.</h2>
+    <p class="install-note">Ouvrez cette page dans <strong>Safari</strong>, puis&nbsp;:</p>
+    <ol>
+      <li>Touchez <strong>Partager</strong> — le carré avec une flèche vers le haut.</li>
+      <li>Faites défiler le menu et choisissez <strong>Sur l’écran d’accueil</strong>.</li>
+      <li>Touchez <strong>Ajouter</strong> en haut à droite.</li>
+      <li>Ouvrez Memi depuis sa nouvelle icône pour vous connecter et activer les notifications.</li>
+    </ol>
   </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <noscript><p class="noscript">Cette application nécessite JavaScript. Activez-le pour accéder à votre espace Memi.</p></noscript>
-  <script src="/app/assets/app.js?v=1.0.0" defer></script>
+  <script src="/app/assets/app.js?v=1.0.1" defer></script>
 </body>
 </html>
