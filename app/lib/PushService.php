@@ -68,7 +68,7 @@ final class PushService
                     'category' => (string) ($delivery['category'] ?? 'other'),
                     'url' => (string) ($delivery['target_url'] ?? '/app/'),
                     'eventId' => (int) ($delivery['event_id'] ?? 0),
-                    'icon' => '/app/assets/icons/icon-192.png',
+                    'icon' => '/app/assets/icons/icon-memi-192.png',
                     'badge' => '/app/assets/icons/badge-96.png',
                 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
                 $webPush->queueNotification($subscription, $payload);

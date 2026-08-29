@@ -20,8 +20,9 @@ final class PwaContractTest extends TestCase
         foreach ([
             'index.html', 'offline.html', 'manifest.webmanifest', 'sw.js', '.htaccess',
             'assets/app.css', 'assets/app.js', 'assets/vendor/qrcode.min.js',
-            'assets/icons/logo-memi.png', 'assets/icons/icon-192.png',
-            'assets/icons/icon-512.png', 'assets/icons/icon-maskable-512.png',
+            'assets/icons/logo-memi.png', 'assets/icons/apple-touch-icon-memi.png',
+            'assets/icons/icon-memi-192.png', 'assets/icons/icon-memi-512.png',
+            'assets/icons/icon-memi-maskable-512.png',
         ] as $file) {
             self::assertFileExists($this->root . '/' . $file, $file);
         }
@@ -31,8 +32,9 @@ final class PwaContractTest extends TestCase
         self::assertSame('/app/', $manifest['scope']);
         self::assertSame('standalone', $manifest['display']);
         self::assertCount(3, $manifest['icons']);
-        self::assertSame([192, 192], array_slice(getimagesize($this->root . '/assets/icons/icon-192.png'), 0, 2));
-        self::assertSame([512, 512], array_slice(getimagesize($this->root . '/assets/icons/icon-512.png'), 0, 2));
+        self::assertSame([180, 180], array_slice(getimagesize($this->root . '/assets/icons/apple-touch-icon-memi.png'), 0, 2));
+        self::assertSame([192, 192], array_slice(getimagesize($this->root . '/assets/icons/icon-memi-192.png'), 0, 2));
+        self::assertSame([512, 512], array_slice(getimagesize($this->root . '/assets/icons/icon-memi-512.png'), 0, 2));
     }
 
     public function testAuthenticationAndMutationsAreProtected(): void

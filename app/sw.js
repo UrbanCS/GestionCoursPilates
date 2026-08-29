@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'memi-pwa-v1.2.0';
+const VERSION = 'memi-pwa-v1.2.1';
 const CORE = [
   '/app/',
   '/app/index.html',
@@ -9,8 +9,8 @@ const CORE = [
   '/app/assets/app.css?v=1.2.0',
   '/app/assets/vendor/qrcode.min.js?v=1.0.0',
   '/app/assets/app.js?v=1.2.0',
-  '/app/assets/icons/icon-192.png',
-  '/app/assets/icons/icon-512.png',
+  '/app/assets/icons/icon-memi-192.png',
+  '/app/assets/icons/icon-memi-512.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -49,7 +49,7 @@ self.addEventListener('push', (event) => {
   try { if (event.data) data = { ...data, ...event.data.json() }; } catch { data.body = event.data?.text() || data.body; }
   event.waitUntil(self.registration.showNotification(data.title, {
     body: data.body,
-    icon: data.icon || '/app/assets/icons/icon-192.png',
+    icon: data.icon || '/app/assets/icons/icon-memi-192.png',
     badge: data.badge || '/app/assets/icons/badge-96.png',
     tag: data.eventId ? `memi-event-${data.eventId}` : 'memi-news',
     renotify: Boolean(data.eventId),
