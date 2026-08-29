@@ -1,0 +1,21 @@
+{
+  "name": "memistudio/pwa",
+  "description": "Progressive Web App and Web Push delivery for Memi Studio.",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": ">=8.2",
+    "ext-curl": "*",
+    "ext-json": "*",
+    "ext-mbstring": "*",
+    "ext-openssl": "*",
+    "guzzlehttp/guzzle": "^7.9",
+    "guzzlehttp/psr7": "^2.7",
+    "minishlink/web-push": "^11.0"
+  },
+  "config": {
+    "allow-plugins": {},
+    "optimize-autoloader": true,
+    "sort-packages": true
+  }
+}

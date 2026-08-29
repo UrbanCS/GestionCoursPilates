@@ -1,3 +1,5 @@
 dist/
 package/packages/*.zip
+app/vendor/
+tests/.phpunit.result.cache
 *.log

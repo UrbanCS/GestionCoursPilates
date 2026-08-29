@@ -1,0 +1,29 @@
+Options -Indexes
+DirectoryIndex index.html
+
+AddType application/manifest+json .webmanifest
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(?:lib|cron|vendor|tests)(?:/|$) - [F,L,NC]
+  RewriteRule ^(?:composer\.(?:json|lock)|README(?:_DEPLOY)?\.md|\.data)(?:/|$) - [F,L,NC]
+</IfModule>
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(?:js|css|svg|png|webp|webmanifest)$">
+    Header set X-Content-Type-Options "nosniff"
+  </FilesMatch>
+  <Files "sw.js">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Service-Worker-Allowed "/app/"
+  </Files>
+  <FilesMatch "\.php$">
+    Header set Cache-Control "no-store"
+    Header set X-Frame-Options "DENY"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+  </FilesMatch>
+</IfModule>
+
+<FilesMatch "^(?:composer\.(?:json|lock)|README(?:_DEPLOY)?\.md)$">
+  Require all denied
+</FilesMatch>

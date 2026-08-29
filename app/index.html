@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#20231f">
+  <meta name="description" content="Votre espace Memi Studio : cours, promotions et nouveautés, directement sur votre appareil.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Memi">
+  <link rel="manifest" href="/app/manifest.webmanifest">
+  <link rel="icon" href="/app/assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/app/assets/icons/icon-192.png">
+  <link rel="stylesheet" href="/app/assets/app.css?v=1.0.0">
+  <title>Memi Studio — Mon espace</title>
+</head>
+<body>
+  <a class="skip-link" href="#contenu">Aller au contenu</a>
+  <header class="site-header">
+    <a class="brand" href="/app/" aria-label="Memi Studio — accueil">
+      <span class="brand-word">memi</span>
+      <span class="brand-studio">studio</span>
+    </a>
+    <div class="header-actions">
+      <button class="button button-quiet install-button" id="install-button" type="button" hidden>Installer l’app</button>
+      <a class="button button-primary" href="/index.php/horaire-des-cours?view=schedule">Réserver</a>
+    </div>
+  </header>
+
+  <main id="contenu">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Votre studio, tout près</p>
+        <h1 id="hero-title">Bougez avec <em>Memi.</em></h1>
+        <p class="hero-lead">Vos cours, vos avantages et les nouvelles qui vous intéressent — réunis dans une application simple à installer.</p>
+        <div class="hero-actions">
+          <button class="button button-light" id="hero-action" type="button">Ouvrir mon espace</button>
+          <span class="live-note"><i aria-hidden="true"></i> Synchronisé avec votre compte</span>
+        </div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="orb orb-one"></div>
+        <div class="orb orb-two"></div>
+        <div class="pose-line"></div>
+        <div class="hero-card">
+          <span class="mini-label">Prochain cours</span>
+          <strong id="hero-course">Votre moment pour bouger</strong>
+          <span id="hero-course-time">Consultez l’horaire Memi</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="auth-panel content-width" id="auth-panel" aria-labelledby="auth-title" hidden>
+      <div class="auth-intro">
+        <p class="eyebrow">Mon espace</p>
+        <h2 id="auth-title">Heureuse de vous revoir.</h2>
+        <p>Utilisez le même courriel et le même mot de passe que sur memistudio.ca.</p>
+        <ul class="benefit-list">
+          <li><span>01</span> Suivez vos crédits et vos points.</li>
+          <li><span>02</span> Choisissez les nouvelles à recevoir.</li>
+          <li><span>03</span> Installez Memi sur votre écran d’accueil.</li>
+        </ul>
+      </div>
+      <form class="auth-form" id="login-form">
+        <label for="login-email">Courriel ou nom d’utilisateur</label>
+        <input id="login-email" name="username" type="text" autocomplete="username" inputmode="email" required>
+        <label for="login-password">Mot de passe</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+        <label class="check-line"><input name="remember" type="checkbox" value="1"> <span>Garder ma session ouverte</span></label>
+        <p class="form-error" id="login-error" role="alert"></p>
+        <button class="button button-primary button-full" type="submit">Me connecter</button>
+        <a class="text-link" href="/index.php?option=com_users&view=reset">Mot de passe oublié?</a>
+      </form>
+    </section>
+
+    <div id="app-dashboard" hidden>
+      <section class="welcome content-width">
+        <div>
+          <p class="eyebrow">Mon espace</p>
+          <h2>Bonjour, <span id="user-name">Memi</span>.</h2>
+        </div>
+        <div class="welcome-actions">
+          <a class="text-link" href="/index.php/component/memipilates/?view=dashboard">Voir mon compte complet</a>
+          <button class="text-link button-link" id="logout-button" type="button">Déconnexion</button>
+        </div>
+      </section>
+
+      <section class="metrics content-width" aria-label="Résumé du compte">
+        <article class="metric-card metric-dark"><span>Crédits disponibles</span><strong id="metric-credits">0</strong><small>Pour vos prochaines réservations</small></article>
+        <article class="metric-card"><span>Points de fidélité</span><strong id="metric-points">0</strong><small>À échanger contre vos récompenses</small></article>
+        <article class="metric-card"><span>Cours à venir</span><strong id="metric-bookings">0</strong><small>Déjà réservés dans votre compte</small></article>
+      </section>
+
+      <section class="notifications-section content-width section-space" id="preferences-section" aria-labelledby="preferences-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">À votre rythme</p><h2 id="preferences-title">Choisissez vos nouvelles.</h2></div>
+          <p>Activez seulement ce que vous voulez recevoir. Vous pourrez modifier vos choix en tout temps.</p>
+        </div>
+        <form id="preferences-form">
+          <div class="preference-grid">
+            <label class="preference-card">
+              <input type="checkbox" name="courses">
+              <span class="preference-icon" aria-hidden="true">C</span>
+              <span class="preference-copy"><strong>Nouveaux cours</strong><small>Les nouvelles séances et disponibilités ajoutées à l’horaire.</small></span>
+              <span class="toggle" aria-hidden="true"></span>
+            </label>
+            <label class="preference-card">
+              <input type="checkbox" name="promotions">
+              <span class="preference-icon" aria-hidden="true">%</span>
+              <span class="preference-copy"><strong>Promotions</strong><small>Les offres, forfaits spéciaux et avantages du moment.</small></span>
+              <span class="toggle" aria-hidden="true"></span>
+            </label>
+            <label class="preference-card">
+              <input type="checkbox" name="other">
+              <span class="preference-icon" aria-hidden="true">M</span>
+              <span class="preference-copy"><strong>Nouveautés Memi</strong><small>Les annonces du studio et les nouvelles récompenses fidélité.</small></span>
+              <span class="toggle" aria-hidden="true"></span>
+            </label>
+          </div>
+          <div class="push-card">
+            <div class="push-copy">
+              <span class="status-dot" id="push-dot" aria-hidden="true"></span>
+              <div><strong id="push-title">Notifications sur cet appareil</strong><p id="push-description">Activez-les pour recevoir vos choix même lorsque l’app est fermée.</p></div>
+            </div>
+            <div class="push-actions">
+              <button class="button button-outline" id="push-button" type="button">Activer sur cet appareil</button>
+              <button class="button button-quiet" id="test-push-button" type="button" hidden>Envoyer un test</button>
+            </div>
+          </div>
+          <p class="save-status" id="preferences-status" role="status"></p>
+        </form>
+      </section>
+
+      <section class="content-width section-space" id="notifications-center" aria-labelledby="notifications-title">
+        <div class="section-heading compact-heading">
+          <div><p class="eyebrow">Pour vous</p><h2 id="notifications-title">Dernières nouvelles</h2></div>
+          <span class="count-pill" id="notification-count">0</span>
+        </div>
+        <div class="feed" id="notification-list"></div>
+      </section>
+
+      <section class="split-section content-width section-space">
+        <div>
+          <div class="section-heading compact-heading"><div><p class="eyebrow">À l’horaire</p><h2>Prochains cours</h2></div><a class="text-link" href="/index.php/horaire-des-cours?view=schedule">Tout voir</a></div>
+          <div class="course-list" id="course-list"></div>
+        </div>
+        <aside class="offers-panel">
+          <p class="eyebrow">Le petit plus</p>
+          <h2>Offres du moment</h2>
+          <div id="promotion-list"></div>
+          <a class="button button-light button-full" href="/index.php/component/memipilates/?view=catalog&entity=package">Voir les forfaits</a>
+        </aside>
+      </section>
+
+      <section class="admin-panel content-width section-space" id="admin-panel" hidden aria-labelledby="admin-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">Gestion du studio</p><h2 id="admin-title">Publier une nouvelle.</h2></div>
+          <div class="admin-stats" id="admin-stats"></div>
+        </div>
+        <form class="announcement-form" id="announcement-form">
+          <label>Titre<input name="title" maxlength="180" required placeholder="Ex. Nouvel atelier ce dimanche"></label>
+          <label>Message<textarea name="body" maxlength="1200" rows="4" required placeholder="Écrivez un message clair et chaleureux."></textarea></label>
+          <div class="form-row">
+            <label>Lien interne (facultatif)<input name="url" placeholder="/index.php/..."></label>
+            <label>Expiration (facultatif)<input name="expiresAt" type="datetime-local"></label>
+          </div>
+          <div class="form-actions"><p id="announcement-status" role="status"></p><button class="button button-primary" type="submit">Publier et notifier</button></div>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand footer-brand" href="/app/"><span class="brand-word">memi</span><span class="brand-studio">studio</span></a>
+    <p>Un mouvement à la fois.</p>
+    <div><a href="/index.php/contact">Nous joindre</a><a href="/index.php/horaire-des-cours?view=schedule">Horaire</a></div>
+  </footer>
+
+  <nav class="mobile-nav" id="mobile-nav" hidden aria-label="Navigation de l’application">
+    <a href="#contenu"><span aria-hidden="true">⌂</span>Accueil</a>
+    <a href="#preferences-section"><span aria-hidden="true">◉</span>Alertes</a>
+    <a href="/index.php/horaire-des-cours?view=schedule"><span aria-hidden="true">＋</span>Réserver</a>
+    <a href="/index.php/component/memipilates/?view=dashboard"><span aria-hidden="true">○</span>Compte</a>
+  </nav>
+
+  <dialog id="install-help">
+    <button class="dialog-close" type="button" aria-label="Fermer">×</button>
+    <p class="eyebrow">Installer Memi</p>
+    <h2>Ajoutez l’app à votre écran d’accueil.</h2>
+    <ol><li>Dans Safari, touchez le bouton <strong>Partager</strong>.</li><li>Choisissez <strong>Sur l’écran d’accueil</strong>.</li><li>Ouvrez ensuite Memi depuis sa nouvelle icône pour activer les notifications.</li></ol>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <noscript><p class="noscript">Cette application nécessite JavaScript. Activez-le pour accéder à votre espace Memi.</p></noscript>
+  <script src="/app/assets/app.js?v=1.0.0" defer></script>
+</body>
+</html>

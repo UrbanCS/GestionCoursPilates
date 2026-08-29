@@ -1,0 +1,50 @@
+{
+  "id": "/app/",
+  "name": "Memi Studio",
+  "short_name": "Memi",
+  "description": "Cours, promotions et nouveautés de Memi Studio.",
+  "lang": "fr-CA",
+  "dir": "ltr",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#f5f2eb",
+  "theme_color": "#20231f",
+  "categories": ["fitness", "lifestyle", "health"],
+  "icons": [
+    {
+      "src": "/app/assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app/assets/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/app/assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Horaire des cours",
+      "short_name": "Horaire",
+      "url": "/index.php/horaire-des-cours?view=schedule",
+      "icons": [{"src": "/app/assets/icons/icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Mon compte",
+      "short_name": "Compte",
+      "url": "/index.php/component/memipilates/?view=dashboard",
+      "icons": [{"src": "/app/assets/icons/icon-192.png", "sizes": "192x192"}]
+    }
+  ]
+}
