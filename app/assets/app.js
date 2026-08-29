@@ -6,6 +6,7 @@
   let csrf = '';
   let deferredInstall = null;
   let saveTimer = 0;
+  let qrRequesting = false;
 
   const $ = (selector) => document.querySelector(selector);
   const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -57,6 +58,7 @@
       promotionList: $('#promotion-list'), adminPanel: $('#admin-panel'), adminStats: $('#admin-stats'),
       announcementForm: $('#announcement-form'), announcementStatus: $('#announcement-status'),
       installButton: $('#install-button'), installHelp: $('#install-help'), toast: $('#toast'),
+      qrImage: $('#client-qr-image'), qrStatus: $('#client-qr-status'),
     });
   }
 
@@ -84,6 +86,7 @@
     $('#metric-credits').textContent = state.metrics?.credits ?? 0;
     $('#metric-points').textContent = state.metrics?.points ?? 0;
     $('#metric-bookings').textContent = state.metrics?.upcomingBookings ?? 0;
+    renderQr();
     ['courses', 'promotions', 'other'].forEach((key) => {
       const input = els.preferencesForm.elements[key];
       if (input) input.checked = Boolean(state.preferences?.[key]);
@@ -93,6 +96,44 @@
     renderCourses();
     renderPromotions();
     renderAdmin();
+  }
+
+  function renderQr() {
+    const token = String(state?.qrToken || '');
+    if (!token) {
+      els.qrImage.replaceChildren();
+      els.qrStatus.textContent = 'Préparation de votre code QR…';
+      ensureQr();
+      return;
+    }
+    if (!window.QRCode) {
+      els.qrStatus.textContent = 'Le code QR est temporairement indisponible. Ouvrez votre compte complet pour le consulter.';
+      return;
+    }
+    els.qrImage.replaceChildren();
+    new window.QRCode(els.qrImage, {
+      text: token,
+      width: 280,
+      height: 280,
+      colorDark: '#242521',
+      colorLight: '#ffffff',
+      correctLevel: window.QRCode.CorrectLevel.M,
+    });
+    els.qrStatus.textContent = 'Votre code est prêt à être présenté.';
+  }
+
+  async function ensureQr() {
+    if (qrRequesting || !state?.authenticated) return;
+    qrRequesting = true;
+    try {
+      const result = await api('qr.php', { method: 'POST', body: '{}' });
+      state.qrToken = result.token || '';
+      renderQr();
+    } catch (error) {
+      els.qrStatus.textContent = error.message;
+    } finally {
+      qrRequesting = false;
+    }
   }
 
   function renderNotifications() {

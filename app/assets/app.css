@@ -91,6 +91,12 @@ input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px
 .metric-card small { color: var(--muted); }
 .metric-dark { background: var(--ink); color: white; }
 .metric-dark small { color: rgba(255,255,255,.68); }
+.client-qr-card { margin-top: 24px; padding: 30px 36px; display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center; border-radius: 28px; background: var(--sage-light); }
+.client-qr-copy h2 { margin: 0; font: clamp(2.2rem, 4vw, 4.2rem)/.96 var(--serif); letter-spacing: -.04em; }
+.client-qr-copy > p:not(.eyebrow) { max-width: 600px; margin: 18px 0 0; color: var(--muted); }
+.client-qr-status { font-size: .84rem; font-weight: 700; }
+.client-qr-image { width: 220px; height: 220px; padding: 12px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 22px; background: var(--white); box-shadow: 0 14px 34px rgba(36, 37, 33, .1); }
+.client-qr-image :is(canvas, img) { display: block; width: 100% !important; height: 100% !important; }
 .section-space { padding-top: 108px; }
 .section-heading { display: grid; grid-template-columns: 1fr minmax(240px, 420px); gap: 44px; align-items: end; margin-bottom: 34px; }
 .section-heading > p { margin: 0; color: var(--muted); }
@@ -184,6 +190,8 @@ dialog ol { padding-left: 22px; display: grid; gap: 13px; }
   .auth-panel { grid-template-columns: 1fr; }
   .metrics, .preference-grid { grid-template-columns: 1fr; }
   .metric-card { min-height: 155px; }
+  .client-qr-card { grid-template-columns: 1fr; }
+  .client-qr-image { width: min(280px, 100%); height: auto; aspect-ratio: 1; }
   .preference-card { min-height: 180px; }
   .section-heading { grid-template-columns: 1fr; gap: 14px; }
   .compact-heading { grid-template-columns: 1fr auto; }
@@ -212,6 +220,8 @@ dialog ol { padding-left: 22px; display: grid; gap: 13px; }
   .welcome { padding-top: 52px; align-items: start; flex-direction: column; gap: 14px; }
   .welcome-actions { align-items: flex-start; flex-direction: column; }
   .metrics { padding-top: 24px; }
+  .client-qr-card { padding: 26px; gap: 24px; }
+  .client-qr-image { width: 100%; max-width: 280px; margin-inline: auto; }
   .section-space { padding-top: 76px; }
   .push-card { align-items: stretch; flex-direction: column; padding: 22px; }
   .push-actions { align-items: stretch; flex-direction: column; }

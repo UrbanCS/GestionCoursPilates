@@ -19,7 +19,8 @@ final class PwaContractTest extends TestCase
     {
         foreach ([
             'index.html', 'offline.html', 'manifest.webmanifest', 'sw.js', '.htaccess',
-            'assets/app.css', 'assets/app.js', 'assets/icons/icon-192.png',
+            'assets/app.css', 'assets/app.js', 'assets/vendor/qrcode.min.js',
+            'assets/icons/logo-memi.png', 'assets/icons/icon-192.png',
             'assets/icons/icon-512.png', 'assets/icons/icon-maskable-512.png',
         ] as $file) {
             self::assertFileExists($this->root . '/' . $file, $file);
@@ -40,7 +41,7 @@ final class PwaContractTest extends TestCase
         self::assertStringContainsString("HTTP_X_MEMI_CSRF", $context);
         self::assertStringContainsString('hash_equals', $context);
 
-        foreach (['logout', 'preferences', 'subscription', 'test-push'] as $endpoint) {
+        foreach (['logout', 'preferences', 'qr', 'subscription', 'test-push'] as $endpoint) {
             $source = (string) file_get_contents($this->root . '/api/' . $endpoint . '.php');
             self::assertStringContainsString('assertCsrf()', $source, $endpoint);
             self::assertStringContainsString('requireUser', $source, $endpoint);
@@ -84,6 +85,8 @@ final class PwaContractTest extends TestCase
         self::assertStringContainsString('Sur l’écran d’accueil', $index);
         self::assertSame(2, substr_count($index, '>Réservez</a>'));
         self::assertStringNotContainsString('>Réserver</a>', $index);
+        self::assertStringContainsString('id="client-qr-image"', $index);
+        self::assertStringContainsString('/app/assets/vendor/qrcode.min.js', $index);
 
         $script = (string) file_get_contents($this->root . '/assets/app.js');
         self::assertStringContainsString("iosInstall ? 'Comment installer' : 'Installer'", $script);

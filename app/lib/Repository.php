@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MemiPwa;
 
 use Joomla\Database\DatabaseInterface;
+use Memi\Component\Memipilates\Administrator\Service\ComponentServices;
 
 final class Repository
 {
@@ -33,6 +34,7 @@ final class Repository
         $this->ensurePreferences($userId);
         $identity = $this->context->identity();
         $preferences = $this->preferences($userId);
+        $currentQr = ComponentServices::qrTokens()->current($userId, $userId);
 
         return [
             'authenticated' => true,
@@ -44,6 +46,7 @@ final class Repository
                 'administrator' => $this->context->isAdministrator(),
             ],
             'metrics' => $this->metrics($userId),
+            'qrToken' => isset($currentQr['token']) ? (string) $currentQr['token'] : null,
             'preferences' => $preferences,
             'subscribed' => $this->subscriptionCount($userId) > 0,
             'pushAvailable' => $pushReady,
