@@ -82,6 +82,8 @@ final class PwaContractTest extends TestCase
         self::assertStringContainsString('iPhone et iPad', $index);
         self::assertStringContainsString('<strong>Safari</strong>', $index);
         self::assertStringContainsString('Sur l’écran d’accueil', $index);
+        self::assertSame(2, substr_count($index, '>Réservez</a>'));
+        self::assertStringNotContainsString('>Réserver</a>', $index);
 
         $script = (string) file_get_contents($this->root . '/assets/app.js');
         self::assertStringContainsString("iosInstall ? 'Comment installer' : 'Installer'", $script);
@@ -91,6 +93,9 @@ final class PwaContractTest extends TestCase
         $styles = (string) file_get_contents($this->root . '/assets/app.css');
         self::assertStringContainsString('.header-actions .install-button', $styles);
         self::assertStringNotContainsString('.header-actions .button-quiet { display: none;', $styles);
+        self::assertStringContainsString('text-transform: uppercase', $styles);
+        self::assertStringNotContainsString('--mauve', $styles);
+        self::assertStringNotContainsString('var(--mauve)', $styles);
     }
 
     public function testSensitiveServerDirectoriesAreNotWebAccessible(): void

@@ -1,12 +1,12 @@
 'use strict';
 
-const VERSION = 'memi-pwa-v1.0.2';
+const VERSION = 'memi-pwa-v1.1.0';
 const CORE = [
   '/app/',
   '/app/index.html',
   '/app/offline.html',
   '/app/manifest.webmanifest',
-  '/app/assets/app.css?v=1.0.2',
+  '/app/assets/app.css?v=1.1.0',
   '/app/assets/app.js?v=1.0.1',
   '/app/assets/icons/icon-192.png',
   '/app/assets/icons/icon-512.png',
