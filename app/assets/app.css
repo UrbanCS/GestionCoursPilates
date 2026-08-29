@@ -196,8 +196,9 @@ dialog ol { padding-left: 22px; display: grid; gap: 13px; }
   .brand { width: 72px; }
   .brand-word { font-size: 31px; }
   .brand-studio { font-size: 6px; letter-spacing: 5px; }
-  .header-actions .button-quiet { display: none; }
-  .header-actions .button-primary { min-height: 42px; padding-inline: 18px; font-size: .82rem; }
+  .header-actions { gap: 6px; }
+  .header-actions .install-button { min-height: 38px; padding-inline: 10px; display: inline-flex; border-color: var(--line); font-size: .68rem; }
+  .header-actions .button-primary { min-height: 42px; padding-inline: 14px; font-size: .78rem; }
   .hero { min-height: 660px; }
   .hero-copy { padding: 64px 18px 270px; }
   .hero h1 { font-size: clamp(4rem, 20vw, 6rem); }

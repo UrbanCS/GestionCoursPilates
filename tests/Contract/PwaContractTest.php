@@ -87,6 +87,10 @@ final class PwaContractTest extends TestCase
         self::assertStringContainsString("iosInstall ? 'Comment installer' : 'Installer'", $script);
         self::assertStringContainsString("navigator.platform === 'MacIntel'", $script);
         self::assertStringContainsString("addEventListener('beforeinstallprompt'", $script);
+
+        $styles = (string) file_get_contents($this->root . '/assets/app.css');
+        self::assertStringContainsString('.header-actions .install-button', $styles);
+        self::assertStringNotContainsString('.header-actions .button-quiet { display: none;', $styles);
     }
 
     public function testSensitiveServerDirectoriesAreNotWebAccessible(): void
