@@ -21,7 +21,7 @@ L’application ne crée aucun second compte client. Elle démarre Joomla depuis
 */5 * * * * /usr/local/bin/ea-php82 /home/UTILISATEUR_CPANEL/public_html/app/cron/run.php >/dev/null 2>&1
 ~~~
 
-Le script refuse toute exécution Web. Il utilise un verrou MySQL, déduplique chaque événement et reprend temporairement les envois échoués.
+Le script refuse toute exécution Web. Il utilise un verrou MySQL, déduplique chaque événement et reprend temporairement les envois échoués. Chaque rapport Web Push est associé à son envoi individuel, y compris lorsque plusieurs nouvelles sont transmises au même appareil pendant une seule exécution.
 
 ## Catégories
 

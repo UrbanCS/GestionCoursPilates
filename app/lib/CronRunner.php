@@ -15,15 +15,16 @@ final class CronRunner
         $this->db = $context->database();
     }
 
-    /** @return array{captured:int,queued:int,delivered:int,retried:int,failed:int} */
+    /** @return array{suppressed:int,captured:int,queued:int,delivered:int,retried:int,failed:int} */
     public function run(): array
     {
         if (!$this->lock()) {
             throw new \RuntimeException('Une autre exécution du cron est déjà en cours.');
         }
 
-        $stats = ['captured' => 0, 'queued' => 0, 'delivered' => 0, 'retried' => 0, 'failed' => 0];
+        $stats = ['suppressed' => 0, 'captured' => 0, 'queued' => 0, 'delivered' => 0, 'retried' => 0, 'failed' => 0];
         try {
+            $stats['suppressed'] = $this->suppressLegacyRetries();
             $stats['captured'] = $this->captureEvents();
             $stats['queued'] = $this->queueDeliveries();
             $deliveryStats = $this->deliver();
@@ -35,6 +36,32 @@ final class CronRunner
         } finally {
             $this->unlock();
         }
+    }
+
+    /**
+     * Earlier batches associated reports only with the last delivery queued for
+     * an endpoint. Notifications were received, but the other rows were marked
+     * for retry and sent again every five minutes. Cancel those already-attempted
+     * legacy rows once when this fix is first deployed.
+     */
+    private function suppressLegacyRetries(): int
+    {
+        $setting = 'push_report_mapping_fix_20260831';
+        if (Schema::setting($this->db, $setting) === 'applied') {
+            return 0;
+        }
+
+        $now = gmdate('Y-m-d H:i:s');
+        $sql = 'UPDATE #__memi_pwa_deliveries SET status = ' . $this->db->quote('cancelled')
+            . ', next_attempt_at = ' . $this->db->quote($now)
+            . ', error_code = ' . $this->db->quote('legacy_retry_suppressed')
+            . ', updated_at = ' . $this->db->quote($now)
+            . ' WHERE status = ' . $this->db->quote('retry') . ' AND attempt_count > 0';
+        $this->db->setQuery($this->db->replacePrefix($sql))->execute();
+        $suppressed = max(0, $this->db->getAffectedRows());
+        Schema::setSetting($this->db, $setting, 'applied');
+
+        return $suppressed;
     }
 
     private function captureEvents(): int

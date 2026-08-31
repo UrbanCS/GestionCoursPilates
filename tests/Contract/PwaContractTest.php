@@ -68,6 +68,14 @@ final class PwaContractTest extends TestCase
         self::assertStringContainsString('p.notify_courses = 1', $cron);
         self::assertStringContainsString('p.notify_promotions = 1', $cron);
         self::assertStringContainsString('p.notify_other = 1', $cron);
+
+        $push = (string) file_get_contents($this->root . '/lib/PushService.php');
+        self::assertStringContainsString('$deliveryIdsByEndpoint[hash(\'sha256\', $endpoint)][] = $deliveryId;', $push);
+        self::assertStringContainsString('$deliveryIdsByEndpoint[$endpointHash][$reportIndex]', $push);
+        self::assertStringNotContainsString('$deliveryByEndpoint[hash(\'sha256\', $endpoint)] = $deliveryId;', $push);
+        self::assertStringContainsString('push_report_mapping_fix_20260831', $cron);
+        self::assertStringContainsString("\$this->db->quote('cancelled')", $cron);
+        self::assertStringContainsString("\$this->db->quote('legacy_retry_suppressed')", $cron);
     }
 
     public function testServiceWorkerNeverCachesAccountApis(): void

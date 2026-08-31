@@ -47,8 +47,8 @@ final class PushService
         ]);
         $webPush->setReuseVAPIDHeaders(true);
 
-        /** @var array<string,int> $deliveryByEndpoint */
-        $deliveryByEndpoint = [];
+        /** @var array<string,list<int>> $deliveryIdsByEndpoint */
+        $deliveryIdsByEndpoint = [];
         foreach ($deliveries as $delivery) {
             $endpoint = (string) ($delivery['endpoint'] ?? '');
             $deliveryId = (int) ($delivery['delivery_id'] ?? 0);
@@ -72,7 +72,7 @@ final class PushService
                     'badge' => '/app/assets/icons/badge-96.png',
                 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
                 $webPush->queueNotification($subscription, $payload);
-                $deliveryByEndpoint[hash('sha256', $endpoint)] = $deliveryId;
+                $deliveryIdsByEndpoint[hash('sha256', $endpoint)][] = $deliveryId;
             } catch (\Throwable $error) {
                 $results[$deliveryId] = [
                     'success' => false,
@@ -84,9 +84,14 @@ final class PushService
         }
 
         $results ??= [];
+        /** @var array<string,int> $reportIndexByEndpoint */
+        $reportIndexByEndpoint = [];
         foreach ($webPush->flush() as $report) {
             $endpoint = (string) $report->getRequest()->getUri();
-            $deliveryId = $deliveryByEndpoint[hash('sha256', $endpoint)] ?? 0;
+            $endpointHash = hash('sha256', $endpoint);
+            $reportIndex = $reportIndexByEndpoint[$endpointHash] ?? 0;
+            $deliveryId = $deliveryIdsByEndpoint[$endpointHash][$reportIndex] ?? 0;
+            $reportIndexByEndpoint[$endpointHash] = $reportIndex + 1;
             if ($deliveryId < 1) {
                 continue;
             }
