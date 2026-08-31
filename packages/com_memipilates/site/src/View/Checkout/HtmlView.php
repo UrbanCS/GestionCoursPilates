@@ -110,11 +110,6 @@ final class HtmlView extends BaseHtmlView
         $query = $db->getQuery(true)->select('*')->from($db->quoteName('#__memi_packages'))->where('published = 1')->where('archived_at IS NULL')->order('ordering ASC, title ASC');
         $db->setQuery($query);
         $this->packages = $db->loadAssocList() ?: [];
-        foreach ($this->packages as &$package) {
-            $subtotal = max(0, (int) $package['price_cents']);
-            $package['total_with_tax_cents'] = $subtotal + ComponentServices::settings()->calculateTaxCents($subtotal);
-        }
-        unset($package);
         if ($this->selectedPackageId > 0) {
             $selectedPackages = array_values(array_filter(
                 $this->packages,

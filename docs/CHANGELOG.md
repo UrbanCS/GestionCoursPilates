@@ -2,6 +2,20 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.8.15] - 2026-08-31
+
+### Modifié
+
+- Affiche les prix des cours et forfaits avant taxes dans le catalogue et ajoute la mention « taxes en sus ».
+- Présente le sous-total, le rabais, les taxes et le total exacts seulement lorsque le client ouvre le paiement sécurisé.
+- Réduit davantage le titre « Réservez » sur ordinateur et sur mobile.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.15.zip`
+- Taille : `300571` octets
+- SHA-256 : `86F31B98E74D6A2DD2A8D96CF67A601DA570A7A8D6602BE5CF9B636FEEDD2A66`
+
 ## [1.8.14] - 2026-08-28
 
 ### Corrigé

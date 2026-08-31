@@ -108,12 +108,17 @@ final class FrontendPortalContractTest extends TestCase
         self::assertStringContainsString('class="memi-package-picker"', $template);
         self::assertStringContainsString('data-memi-package-choice', $template);
         self::assertStringContainsString('data-memi-package-buy', $template);
+        self::assertStringContainsString("\$package['price_cents']", $template);
+        self::assertStringContainsString('COM_MEMIPILATES_PAYMENT_TAXES_EXTRA', $template);
+        self::assertStringContainsString('data-memi-package-totals', $template);
+        self::assertStringNotContainsString("\$package['total_with_tax_cents']", $template);
         self::assertStringNotContainsString('data-memi-package-select', $template);
         self::assertStringContainsString("getInt('package_id', 0)", $view);
         self::assertStringContainsString("\$return .= '&package_id=' . \$this->selectedPackageId", $view);
         self::assertStringContainsString('$selectedPackages = array_values(array_filter(', $view);
         self::assertStringContainsString('$this->packages = $selectedPackages;', $view);
         self::assertStringContainsString("'[data-memi-package-choice]:checked'", $script);
+        self::assertStringContainsString("order.tax_cents", $script);
     }
 
     public function testLoyaltyPointsAreAwardedOnlyForConfirmedAttendance(): void
@@ -175,7 +180,8 @@ final class FrontendPortalContractTest extends TestCase
         self::assertStringContainsString('intdiv(', $settings);
         self::assertSame(2, substr_count($payments, '$this->settings->calculateTaxCents('));
         self::assertStringNotContainsString('$taxRateBasisPoints', $payments);
-        self::assertStringContainsString('calculateTaxCents($priceCents)', $booking);
+        self::assertStringContainsString('$this->directPaymentSubtotalCents = $priceCents;', $booking);
+        self::assertStringNotContainsString('calculateTaxCents($priceCents)', $booking);
         self::assertStringContainsString('calculateTaxCents($this->sessionSubtotalCents)', $checkout);
         self::assertStringContainsString("\$values['tax_rate_basis_points'] = (int) \$before['tax_rate_basis_points']", $catalogue);
     }

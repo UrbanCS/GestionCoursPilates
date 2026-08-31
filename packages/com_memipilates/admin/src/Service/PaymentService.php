@@ -104,6 +104,9 @@ final class PaymentService
             return [
                 'id' => $orderId,
                 'order_key' => $orderKey,
+                'subtotal_cents' => $subtotal,
+                'discount_cents' => $discount,
+                'tax_cents' => $tax,
                 'total_cents' => $total,
                 'currency' => (string) $this->settings->get('currency', 'CAD'),
                 'square_application_id' => $this->publicApplicationId(),
@@ -279,6 +282,9 @@ final class PaymentService
             return $this->sessionCheckoutPayload([
                 'id' => $orderId,
                 'order_key' => $orderKey,
+                'subtotal_cents' => $subtotal,
+                'discount_cents' => 0,
+                'tax_cents' => $tax,
                 'total_cents' => $total,
                 'currency' => $currency,
             ], $session, $bookingId);
@@ -971,6 +977,9 @@ final class PaymentService
             'id' => (int) $order['id'],
             'order_key' => (string) $order['order_key'],
             'status' => (string) ($order['status'] ?? 'pending'),
+            'subtotal_cents' => (int) ($order['subtotal_cents'] ?? 0),
+            'discount_cents' => (int) ($order['discount_cents'] ?? 0),
+            'tax_cents' => (int) ($order['tax_cents'] ?? 0),
             'total_cents' => (int) $order['total_cents'],
             'currency' => (string) $order['currency'],
             'square_application_id' => $this->publicApplicationId(),

@@ -40,6 +40,12 @@
       const start = root.querySelector('[data-memi-payment-start]');
       const pay = root.querySelector('[data-memi-payment-submit]');
       const cardTarget = root.querySelector('[data-memi-square-card]');
+      const packageTotals = root.querySelector('[data-memi-package-totals]');
+      const subtotalOutput = root.querySelector('[data-memi-order-subtotal]');
+      const discountOutput = root.querySelector('[data-memi-order-discount]');
+      const discountRow = root.querySelector('[data-memi-order-discount-row]');
+      const taxOutput = root.querySelector('[data-memi-order-tax]');
+      const totalOutput = root.querySelector('[data-memi-order-total]');
       const sessionId = Number(root.dataset.sessionId || 0);
       let order = null;
       let card = null;
@@ -73,6 +79,16 @@
             ? { session_id: sessionId }
             : { package_id: packageId, promotion_code: root.querySelector('[name="promotion_code"]')?.value || '' };
           order = await post(root.dataset.createUrl, fields);
+          if (packageTotals) {
+            const formatMoney = (cents) => (Number(cents || 0) / 100).toFixed(2);
+            const discountCents = Number(order.discount_cents || 0);
+            if (subtotalOutput) subtotalOutput.textContent = formatMoney(order.subtotal_cents);
+            if (discountOutput) discountOutput.textContent = formatMoney(discountCents);
+            if (discountRow) discountRow.hidden = discountCents <= 0;
+            if (taxOutput) taxOutput.textContent = formatMoney(order.tax_cents);
+            if (totalOutput) totalOutput.textContent = formatMoney(order.total_cents);
+            packageTotals.hidden = false;
+          }
           if (order.status === 'payment_processing') {
             throw new Error(root.dataset.messageReconciling || 'This payment is being verified. Please wait before trying again.');
           }

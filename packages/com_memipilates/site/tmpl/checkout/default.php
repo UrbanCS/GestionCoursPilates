@@ -76,8 +76,8 @@ use Joomla\CMS\Router\Route;
                                 <span class="memi-package-card__description"><?= nl2br(htmlspecialchars($description, ENT_QUOTES, 'UTF-8')); ?></span>
                             <?php endif; ?>
                             <span class="memi-package-card__price">
-                                <?= number_format((int) $package['total_with_tax_cents'] / 100, 2); ?>
-                                <small><?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?> · <?= Text::_('COM_MEMIPILATES_PAYMENT_TAXES_INCLUDED'); ?></small>
+                                <?= number_format((int) $package['price_cents'] / 100, 2); ?>
+                                <small><?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?> · <?= Text::_('COM_MEMIPILATES_PAYMENT_TAXES_EXTRA'); ?></small>
                             </span>
                             <span class="memi-package-card__meta">
                                 <?= Text::sprintf('COM_MEMIPILATES_PAYMENT_PACKAGE_CREDITS', (int) $package['credits']); ?>
@@ -97,6 +97,12 @@ use Joomla\CMS\Router\Route;
             </div>
         </fieldset>
         <label><?= Text::_('COM_MEMIPILATES_BOOKING_PROMO_CODE'); ?><input type="text" name="promotion_code" maxlength="64" autocomplete="off"></label>
+        <dl class="memi-checkout__totals" data-memi-package-totals hidden>
+            <div><dt><?= Text::_('COM_MEMIPILATES_PAYMENT_SUBTOTAL'); ?></dt><dd><span data-memi-order-subtotal>0.00</span> <?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?></dd></div>
+            <div data-memi-order-discount-row hidden><dt><?= Text::_('COM_MEMIPILATES_PAYMENT_DISCOUNT'); ?></dt><dd>−<span data-memi-order-discount>0.00</span> <?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?></dd></div>
+            <div><dt><?= Text::_('COM_MEMIPILATES_PAYMENT_TAXES'); ?></dt><dd><span data-memi-order-tax>0.00</span> <?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?></dd></div>
+            <div><dt><?= Text::_('COM_MEMIPILATES_PAYMENT_TOTAL'); ?></dt><dd><strong><span data-memi-order-total>0.00</span> <?= htmlspecialchars($this->currency, ENT_QUOTES, 'UTF-8'); ?></strong></dd></div>
+        </dl>
     <?php endif; ?>
     <button class="btn btn-primary" type="button" data-memi-payment-start<?= $this->session ? '' : ' hidden'; ?>><?= Text::_('COM_MEMIPILATES_PAYMENT_PAY_NOW'); ?></button>
     <div data-memi-square-card></div>
