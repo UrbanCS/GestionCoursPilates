@@ -64,6 +64,36 @@ class ManagementController extends BaseController
         });
     }
 
+    public function grantCourseEligibility(): void
+    {
+        $this->processPost('customers', ['clients.manage'], function (int $actorId): void {
+            $input = Factory::getApplication()->input->post;
+            $userId = $input->getInt('user_id');
+            $this->assertActiveClient($userId);
+            ComponentServices::eligibility()->grantOverride(
+                $userId,
+                $input->getInt('course_type_id'),
+                $actorId,
+                $input->getString('reason', '')
+            );
+        });
+    }
+
+    public function revokeCourseEligibility(): void
+    {
+        $this->processPost('customers', ['clients.manage'], function (int $actorId): void {
+            $input = Factory::getApplication()->input->post;
+            $userId = $input->getInt('user_id');
+            $this->assertActiveClient($userId);
+            ComponentServices::eligibility()->revokeOverride(
+                $userId,
+                $input->getInt('course_type_id'),
+                $actorId,
+                $input->getString('reason', '')
+            );
+        });
+    }
+
     public function reserveClient(): void
     {
         $this->processPost('bookings', ['bookings.manage', 'bookings.manual'], function (int $actorId): void {

@@ -1180,6 +1180,10 @@
   padding: 0.8rem;
 }
 
+.memi-checkout [data-memi-square-card]:empty {
+  display: none;
+}
+
 .memi-booking [role='status'],
 .memi-checkout [role='status'],
 .memi-dashboard [role='status'] {

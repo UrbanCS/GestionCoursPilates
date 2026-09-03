@@ -18,6 +18,7 @@ final class WaitlistService
         private readonly DatabaseTools $tools,
         private readonly SettingsService $settings,
         private readonly CreditLedgerService $credits,
+        private readonly EligibilityService $eligibility,
         private readonly AuditLogger $audit,
         private readonly NotificationService $notifications,
         private readonly WaitlistOfferTokenService $offerTokens,
@@ -38,6 +39,7 @@ final class WaitlistService
                 throw new DomainException('COM_MEMIPILATES_ERROR_SESSION_UNAVAILABLE');
             }
             $this->assertSessionRegistrationOpen($session);
+            $this->eligibility->assertEligibleForSession($userId, $sessionId);
             if ((int) $session['reserved_count'] < (int) $session['capacity']) {
                 throw new DomainException('COM_MEMIPILATES_ERROR_SESSION_HAS_SPACE');
             }
@@ -296,6 +298,7 @@ final class WaitlistService
                 throw new DomainException('COM_MEMIPILATES_ERROR_SESSION_UNAVAILABLE');
             }
             $this->assertSessionRegistrationOpen($session);
+            $this->eligibility->assertEligibleForSession($userId, $sessionId);
 
             $now = gmdate('Y-m-d H:i:s');
             $bookingKey = bin2hex(random_bytes(16));

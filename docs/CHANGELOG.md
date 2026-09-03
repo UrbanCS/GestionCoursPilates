@@ -2,6 +2,25 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.8.16] - 2026-09-03
+
+### Ajouté
+
+- Permet de configurer un type de cours préalable et un nombre de présences requises directement dans « Gérer le studio ».
+- Bloque côté serveur la réservation, le paiement direct et la liste d’attente tant que le préalable n’est pas atteint, tout en affichant la progression au client.
+- Permet au personnel d’accorder ou de retirer un accès manuel et audité à un cours restreint pour reconnaître une expérience acquise dans un autre studio.
+
+### Corrigé
+
+- Masque le conteneur de carte Square lorsqu’il est vide.
+- Corrige les proportions et les espacements mobiles indiqués sur les pages d’accueil, À propos, Cours, Contact et dans le pied de page.
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.16.zip`
+- Taille : `306309` octets
+- SHA-256 : `99D39A995EA09A10A483644838835B85232E6EF76D5301F070F16C56CBB55B50`
+
 ## [1.8.15] - 2026-08-31
 
 ### Modifié

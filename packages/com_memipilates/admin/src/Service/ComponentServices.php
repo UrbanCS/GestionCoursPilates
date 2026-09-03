@@ -87,6 +87,11 @@ final class ComponentServices
         return new QrTokenService(self::database(), self::databaseTools(), self::audit());
     }
 
+    public static function eligibility(): EligibilityService
+    {
+        return new EligibilityService(self::database(), self::databaseTools(), self::audit());
+    }
+
     public static function notifications(): NotificationService
     {
         return new NotificationService(
@@ -115,6 +120,7 @@ final class ComponentServices
             self::databaseTools(),
             self::settings(),
             self::credits(),
+            self::eligibility(),
             self::audit(),
             self::notifications()
         );
@@ -127,6 +133,7 @@ final class ComponentServices
             self::databaseTools(),
             self::settings(),
             self::credits(),
+            self::eligibility(),
             self::audit(),
             self::notifications(),
             self::waitlistOfferTokens(),
@@ -153,6 +160,7 @@ final class ComponentServices
             self::databaseTools(),
             self::settings(),
             self::credits(),
+            self::eligibility(),
             self::audit(),
             self::notifications()
         );

@@ -22,6 +22,7 @@ final class BookingService
         private readonly DatabaseTools $tools,
         private readonly SettingsService $settings,
         private readonly CreditLedgerService $credits,
+        private readonly EligibilityService $eligibility,
         private readonly AuditLogger $audit,
         private readonly NotificationService $notifications
     ) {
@@ -46,6 +47,7 @@ final class BookingService
             $clientId = (int) $profile['id'];
             $session = $this->lockSession($sessionId);
             $this->assertSessionBookable($session);
+            $this->eligibility->assertEligibleForSession($userId, $sessionId);
             $existing = $this->lockBooking($userId, $sessionId);
 
             if ($existing && in_array((string) $existing['status'], ['confirmed', 'pending', 'attended'], true)) {

@@ -25,6 +25,8 @@ final class HtmlView extends BaseHtmlView
     public string $reserveEndpoint = '';
     public string $waitlistEndpoint = '';
     public string $checkoutUrl = '';
+    /** @var array<string,mixed> */
+    public array $eligibility = ['eligible' => true];
 
     /** Formats UTC database values in the configured studio timezone. */
     public function formatDate(?string $value): string
@@ -51,6 +53,9 @@ final class HtmlView extends BaseHtmlView
             throw new \RuntimeException(Text::_('COM_MEMIPILATES_ERROR_SESSION_NOT_FOUND'), 404);
         }
         $this->creditBalance = $this->userId > 0 ? ComponentServices::credits()->balance($this->userId) : 0;
+        if ($this->userId > 0) {
+            $this->eligibility = ComponentServices::eligibility()->evaluateForSession($this->userId, $id);
+        }
         $priceCents = max(0, (int) $this->session['price_cents']);
         $this->directPaymentSubtotalCents = $priceCents;
         $configuredCurrency = strtoupper((string) ComponentServices::settings()->get('currency', 'CAD'));

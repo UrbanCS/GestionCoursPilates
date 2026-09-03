@@ -30,6 +30,16 @@ $loginUrl = Route::_('index.php?option=com_users&view=login&return=' . rawurlenc
         <p><?= Text::_('COM_MEMIPILATES_SCHEDULE_CANCELLED'); ?></p>
     <?php elseif ($registrationNotOpen || $registrationClosed) : ?>
         <p><?= Text::_($registrationNotOpen ? 'COM_MEMIPILATES_SCHEDULE_REGISTRATION_NOT_OPEN' : 'COM_MEMIPILATES_SCHEDULE_REGISTRATION_CLOSED'); ?></p>
+    <?php elseif (empty($this->eligibility['eligible'])) : ?>
+        <div class="alert alert-warning" role="status">
+            <p><?= Text::sprintf(
+                'COM_MEMIPILATES_BOOKING_PREREQUISITE_PROGRESS',
+                (int) ($this->eligibility['required_count'] ?? 0),
+                htmlspecialchars((string) ($this->eligibility['prerequisite_title'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                (int) ($this->eligibility['completed_count'] ?? 0)
+            ); ?></p>
+            <p><?= Text::_('COM_MEMIPILATES_BOOKING_PREREQUISITE_EXTERNAL'); ?></p>
+        </div>
     <?php elseif ($remaining <= 0) : ?>
         <form action="<?= htmlspecialchars($this->waitlistEndpoint, ENT_QUOTES, 'UTF-8'); ?>" method="post" data-memi-booking-form>
             <input type="hidden" name="session_id" value="<?= (int) $this->session['id']; ?>">

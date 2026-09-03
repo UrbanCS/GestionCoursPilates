@@ -1,0 +1,90 @@
+/* Keep button labels exactly as they are written in the content. */
+body .sppb-btn,
+body .btn {
+  text-transform: none !important;
+}
+
+@media (max-width: 575.98px) {
+  /* Home: keep the hero subtitle readable and tighten the feature intro. */
+  body.itemid-101 #sppb-addon-ae4c1cdf-82d1-428b-aa2d-3808c83d53c4 {
+    padding-top: 24px !important;
+  }
+
+  body.itemid-101 #sppb-addon-ae4c1cdf-82d1-428b-aa2d-3808c83d53c4 .sppb-addon-content {
+    max-width: 19rem;
+    font-size: 18px !important;
+    line-height: 24px !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  }
+
+  body.itemid-101 #sppb-addon-7058e8d3-2d60-4ed9-a714-aaa00cfb5135 {
+    padding-bottom: 10px !important;
+  }
+
+  body.itemid-101 #column-id-03068ce4-1b4b-4b3a-ba05-9d61db565aa1,
+  body.itemid-101 #sppb-addon-fe84c931-5c3a-41b0-8647-1c8a9645c5ff {
+    padding-top: 0 !important;
+  }
+
+  /* About: clear the sticky header and keep the primary CTA compact. */
+  body.itemid-107 #sppb-addon-5e884e3b-937a-4911-917e-294fbceee108 {
+    padding-top: 18px !important;
+  }
+
+  body.itemid-107 #sppb-addon-8d27aec7-87da-43b1-a07d-03494b1c35fa .sppb-button-wrapper {
+    text-align: center !important;
+  }
+
+  body.itemid-107 #btn-8d27aec7-87da-43b1-a07d-03494b1c35fa {
+    max-width: 210px;
+    padding: 11px 16px !important;
+    font-size: 11px !important;
+    line-height: 15px !important;
+    white-space: normal;
+  }
+
+  /* Courses: normalize the schedule CTAs and the family-program heading. */
+  body.itemid-420 #btn-969da2cb-756c-497d-b6d8-6040949b5c1b,
+  body.itemid-420 #btn-535ff8f5-76b3-4a0a-801b-8e77666a7b2d,
+  body.itemid-420 #btn-5c60b379-88d2-4d44-a6cc-bfc0b6d7d3f3,
+  body.itemid-420 #btn-7b398e96-50db-4532-99da-5a0161189bb1 {
+    width: auto !important;
+    max-width: calc(100vw - 32px);
+    padding: 12px 24px !important;
+    font-size: 16px !important;
+    line-height: 20px !important;
+    white-space: normal;
+  }
+
+  body.itemid-420 #sppb-addon-db85dd72-648e-4ff6-8025-5004850e3126 .sppb-addon-title {
+    margin-bottom: 20px !important;
+    font-size: 32px !important;
+    line-height: 35px !important;
+  }
+
+  /* Contact: stop the schedule CTA from becoming a full-width headline. */
+  body.itemid-113 #sppb-addon-141599e6-39c3-4bdc-a838-a56fa41c3238 .sppb-button-wrapper {
+    text-align: center !important;
+  }
+
+  body.itemid-113 #btn-141599e6-39c3-4bdc-a838-a56fa41c3238 {
+    width: auto !important;
+    max-width: 260px;
+    padding: 12px 22px !important;
+    font-size: 16px !important;
+    line-height: 21px !important;
+    white-space: normal;
+  }
+
+  /* Shared footer: keep the Memi wordmark proportional on narrow screens. */
+  #sppb-addon-13917c3e-a320-4b68-a532-81a1a3e3528e .sppb-addon-single-image-container {
+    width: 100%;
+    text-align: center;
+  }
+
+  #sppb-addon-13917c3e-a320-4b68-a532-81a1a3e3528e img {
+    width: 180px !important;
+    max-width: 55vw !important;
+    height: auto !important;
+  }
+}

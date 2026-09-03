@@ -214,6 +214,10 @@ final class CatalogService
     private function createCourseType(Input $input, int $actorId): int
     {
         $title = $this->requiredText($input, 'title', 255);
+        $prerequisiteId = $this->optionalId($input, 'prerequisite_course_type_id');
+        if ($prerequisiteId !== null) {
+            $this->requireRecord('#__memi_course_types', $prerequisiteId);
+        }
         $now = $this->now();
         $row = [
             'title' => $title,
@@ -226,6 +230,10 @@ final class CatalogService
             'default_price_cents' => $this->moneyCents($input, 'price'),
             'default_credits_required' => $this->integer($input, 'credits_required', 0, 1000, 1),
             'tax_rate_basis_points' => $this->integer($input, 'tax_rate_basis_points', 0, 10000, 0),
+            'prerequisite_course_type_id' => $prerequisiteId,
+            'prerequisite_attendance_count' => $prerequisiteId === null
+                ? 0
+                : $this->integer($input, 'prerequisite_attendance_count', 1, 100, 5),
             'image' => $this->image($input),
             'published' => $this->published($input),
             'access' => 1,

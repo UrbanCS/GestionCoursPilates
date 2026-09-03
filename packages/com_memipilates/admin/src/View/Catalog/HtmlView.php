@@ -116,8 +116,15 @@ class HtmlView extends AbstractAdminView
                 ->select(['id', 'display_name AS title', 'email AS detail', 'published'])
                 ->from($this->db->quoteName('#__memi_instructors'))->where('archived_at IS NULL')->order('display_name ASC'),
             'course_type' => $this->db->getQuery(true)
-                ->select(['id', 'title', "CONCAT(default_duration_minutes, ' min · ', default_capacity, ' places') AS detail", 'published'])
-                ->from($this->db->quoteName('#__memi_course_types'))->where('archived_at IS NULL')->order('title ASC'),
+                ->select([
+                    'ct.id', 'ct.title', 'ct.published',
+                    "CONCAT(ct.default_duration_minutes, ' min · ', ct.default_capacity, ' places',"
+                        . " IF(ct.prerequisite_course_type_id IS NULL OR ct.prerequisite_attendance_count = 0, '',"
+                        . " CONCAT(' · préalable : ', ct.prerequisite_attendance_count, ' × ', prerequisite.title))) AS detail",
+                ])
+                ->from($this->db->quoteName('#__memi_course_types', 'ct'))
+                ->join('LEFT', $this->db->quoteName('#__memi_course_types', 'prerequisite') . ' ON prerequisite.id = ct.prerequisite_course_type_id')
+                ->where('ct.archived_at IS NULL')->order('ct.title ASC'),
             'course' => $this->db->getQuery(true)
                 ->select(['c.id', 'c.title', "CONCAT(ct.title, ' · ', c.duration_minutes, ' min · ', c.capacity, ' places') AS detail", 'c.published'])
                 ->from($this->db->quoteName('#__memi_courses', 'c'))

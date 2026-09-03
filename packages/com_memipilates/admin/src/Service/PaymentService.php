@@ -21,6 +21,7 @@ final class PaymentService
         private readonly DatabaseTools $tools,
         private readonly SettingsService $settings,
         private readonly CreditLedgerService $credits,
+        private readonly EligibilityService $eligibility,
         private readonly AuditLogger $audit,
         private readonly NotificationService $notifications
     ) {
@@ -136,6 +137,7 @@ final class PaymentService
             $clientId = (int) $profile['id'];
             $session = $this->lockSessionForPurchase($sessionId);
             $this->assertSessionPurchasable($session);
+            $this->eligibility->assertEligibleForSession($userId, $sessionId);
 
             $existing = $this->findBookingForUpdate($userId, $sessionId);
             if ($existing && in_array((string) $existing['status'], ['confirmed', 'pending', 'attended'], true)) {
@@ -1149,6 +1151,7 @@ final class PaymentService
         if ((string) $booking['status'] === 'payment_pending') {
             $session = $this->lockSessionForPurchase((int) $booking['session_id']);
             $this->assertSessionPurchasable($session);
+            $this->eligibility->assertEligibleForSession((int) $booking['user_id'], (int) $booking['session_id']);
             return;
         }
         if ((string) $order['status'] !== 'payment_failed'
@@ -1158,6 +1161,7 @@ final class PaymentService
 
         $session = $this->lockSessionForPurchase((int) $booking['session_id']);
         $this->assertSessionPurchasable($session);
+        $this->eligibility->assertEligibleForSession((int) $booking['user_id'], (int) $booking['session_id']);
         if (!$this->claimCapacity((int) $booking['session_id'])) {
             throw new DomainException('COM_MEMIPILATES_ERROR_SESSION_FULL');
         }

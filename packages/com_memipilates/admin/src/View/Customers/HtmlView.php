@@ -18,6 +18,11 @@ class HtmlView extends AbstractAdminView
     public bool $canCreateClient = false;
     public bool $canManageQr = false;
     public bool $canViewClientDetails = false;
+    public bool $canManageEligibility = false;
+    /** @var list<array<string,mixed>> */
+    public array $restrictedCourseTypes = [];
+    /** @var array<int,list<array<string,mixed>>> */
+    public array $eligibilityOverrides = [];
 
     public function display($tpl = null): void
     {
@@ -25,7 +30,9 @@ class HtmlView extends AbstractAdminView
         $this->canCreateClient = $this->can('clients.manage');
         $this->canManageQr = $this->can('qr.manage');
         $this->canViewClientDetails = $this->can('clients.manage');
+        $this->canManageEligibility = $this->can('clients.manage');
         $this->loadItems();
+        $this->loadEligibility();
         Factory::getApplication()->getDocument()->setTitle($this->label('COM_MEMIPILATES_SUBMENU_CUSTOMERS', 'Customers'));
         parent::display($tpl);
     }
@@ -77,6 +84,47 @@ class HtmlView extends AbstractAdminView
         $this->applyFilters($query);
         $this->db->setQuery($query, $this->limitStart, $this->limit);
         $this->items = $this->db->loadAssocList() ?: [];
+    }
+
+    private function loadEligibility(): void
+    {
+        if (!$this->canManageEligibility) {
+            return;
+        }
+
+        $query = $this->db->getQuery(true)
+            ->select([
+                'ct.id', 'ct.title', 'ct.prerequisite_attendance_count',
+                'prerequisite.title AS prerequisite_title',
+            ])
+            ->from($this->db->quoteName('#__memi_course_types', 'ct'))
+            ->join('INNER', $this->db->quoteName('#__memi_course_types', 'prerequisite') . ' ON prerequisite.id = ct.prerequisite_course_type_id')
+            ->where('ct.prerequisite_attendance_count > 0')
+            ->where('ct.archived_at IS NULL')
+            ->where('prerequisite.archived_at IS NULL')
+            ->order('ct.title ASC');
+        $this->db->setQuery($query);
+        $this->restrictedCourseTypes = $this->db->loadAssocList() ?: [];
+
+        $userIds = array_values(array_filter(array_map(
+            static fn (array $item): int => (int) ($item['user_id'] ?? 0),
+            $this->items
+        )));
+        if ($userIds === []) {
+            return;
+        }
+
+        $query = $this->db->getQuery(true)
+            ->select(['o.user_id', 'o.course_type_id', 'o.reason', 'o.granted_at', 'ct.title AS course_type_title'])
+            ->from($this->db->quoteName('#__memi_course_eligibility_overrides', 'o'))
+            ->join('INNER', $this->db->quoteName('#__memi_course_types', 'ct') . ' ON ct.id = o.course_type_id')
+            ->where('o.revoked_at IS NULL')
+            ->where('o.user_id IN (' . implode(',', array_map('intval', $userIds)) . ')')
+            ->order('ct.title ASC');
+        $this->db->setQuery($query);
+        foreach ($this->db->loadAssocList() ?: [] as $override) {
+            $this->eligibilityOverrides[(int) $override['user_id']][] = $override;
+        }
     }
 
     private function baseQuery(): mixed

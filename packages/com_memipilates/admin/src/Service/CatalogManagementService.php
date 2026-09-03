@@ -52,7 +52,7 @@ final class CatalogManagementService
                 'location' => $this->locationValues($input),
                 'room' => $this->roomValues($input),
                 'instructor' => $this->instructorValues($input, $id),
-                'course_type' => $this->courseTypeValues($input),
+                'course_type' => $this->courseTypeValues($input, $id),
                 'course' => $this->courseValues($input),
                 'session_rule' => $this->sessionRuleValues($input),
                 'package' => $this->packageValues($input),
@@ -185,8 +185,16 @@ final class CatalogManagementService
     }
 
     /** @return array<string,mixed> */
-    private function courseTypeValues(Input $input): array
+    private function courseTypeValues(Input $input, int $courseTypeId): array
     {
+        $prerequisiteId = $this->optionalId($input, 'prerequisite_course_type_id');
+        if ($prerequisiteId !== null) {
+            if ($prerequisiteId === $courseTypeId) {
+                throw new DomainException('COM_MEMIPILATES_ERROR_COURSE_PREREQUISITE_SELF');
+            }
+            $this->activeRecord('#__memi_course_types', $prerequisiteId);
+        }
+
         return [
             'title' => $this->requiredText($input, 'title', 255),
             'description' => $this->text($input, 'description', 20000),
@@ -197,6 +205,10 @@ final class CatalogManagementService
             'default_price_cents' => $this->moneyCents($input, 'price'),
             'default_credits_required' => $this->integer($input, 'credits_required', 0, 1000, 1),
             'tax_rate_basis_points' => $this->integer($input, 'tax_rate_basis_points', 0, 10000, 0),
+            'prerequisite_course_type_id' => $prerequisiteId,
+            'prerequisite_attendance_count' => $prerequisiteId === null
+                ? 0
+                : $this->integer($input, 'prerequisite_attendance_count', 1, 100, 5),
             'image' => $this->image($input),
             'published' => $this->published($input),
         ];
