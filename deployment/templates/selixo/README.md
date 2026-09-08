@@ -13,7 +13,7 @@ Then add this link after the PHP block that registers the Helix styles and
 before the optional `containerMaxWidth` inline style:
 
 ```php
-<link data-memi-custom-css rel="stylesheet" href="<?php echo Uri::root(true) . '/templates/' . $template->template . '/css/custom.css?release=1816'; ?>">
+<link data-memi-custom-css rel="stylesheet" href="<?php echo Uri::root(true) . '/templates/' . $template->template . '/css/custom.css?release=20260908c'; ?>">
 ```
 
 Increment the `release` value whenever `custom.css` changes so returning

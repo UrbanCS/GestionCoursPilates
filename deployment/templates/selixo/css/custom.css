@@ -5,6 +5,77 @@ body .btn {
 }
 
 @media (max-width: 575.98px) {
+  #sp-header > .container > .container-inner > .row {
+    flex-wrap: nowrap;
+  }
+
+  #sp-header > .container > .container-inner > .row > .col-auto {
+    padding-inline: 4px !important;
+    flex: 0 0 auto;
+  }
+
+  #sp-header #sp-logo {
+    flex: 1 1 auto !important;
+  }
+
+  #sp-header #offcanvas-toggler {
+    margin-inline: 0 !important;
+  }
+
+  /* Use the full wordmark, not the padded square favicon, in the mobile header. */
+  #sp-header #sp-logo .logo-image {
+    display: inline-block !important;
+    width: 110px !important;
+    max-width: none !important;
+    height: auto !important;
+  }
+
+  #sp-header #sp-logo .logo-image-phone {
+    display: none !important;
+  }
+
+  /* About: remove the desktop-only left inset from the whole booking section. */
+  body.itemid-107 #section-id-b772ef2a-99b7-4029-a413-624b164d0e41 {
+    padding: 32px 16px 48px !important;
+  }
+
+  body.itemid-107 #sppb-addon-ce739c2e-821b-4cb7-ac47-73d8169bab5f .sppb-addon-content {
+    max-width: 320px;
+    margin-inline: auto;
+    font-size: 26px !important;
+    line-height: 34px !important;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  body.itemid-107 #sppb-addon-ce739c2e-821b-4cb7-ac47-73d8169bab5f p {
+    font-size: inherit !important;
+    line-height: inherit !important;
+    margin: 0 0 24px !important;
+  }
+
+  /* Tarifs (not Cours): give the family pricing explanation readable line spacing. */
+  body.itemid-882 #sppb-addon-wNTdqAoaKaJXUDn0LRcoU .sppb-addon-title {
+    font-size: 32px !important;
+    line-height: 38px !important;
+    margin-bottom: 24px !important;
+  }
+
+  body.itemid-882 #sppb-addon-wNTdqAoaKaJXUDn0LRcoU .sppb-addon-content,
+  body.itemid-882 #sppb-addon-wNTdqAoaKaJXUDn0LRcoU .sppb-addon-content p,
+  body.itemid-882 #sppb-addon-wNTdqAoaKaJXUDn0LRcoU .sppb-addon-content span {
+    font-size: 16px !important;
+    line-height: 24px !important;
+  }
+
+  body.itemid-882 #sppb-addon-wNTdqAoaKaJXUDn0LRcoU .sppb-addon-content p {
+    margin-bottom: 12px !important;
+  }
+
+  body.itemid-882 #sppb-addon-wNTdqAoaKaJXUDn0LRcoU .sppb-addon-content p:first-child {
+    margin-bottom: 20px !important;
+  }
+
   /* Home: keep the hero subtitle readable and tighten the feature intro. */
   body.itemid-101 #sppb-addon-ae4c1cdf-82d1-428b-aa2d-3808c83d53c4 {
     padding-top: 24px !important;
@@ -33,6 +104,10 @@ body .btn {
 
   body.itemid-107 #sppb-addon-8d27aec7-87da-43b1-a07d-03494b1c35fa .sppb-button-wrapper {
     text-align: center !important;
+  }
+
+  body.itemid-107 #sppb-addon-8d27aec7-87da-43b1-a07d-03494b1c35fa {
+    padding-top: 0 !important;
   }
 
   body.itemid-107 #btn-8d27aec7-87da-43b1-a07d-03494b1c35fa {
@@ -86,5 +161,11 @@ body .btn {
     width: 180px !important;
     max-width: 55vw !important;
     height: auto !important;
+  }
+}
+
+@media (max-width: 359.98px) {
+  #sp-header #sp-logo .logo-image {
+    width: 90px !important;
   }
 }
