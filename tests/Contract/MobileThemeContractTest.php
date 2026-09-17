@@ -21,4 +21,15 @@ final class MobileThemeContractTest extends TestCase
         self::assertStringContainsString('@media (min-width: 768px) and (max-width: 991.98px)', $css);
         self::assertStringContainsString('flex-basis: 50% !important', $css);
     }
+
+    public function testMobileFooterCentersItsButtonAndSocialLinks(): void
+    {
+        $css = (string) file_get_contents(dirname(__DIR__, 2)
+            . '/deployment/templates/selixo/css/custom.css');
+
+        self::assertStringContainsString('#sppb-addon-30ba37df-a3f5-47d7-b853-d50a992406f9 .sppb-button-wrapper', $css);
+        self::assertStringContainsString('#sppb-addon-ddd538bd-0f34-4eeb-8823-03a654e4edd9 .sppb-icons-group-list', $css);
+        self::assertStringContainsString('justify-content: center', $css);
+        self::assertStringContainsString('width: 44px !important', $css);
+    }
 }

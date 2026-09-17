@@ -210,6 +210,31 @@ body .btn {
   }
 
   /* Shared footer: keep the Memi wordmark proportional on narrow screens. */
+  #sppb-addon-30ba37df-a3f5-47d7-b853-d50a992406f9 .sppb-button-wrapper {
+    text-align: center !important;
+  }
+
+  #sppb-addon-ddd538bd-0f34-4eeb-8823-03a654e4edd9 .sppb-icons-group-list {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 !important;
+    margin: 8px 0 !important;
+  }
+
+  #sppb-addon-ddd538bd-0f34-4eeb-8823-03a654e4edd9 .sppb-icons-group-list li {
+    margin: 5px !important;
+  }
+
+  #sppb-addon-ddd538bd-0f34-4eeb-8823-03a654e4edd9 .sppb-icons-group-list li a {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 44px !important;
+    height: 44px !important;
+    padding: 0 !important;
+  }
+
   #btn-30ba37df-a3f5-47d7-b853-d50a992406f9 {
     width: auto !important;
     max-width: min(280px, 100%) !important;
