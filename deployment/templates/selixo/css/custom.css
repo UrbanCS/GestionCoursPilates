@@ -261,6 +261,17 @@ body .btn {
   }
 }
 
+/* Desktop course columns: center the 85% blocks, keeping text left-aligned. */
+@media (min-width: 1200px) {
+  body.itemid-420 #column-wrap-id-03beffba-4d9e-475b-8503-776ec0236c89,
+  body.itemid-420 #column-wrap-id-3a04fb93-5f9c-43ce-96dc-4518283c7821,
+  body.itemid-420 #column-wrap-id-edc8fd36-5421-4098-8dd2-55755e164b99,
+  body.itemid-420 #column-wrap-id-8f6584d0-3c0e-40bc-abd7-d1ea120671d3 {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
 /* Tablet: two readable cards per row instead of four narrow text columns. */
 @media (min-width: 768px) and (max-width: 991.98px) {
   body.itemid-101 #section-id-a86341ee-c29b-49f9-9365-1d0b4360f259 > .sppb-container-inner > .sppb-row > .sppb-row-column {
