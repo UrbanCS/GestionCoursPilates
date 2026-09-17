@@ -4,7 +4,8 @@ body .btn {
   text-transform: none !important;
 }
 
-@media (max-width: 575.98px) {
+/* Match Helix's off-canvas/tablet breakpoint, not only small phones. */
+@media (max-width: 991.98px) {
   #sp-header > .container > .container-inner > .row {
     flex-wrap: nowrap;
   }
@@ -92,6 +93,63 @@ body .btn {
     padding-bottom: 10px !important;
   }
 
+  body.itemid-101 #section-id-ce7dd9d1-033b-4d39-8ead-6254ebd08f34 {
+    padding-top: 40px !important;
+  }
+
+  /* Home course cards must not grow into four screen-wide squares. */
+  body.itemid-101 .addon-root-image-layouts {
+    margin-bottom: 16px;
+  }
+
+  body.itemid-101 .sppb-addon-image-layout-wrap,
+  body.itemid-101 .sppb-addon-image-layout-image,
+  body.itemid-101 .sppb-addon-image-layout-image img {
+    height: clamp(300px, 48vw, 360px) !important;
+  }
+
+  body.itemid-101 .sppb-addon-image-layout-image img {
+    width: 100% !important;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  body.itemid-101 .sppb-addon-image-layout-content {
+    margin-inline: 24px !important;
+  }
+
+  /* Remove desktop-sized empty space around the rotating testimonials. */
+  body.itemid-101 #section-id-054a6f4c-4dc7-454c-8701-8b51cdca96e6 {
+    padding-bottom: 40px !important;
+  }
+
+  body.itemid-101 #sppb-addon-855af69f-77eb-4ef7-9511-50b845a48e89 {
+    padding: 24px 0 !important;
+  }
+
+  body.itemid-101 #sppb-addon-855af69f-77eb-4ef7-9511-50b845a48e89 .sppb-addon-title {
+    font-size: 32px !important;
+    line-height: 40px !important;
+    text-align: center;
+    margin-bottom: 0;
+  }
+
+  body.itemid-101 #sppb-addon-7a9b7925-e4f8-490d-9d0c-c2417529109a .sppb-testimonial-carousel-icon {
+    font-size: 40px !important;
+    line-height: 1 !important;
+    margin-bottom: 16px !important;
+  }
+
+  body.itemid-101 #sppb-addon-7a9b7925-e4f8-490d-9d0c-c2417529109a .sppb-testimonial-carousel-item-content {
+    padding: 0 8px !important;
+  }
+
+  body.itemid-101 #sppb-addon-7a9b7925-e4f8-490d-9d0c-c2417529109a .sppb-testimonial-carousel-message {
+    font-size: 22px !important;
+    line-height: 32px !important;
+    margin-top: 0 !important;
+  }
+
   body.itemid-101 #column-id-03068ce4-1b4b-4b3a-ba05-9d61db565aa1,
   body.itemid-101 #sppb-addon-fe84c931-5c3a-41b0-8647-1c8a9645c5ff {
     padding-top: 0 !important;
@@ -152,6 +210,16 @@ body .btn {
   }
 
   /* Shared footer: keep the Memi wordmark proportional on narrow screens. */
+  #btn-30ba37df-a3f5-47d7-b853-d50a992406f9 {
+    width: auto !important;
+    max-width: min(280px, 100%) !important;
+    min-height: 44px;
+    padding: 12px 20px !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+    white-space: normal;
+  }
+
   #sppb-addon-13917c3e-a320-4b68-a532-81a1a3e3528e .sppb-addon-single-image-container {
     width: 100%;
     text-align: center;
@@ -161,6 +229,14 @@ body .btn {
     width: 180px !important;
     max-width: 55vw !important;
     height: auto !important;
+  }
+}
+
+/* Tablet: two readable cards per row instead of four narrow text columns. */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  body.itemid-101 #section-id-a86341ee-c29b-49f9-9365-1d0b4360f259 > .sppb-container-inner > .sppb-row > .sppb-row-column {
+    flex-basis: 50% !important;
+    max-width: 50% !important;
   }
 }
 

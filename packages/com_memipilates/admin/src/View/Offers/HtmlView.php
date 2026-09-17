@@ -86,7 +86,7 @@ class HtmlView extends AbstractAdminView
             ->from($this->db->quoteName('#__memi_rewards', 'r'))
             ->leftJoin($this->db->quoteName('#__memi_packages', 'p') . ' ON p.id = r.package_id')
             ->where('r.archived_at IS NULL')
-            ->order('r.ordering ASC, r.title ASC');
+            ->order('r.points_cost ASC, r.ordering ASC, r.title ASC, r.id ASC');
         $this->db->setQuery($query);
         $this->rewards = $this->db->loadAssocList() ?: [];
     }

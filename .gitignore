@@ -3,3 +3,5 @@ package/packages/*.zip
 app/vendor/
 tests/.phpunit.result.cache
 *.log
+# Local PDF review renders and disposable validation runtimes.
+tmp/

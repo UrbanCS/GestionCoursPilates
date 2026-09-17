@@ -258,7 +258,7 @@ final class HtmlView extends BaseHtmlView
             ->where('r.archived_at IS NULL')
             ->where('(r.available_from IS NULL OR r.available_from <= :now)')
             ->where('(r.available_until IS NULL OR r.available_until >= :now)')
-            ->order('r.ordering ASC, r.id ASC')
+            ->order('r.points_cost ASC, r.ordering ASC, r.id ASC')
             ->bind(':now', $now);
         $db->setQuery($query);
 

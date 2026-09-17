@@ -2,6 +2,26 @@
 
 Le format suit l’esprit de Keep a Changelog. Les versions publiées doivent être datées, liées au ZIP exact de pkg_memipilates et accompagnées de son SHA-256. Ne pas placer de secret, de QR réel, d’e-mail client ou d’identifiant Square sensible dans ce journal.
 
+## [1.8.17] - 2026-09-17
+
+### Corrigé
+
+- Classe les récompenses par coût en points croissant dans le compte client et dans la gestion frontend/Joomla, avec un tri secondaire stable.
+- Étend les correctifs Selixo jusqu'au seuil tablette de 991,98 px : logo d'en-tête, boutons Cours/Contact, bouton et logo du pied de page, tarifs familiaux.
+- Réduit les cartes de cours et les espacements des témoignages sur l'accueil; utilise deux colonnes pour les cartes entre 768 et 991,98 px.
+- Publie le CSS du thème séparément avec la révision de cache `20260917b`.
+
+### Vérification
+
+- 43 tests de contrat, 502 assertions; 107 fichiers PHP sans erreur de syntaxe.
+- Contrôles responsive en production détaillés dans [le compte rendu](qa-mobile-2026-09-17.md).
+
+### Artefact vérifié
+
+- Archive : `dist/pkg_memipilates-1.8.17.zip`
+- Taille : `306332` octets
+- SHA-256 : `404D5B5CDF3D643D46B683619BAF6B166EEEE4E7235D4F13C213B8C798F69DFE`
+
 ## [1.8.16] - 2026-09-03
 
 ### Ajouté
