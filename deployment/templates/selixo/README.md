@@ -22,18 +22,17 @@ visitors receive the new responsive fixes immediately.
 ## Contact map
 
 SP Page Builder page 21 (`Nous joindre`), Open Street Map addon
-`ae0fcadb-5f9c-4b9e-a144-d706a8d17e72`: choose **Open Street Default**
-(`OpenStreetMap.Mapnik`) instead of Light All (`CartoDB.Positron`).
+`ae0fcadb-5f9c-4b9e-a144-d706a8d17e72`: use **Light All**
+(`CartoDB.Positron`). The original style was restored at the user's request
+on 2026-09-17, accepting the existing "API KEY REQUIRED" watermark for now.
 Keep latitude `45.455807`, longitude `-75.733371`, zoom `13`, attribution and
 zoom controls enabled, dragging enabled, and mouse-wheel zoom disabled.
 This setting is stored in Joomla's database, not deployed by the component ZIP.
 
-Insert `openstreetmap-provider.html` immediately before `</body>` in the Selixo
-`index.php`. It runs after the Leaflet provider script but before SP Page Builder's
-`window.load` map initialization. It replaces legacy a/b/c subdomains with the
-canonical HTTPS endpoint and adds the full visible attribution. It does nothing
-on pages without Leaflet and does not change other providers.
+`openstreetmap-provider.html` is retained only as an inactive historical snippet.
+Do not insert it into the production theme: its `data-memi-osm-provider` script
+was removed when CARTO was restored. All unrelated CSS and theme changes remain.
 
-Follow https://operations.osmfoundation.org/policies/tiles/: normal browser
+If OpenStreetMap is selected again, follow https://operations.osmfoundation.org/policies/tiles/: normal browser
 caching/referrer, no bulk downloading, offline storage or prefetch. The community
 tile service is best-effort, without an availability guarantee.
