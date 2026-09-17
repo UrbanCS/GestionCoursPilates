@@ -31,5 +31,6 @@ final class MobileThemeContractTest extends TestCase
         self::assertStringContainsString('#sppb-addon-ddd538bd-0f34-4eeb-8823-03a654e4edd9 .sppb-icons-group-list', $css);
         self::assertStringContainsString('justify-content: center', $css);
         self::assertStringContainsString('width: 44px !important', $css);
+        self::assertStringContainsString('body.itemid-113 #sppb-addon-ac4ccc4e-1153-43f9-9c48-f5d7ff1279fb .sppb-icons-group-list', $css);
     }
 }

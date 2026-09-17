@@ -214,18 +214,22 @@ body .btn {
     text-align: center !important;
   }
 
+  body.itemid-113 #sppb-addon-ac4ccc4e-1153-43f9-9c48-f5d7ff1279fb .sppb-icons-group-list,
   #sppb-addon-ddd538bd-0f34-4eeb-8823-03a654e4edd9 .sppb-icons-group-list {
     display: flex;
+    width: 100%;
     justify-content: center;
     align-items: center;
     padding: 0 !important;
     margin: 8px 0 !important;
   }
 
+  body.itemid-113 #sppb-addon-ac4ccc4e-1153-43f9-9c48-f5d7ff1279fb .sppb-icons-group-list li,
   #sppb-addon-ddd538bd-0f34-4eeb-8823-03a654e4edd9 .sppb-icons-group-list li {
     margin: 5px !important;
   }
 
+  body.itemid-113 #sppb-addon-ac4ccc4e-1153-43f9-9c48-f5d7ff1279fb .sppb-icons-group-list li a,
   #sppb-addon-ddd538bd-0f34-4eeb-8823-03a654e4edd9 .sppb-icons-group-list li a {
     display: flex;
     justify-content: center;
