@@ -1,0 +1,12 @@
+<!-- Memi: use the canonical OSM endpoint before SP Page Builder's window.load map initialization. -->
+<script data-memi-osm-provider>
+(function () {
+    'use strict';
+    var leaflet = window.L;
+    var provider = leaflet && leaflet.TileLayer && leaflet.TileLayer.Provider;
+    var osm = provider && provider.providers && provider.providers.OpenStreetMap;
+    if (!osm) return;
+    osm.url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    osm.options.attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+}());
+</script>
