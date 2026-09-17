@@ -36,3 +36,12 @@ was removed when CARTO was restored. All unrelated CSS and theme changes remain.
 If OpenStreetMap is selected again, follow https://operations.osmfoundation.org/policies/tiles/: normal browser
 caching/referrer, no bulk downloading, offline storage or prefetch. The community
 tile service is best-effort, without an availability guarantee.
+
+## Home reservation link
+
+SP Page Builder page 9 (`Accueil`), Button addon
+`2d90e0ca-e7f1-4fbb-9890-fc1397724551` ("RÉSERVEZ VOTRE PLACE DÈS MAINTENANT !"):
+set its URL to `https://memistudio.ca/index.php/horaire-des-cours?mode=week`.
+Do not include a fixed `date` parameter. The schedule defaults to today's date
+in the studio timezone on each request, so the button follows future weeks.
+This link is stored in Joomla's page data, not in the component ZIP.
